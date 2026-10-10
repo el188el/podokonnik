@@ -23,12 +23,13 @@ function lightBad(p){if(!p.zone)return null;const s=sp(p.sp),l=win()[p.zone];ret
 function bestZone(id){const s=sp(id),ok=z=>{const l=win()[z];return l>=s.light[0]&&l<=s.light[1]};const o=s.zone==='glass'?'deep':'glass';return ok(s.zone)?s.zone:ok(o)?o:s.zone}
 function relight(p){const t=now(),b=lightBad(p);
  if(b&&!p.badSince)p.badSince=t;
- if(!b&&p.badSince){if(p.firstWater)p.adj=(p.adj||0)-(t-Math.max(p.badSince,p.firstWater))/2;p.badSince=null}}
-const lightSad=p=>!!p.badSince&&now()-p.badSince>=D;
+ if(!b&&p.badSince){if(p.firstWater)p.adj=(p.adj||0)-Math.max(0,t-Math.max(p.badSince,p.firstWater+SPROUT))/2;p.badSince=null}}
+// первый росток всегда ровно через 2 мин: свет влияет на рост и настроение только после него; грусть от света — примерно через сутки (20 ч)
+const lightSad=p=>!!p.badSince&&!!p.firstWater&&now()-Math.max(p.badSince,p.firstWater+SPROUT)>=20*H;
 // ---- рост: реальное время ± поправки (полутень медленнее, опрыскивание быстрее) ----
-function mistBonus(p,t){if(!p.mistAt||!p.firstWater)return 0;const from=Math.max(p.mistAt,p.firstWater);return Math.max(0,Math.min(t-from,p.mistAt+MIST-from))*.5}
-function growAdj(p){const t=now();let a=p.adj||0;if(p.badSince&&p.firstWater)a-=Math.max(0,t-Math.max(p.badSince,p.firstWater))/2;return a+mistBonus(p,t)}
-function rate(p){let r=1;if(p.badSince)r-=.5;if(p.mistAt&&now()<p.mistAt+MIST)r+=.5;return r}
+function mistBonus(p,t){if(!p.mistAt||!p.firstWater)return 0;const from=Math.max(p.mistAt,p.firstWater+SPROUT);return Math.max(0,Math.min(t-from,p.mistAt+MIST-from))*.5}
+function growAdj(p){const t=now();let a=p.adj||0;if(p.badSince&&p.firstWater)a-=Math.max(0,t-Math.max(p.badSince,p.firstWater+SPROUT))/2;return a+mistBonus(p,t)}
+function rate(p){if(!p.firstWater||now()<p.firstWater+SPROUT)return 1;let r=1;if(p.badSince)r-=.5;if(p.mistAt&&now()<p.mistAt+MIST)r+=.5;return r}
 function stageInfo(p){const s=sp(p.sp);if(!p.firstWater)return{stage:0,next:null};
  const e=now()-(p.firstWater+SPROUT)+growAdj(p),marks=[0,s.stageHours[1]*H,s.stageHours[2]*H];
  let st=0;marks.forEach((m,i)=>{if(e>=m)st=i+1});
