@@ -3,12 +3,13 @@
 <link rel="manifest" href="manifest.webmanifest"><link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png"><link rel="apple-touch-icon" href="icons/apple-touch-icon.png"><meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-title" content="Подоконник">
 <link rel="stylesheet" href="style.css"></head>
 <body><div id="app">
-<header class="sky" id="sky"><div class="sun" id="sun"></div><button id="install" class="install" hidden>📲 Добавить на главный экран</button><h1>Мой подоконник</h1><p id="hint" class="hint"></p><button id="pending" class="pending" hidden></button></header>
-<main class="sill-wrap"><div class="sill" id="sill"></div><div class="board"></div></main>
-<div id="debug" class="debug" hidden><button id="ff">+1 день</button><button id="ff2">+2 мин</button><button id="adult">Взрослые</button><button id="fill">Заполнить</button><button id="reset">Сброс</button></div>
+<header class="sky" id="sky"><div class="sun" id="sun"></div><button id="install" class="install" hidden>📲 Добавить на главный экран</button><h1>Мой подоконник</h1><p id="hint" class="hint"></p><button id="winBtn" class="winbtn">🪟 Окно</button><button id="pending" class="pending" hidden></button></header>
+<main class="sill-wrap"><div class="sillbox"><div class="zl zl-glass">☀️ у стекла</div><div class="zl zl-deep">🛋 в глубине</div><div class="sill" id="sill"></div></div><div class="board"></div></main>
+<div id="debug" class="debug" hidden><button id="ff">+1 день</button><button id="ff2">+2 мин</button><button id="ff12">+12 ч</button><button id="adult">Взрослые</button><button id="cramp">Тесно</button><button id="fill">Заполнить</button><button id="reset">Сброс</button></div>
 </div>
 <div class="modal" id="picker" hidden><div class="sheet"><h2>Выбери первое растение</h2><div class="grid" id="pickGrid"></div></div></div>
 <div class="modal" id="card" hidden><div class="sheet" id="cardBody"></div></div>
+<div class="modal" id="win" hidden><div class="sheet" id="winBody"></div></div>
 <div class="modal" id="gift" hidden><div class="sheet center" id="giftBody"></div></div>
 <div class="toast" id="toast" hidden></div>
 <script src="app.js"></script></body></html>
