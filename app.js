@@ -44,11 +44,12 @@ function render(){sky();hint();const sill=$('sill');
   if(!p){if(b.dataset.sig!=='empty'){b.dataset.sig='empty';b.className='slot';inner.innerHTML='<div class="empty">+</div><div class="name">свободно</div>';delete shown[i]}continue}
   const s=sp(p.sp),st=slotState(p);
   b.classList.toggle('sad',st.sad);b.classList.toggle('wet',st.m>.6);
-  const sig=[p.sp,st.si.stage,st.top,!p.firstWater,!!p.from,p.planted].join('|');
+  const sig=[p.sp,st.si.stage,st.top,!p.firstWater,!!p.from,p.planted,showoffReady(p)&&!p.showoffDone].join('|');
   if(b.dataset.sig!==sig){b.dataset.sig=sig;
    const top={timer:'<div class="timer">🌱 через <span class="tm"></span></div>',thirst:'<div class="bubble">Хочу пить</div>',sad:'<div class="bubble">Мне грустно… 💧</div>',cut:'<div class="bubble">✂️ Черенок готов</div>'}[st.top]||'';
    const prev=shown[i];const grew=prev&&prev.sp===p.sp&&st.si.stage>prev.stage;
-   inner.innerHTML=`${top}${!p.firstWater?'<div class="finger">👆</div>':''}<img class="plant${grew?' grow':''}" src="img/${s.id}-${st.si.stage}.svg" alt="${s.name}"><img class="pot" src="img/pot.svg" alt=""><div class="name">${p.from?'🎁 ':''}${s.name}</div><div class="eta"></div>`;
+   inner.innerHTML=`${top}${!p.firstWater?'<div class="finger">👆</div>':''}<img class="plant${grew?' grow':''}" src="img/${s.id}-${st.si.stage}.svg" alt="${s.name}"><img class="pot" src="img/pot.svg" alt=""><div class="name">${p.from?'🎁 ':''}${s.name}</div><div class="eta"></div>${showoffReady(p)&&!p.showoffDone?'<div class="showoff" role="button">📸 Показать дарителю</div>':''}`;
+   const so=inner.querySelector('.showoff');if(so){['pointerdown','pointerup'].forEach(ev=>so.addEventListener(ev,e=>e.stopPropagation()));so.onclick=e=>{e.stopPropagation();p.showoffDone=true;save();render();showOff(p)}}
    if(grew)toast(st.si.stage===1?'Появился росток! 🌱':st.si.stage===3?'Совсем взрослое! Можно взять черенок ✂️':'Подросло! 🌿');
    shown[i]={sp:p.sp,stage:st.si.stage}}
   const tm=inner.querySelector('.tm');if(tm)tm.textContent=st.timer;inner.querySelector('.eta').textContent=st.eta}}
@@ -79,7 +80,7 @@ function openCard(p){cardP=p;const s=sp(p.sp),si=stageInfo(p),m=moist(p);
  const next=!p.firstWater?'Полей, и через 2 минуты появится росток':si.next?`Следующая стадия через <span id="cnext">${fmt(si.next-now())}</span>`:'Уже взрослое 🌿';
  const drink=!p.lastWater?'Ещё не полито':m<=0?'Хочет пить прямо сейчас':`Захочет пить через ${fmt(m*s.waterDays*D)}`;
  $('cardBody').innerHTML=`<img class="big" src="img/${s.id}-${si.stage}.svg" alt=""><h2>${s.name}</h2>
- ${p.from?`<p class="giftmark">🎁 Подарок, дарит ${esc(p.from)}</p>`:''}
+ ${p.from?`<p class="giftmark">🎁 Подарок, дарит ${esc(p.from)}</p>`:''}${p.from?'<button class="btn soft" id="thanks">Сказать спасибо 🌱</button>':''}${showoffReady(p)?'<button class="btn primary" id="showoff">Показать дарителю, как подросло 📸</button>':''}
  <p>Стадия: <b>${STAGES[si.stage]}</b></p><p class="muted">${next}<br>${drink}</p>
  <ul>${s.facts.map(f=>`<li>${f}</li>`).join('')}</ul>
  ${cutButton(p)}
@@ -87,6 +88,8 @@ function openCard(p){cardP=p;const s=sp(p.sp),si=stageInfo(p),m=moist(p);
  <button class="btn soft" id="remove">Убрать с подоконника</button>
  <button class="btn soft" id="close">Закрыть</button>`;
  $('real').onclick=()=>{$('soon').innerHTML=`<div class="soon"><b>Купить в Батуми:</b> ${s.buy} в частных объявлениях, ${s.extra}. Цену уточняй у продавца.<br><br><b>Бесплатно, за 0 ₾:</b> попроси черенок у знакомых или в чате обмена растений. Как укоренить: ${s.free}</div>`};
+ if($('thanks'))$('thanks').onclick=()=>thank(p.sp);
+ if($('showoff'))$('showoff').onclick=()=>{p.showoffDone=true;save();render();showOff(p)};
  if($('cut'))$('cut').onclick=()=>{p.cutAt=now();p.gift={c:code()};save();render();openSend(p)};
  if($('resend'))$('resend').onclick=()=>openSend(p);
  $('remove').onclick=e=>{const b=e.target;if(!b.dataset.sure){b.dataset.sure=1;b.textContent='Точно убрать? Нажми ещё раз';b.classList.add('warn');return}
@@ -111,6 +114,20 @@ function openSend(p){cardP=null;const s=sp(p.sp);let note=p.gift.note||1;
  $('close').onclick=()=>$('card').hidden=true;$('card').hidden=false}
 async function copy(t){try{await navigator.clipboard.writeText(t);return true}catch(e){}
  try{const a=document.createElement('textarea');a.value=t;a.style.position='fixed';a.style.opacity=0;document.body.appendChild(a);a.select();const ok=document.execCommand('copy');a.remove();return ok}catch(e){return false}}
+const GAME='https://el188el.github.io/podokonnik/';
+async function thank(id){const s=sp(id),text=`${s.poss} уже у меня на подоконнике 🌱 Мой подоконник:`;
+ if(navigator.share){try{await navigator.share({text:text+' '+GAME});return}catch(e){if(e.name==='AbortError')return}}
+ window.open('https://t.me/share/url?url='+encodeURIComponent(GAME)+'&text='+encodeURIComponent(text),'_blank')}
+const showoffReady=p=>!!p.from&&now()-(p.claimedAt||p.planted)>=72*H;
+function loadImg(src){return new Promise((ok,no)=>{const i=new Image();i.onload=()=>ok(i);i.onerror=no;i.src=src})}
+async function plantPng(p){const st=stageInfo(p).stage,c=document.createElement('canvas');c.width=c.height=800;const x=c.getContext('2d');
+ x.fillStyle='#DDF3EC';x.fillRect(0,0,800,800);x.fillStyle='#E9C9A0';x.fillRect(0,700,800,100);
+ const [pl,pot]=await Promise.all([loadImg(`img/${p.sp}-${st}.svg`),loadImg('img/pot.svg')]);
+ x.drawImage(pl,190,70,420,490);x.drawImage(pot,200,540,400,233);
+ return new Promise(r=>c.toBlob(b=>r(b&&new File([b],`podokonnik-${p.sp}.png`,{type:'image/png'})),'image/png'))}
+async function showOff(p){const s=sp(p.sp),text=`Смотри, как ${s.grown} 🌱 Мой подоконник:`;
+ if(navigator.canShare){try{const f=await plantPng(p);if(f&&navigator.canShare({files:[f]})){await navigator.share({files:[f],text:text+' '+GAME});return}}catch(e){if(e.name==='AbortError')return}}
+ window.open('https://t.me/share/url?url='+encodeURIComponent(GAME)+'&text='+encodeURIComponent(text),'_blank')}
 // ---- получение ----
 function parseGift(){if(!Q.has('gift'))return null;
  const g={sp:Q.get('gift'),from:(Q.get('from')||'').trim().slice(0,24),note:+Q.get('note')||0,c:Q.get('c')||''};
@@ -126,9 +143,11 @@ function openGift(g){
  <p class="muted">${newbie?'Это будет твоё первое растение на подоконнике.':full?'':'Посадим его в свободный горшок.'}</p>
  ${full?'<div class="soon">Подоконник занят, освободи место. Подарок никуда не денется, он подождёт.</div><button class="btn primary" id="gok">Понятно</button>':'<button class="btn primary" id="take">Забрать</button>'}`;
  if(full){S.pending={sp:g.sp,from:g.from,note:g.note,c:g.c,ok:true};save();$('gok').onclick=()=>{$('gift').hidden=true;render()}}
- else $('take').onclick=()=>{const slot=freeSlot();S.plants.push({slot,sp:g.sp,planted:now(),from:g.from,gift:null,giftCode:g.c});
-  S.received.push(g.c);if(S.pending&&S.pending.c===g.c)S.pending=null;save();$('gift').hidden=true;render();
-  setTimeout(()=>{const el=$('sill').children[slot];el&&el.scrollIntoView({behavior:'smooth',inline:'center',block:'nearest'})},50);toast('Черенок посажен 🌱 Полей его!')};
+ else $('take').onclick=()=>{const slot=freeSlot();S.plants.push({slot,sp:g.sp,planted:now(),claimedAt:now(),from:g.from,gift:null,giftCode:g.c});
+  S.received.push(g.c);if(S.pending&&S.pending.c===g.c)S.pending=null;save();render();
+  $('giftBody').innerHTML=`<div class="gicon">🌱</div><h2>Черенок посажен!</h2><p class="muted">Полей его, и скоро появится росток. Даритель: ${esc(g.from)}. Скажи спасибо!</p><button class="btn primary" id="thanks">Сказать спасибо 🌱</button><button class="btn soft" id="gok">На подоконник</button>`;
+  $('thanks').onclick=()=>thank(g.sp);$('gok').onclick=()=>{$('gift').hidden=true;render()};
+  setTimeout(()=>{const el=$('sill').children[slot];el&&el.scrollIntoView({behavior:'smooth',inline:'center',block:'nearest'})},50);};
  $('gift').hidden=false}
 $('pending').onclick=()=>S.pending&&openGift(S.pending);
 $('card').onclick=e=>{if(e.target.id==='card')$('card').hidden=true};

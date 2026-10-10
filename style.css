@@ -59,3 +59,4 @@ h1{margin:0;font-size:24px}.hint{margin:8px auto 0;max-width:320px;font-size:15p
 .sky{padding-top:54px}
 .toast{pointer-events:none}
 .bubble,.timer{white-space:nowrap;top:-16px;z-index:1}
+.slot .showoff{margin-top:6px;background:#fff;color:#2F8A55;border:2px solid #7CCB7A;border-radius:999px;padding:7px 10px;font-size:12px;font-weight:600;white-space:nowrap;min-height:34px;display:flex;align-items:center}
