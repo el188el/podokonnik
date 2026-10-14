@@ -1,0 +1,177 @@
+// Общие типы игры. Всё состояние — простой JSON: его легко хранить
+// локально, в Telegram CloudStorage и (на следующем этапе) на сервере.
+
+export type Zone = 'glass' | 'deep';
+export type WindowSide = 'N' | 'E' | 'S' | 'W';
+export type Mist = 'love' | 'ok' | 'no';
+export type Overwater = 'sensitive' | 'normal' | 'tolerant';
+/** 1 — неубиваемые, 2 — с характером, 3 — для опытных */
+export type Difficulty = 1 | 2 | 3;
+
+/**
+ * Стадии: 0 — черенок в стакане с водой, 1 — пустил корни (пора сажать),
+ * 2 — росток, 3 — молодое, 4 — взрослое.
+ */
+export type Stage = 0 | 1 | 2 | 3 | 4;
+
+export type ArtKind =
+  | 'grass' | 'trail' | 'heartTrail' | 'blades' | 'dracaena' | 'aloe' | 'rosette'
+  | 'crassula' | 'kalanchoe' | 'zamioculcas' | 'monstera' | 'ficus'
+  | 'spathiphyllum' | 'anthurium' | 'geranium' | 'decembrist' | 'orchid' | 'hibiscus';
+
+export interface ArtSpec {
+  kind: ArtKind;
+  leaf: string;      // основной цвет листа
+  leaf2?: string;    // второй цвет: пестролистность, полосы, кайма
+  flower?: string;   // цвет цветка (если цветёт)
+}
+
+export interface Bloom {
+  /** месяцы цветения (1–12); если не задано — цветёт круглый год при хорошем уходе */
+  months?: number[];
+  /** нужен зимний покой (декабрист): осенью меньше полива и в глубине комнаты */
+  needsRest?: boolean;
+}
+
+export interface Species {
+  id: string;
+  name: string;
+  folk?: string;        // народное имя: «щучий хвост», «женское счастье»
+  latin: string;
+  difficulty: Difficulty;
+  unlockLevel: number;
+  price: number;        // цена черенка в магазине, в листиках
+  waterDays: number;    // как часто поливать
+  drought: number;      // сколько дней после пересыхания терпит без вреда
+  overwater: Overwater; // как переносит перелив
+  light: [number, number]; // комфортный свет, 1 (тень) … 4 (прямое солнце)
+  zone: Zone;           // где обычно лучше
+  mist: Mist;
+  rootMin: number;      // минут до корней в стакане
+  stageHours: [number, number]; // часов роста: росток → молодое, молодое → взрослое
+  repotDays: number;    // дней во взрослом виде до «тесно в горшке»
+  cutHours: number;     // перерыв между черенками
+  bloom?: Bloom;
+  art: ArtSpec;
+  speed: string;        // «быстро» / «средне» / «медленно» — для игрока
+  gen: string;          // род. падеж: «черенок монстеры»
+  acc: string;          // вин. падеж: «подарить монстеру»
+  facts: string[];
+  mistTip: string;
+  care: string;         // коротко про уход по-настоящему
+  buy: string;          // сколько стоит в России
+  free: string;         // как получить бесплатно / укоренить
+}
+
+export interface Plant {
+  id: string;
+  sp: string;
+  sill: string;
+  slot: number;
+  zone: Zone;
+  nick?: string;
+  pot: string;          // скин горшка
+  bigPot: boolean;      // пересажено в горшок L
+  createdAt: number;
+  quick?: boolean;      // первый черенок и подарки укореняются за 2 минуты
+  rootStart?: number;   // когда налили воду в стакан
+  plantedAt?: number;   // когда посадили в грунт
+  stage: Stage;
+  growth: number;       // накопленный «эффективный» рост в часах с посадки
+  moisture: number;     // 0…1.4 (выше 1 — перелив)
+  dryFor: number;       // часов подряд с сухой землёй
+  badLightFor: number;  // часов подряд с неподходящим светом
+  health: number;       // 0…100
+  mistUntil?: number;
+  feedUntil?: number;   // подкормка
+  adultAt?: number;
+  repottedAt?: number;
+  lastCut?: number;
+  rest: number;         // часов зимнего покоя (для декабриста)
+  blooming: boolean;
+  bloomedOnce?: boolean;
+  lowestHealth: number; // для достижения «Спасатель»
+  from?: { name: string; note: number; code: string };
+  claimedAt?: number;
+  showoffDone?: boolean;
+}
+
+export interface Sill {
+  id: string;
+  name: string;
+  window: WindowSide | null;
+  decor: string[];      // id расставленного декора
+}
+
+export interface Cutting {
+  id: string;
+  sp: string;
+  at: number;
+  fromPlant?: string;
+}
+
+export interface PendingGift {
+  sp: string;
+  from: string;
+  note: number;
+  code: string;
+}
+
+export interface QuestState {
+  id: string;
+  kind: QuestKind;
+  target: number;
+  progress: number;
+  reward: number;
+  claimed: boolean;
+}
+
+export type QuestKind =
+  | 'water' | 'mist' | 'cut' | 'plant' | 'gift' | 'fixLight' | 'buy' | 'repot' | 'feed' | 'visitHerbarium';
+
+export interface Stats {
+  waters: number;
+  mists: number;
+  cuts: number;
+  giftsSent: number;
+  giftsGot: number;
+  planted: number;
+  repots: number;
+  adults: number;
+  blooms: number;
+  rescues: number;
+  neighbor: number;
+  bought: number;
+  questsDone: number;
+  nightWater: number;
+}
+
+export interface GameState {
+  v: number;
+  createdAt: number;
+  simAt: number;       // до какого момента досчитана симуляция
+  lastSeen: number;    // для экрана «Пока тебя не было»
+  offset: number;      // перемотка времени в режиме отладки
+  name: string;
+  xp: number;
+  level: number;
+  leaves: number;      // мягкая валюта «листики»
+  sills: Sill[];
+  activeSill: string;
+  plants: Plant[];
+  cuttings: Cutting[];
+  owned: Record<string, number>; // купленные товары: горшки, декор, расходники
+  discovered: string[]; // виды, открытые в гербарии
+  grownAdult: string[]; // виды, выращенные до взрослого
+  achievements: string[];
+  received: string[];  // коды подарков, которые уже забраны
+  pending: PendingGift[];
+  sent: { code: string; sp: string; at: number }[];
+  stats: Stats;
+  neighbor: { until: number; cooldownUntil: number } | null;
+  streak: { day: string; count: number; best: number; claimedDay: string };
+  quests: { day: string; list: QuestState[]; bonusClaimed: boolean };
+  log: { at: number; text: string }[];
+  settings: { sound: boolean; haptics: boolean; quietFrom: number; quietTo: number };
+  tutorial: number;
+}
