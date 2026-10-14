@@ -120,3 +120,10 @@ Deno.test('напоминание: календарь ухода 1-го числ
   assert(r?.text.includes('Декабрист'));
   assertEquals(pickReminder(s, Date.UTC(2026, 9, 2, 9), 180, Date.UTC(2026, 9, 2, 8)), null);
 });
+
+Deno.test('оплата: стартовый пакет и подарочная подписка', async () => {
+  const { parsePayload } = await import('../functions/_shared/payload.ts');
+  const id = '00000000-0000-4000-8000-000000000001';
+  assertEquals(parsePayload(`starter|${id}`)?.product.once, true);
+  assertEquals(parsePayload(`plus_gift|${id}`)?.product.kind, 'plus_gift');
+});

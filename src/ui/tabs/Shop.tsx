@@ -5,7 +5,9 @@ import { DIFFICULTY_LABEL, SPECIES } from '../../game/species';
 import { FORM_BY_ID, PRODUCTS } from '../../game/products';
 import { fmt } from '../../game/sim';
 import { activeEvent } from '../../game/events';
-import { adsLeft, buyItem, buySpecies, buyStars, isPlus, now, openSheet, unlockSill, useStore, watchAd } from '../../game/store';
+import { adsLeft, boxReady, buyItem, buySpecies, buyStars, isPlus, now, openBox, openSheet, unlockSill, useStore, watchAd } from '../../game/store';
+import { BOX_PRICE } from '../../game/box';
+import { sharePlusGift } from '../share';
 import { adsAvailable } from '../../net/ads';
 import { tgAppLink } from '../../config';
 import { platform } from '../../platform';
@@ -32,6 +34,16 @@ export function Shop() {
       <div className="tab-head">
         <h1>Магазин</h1>
         <Leaves n={g.leaves} />
+      </div>
+      <div className={'box-card' + (boxReady(g) ? ' ready' : '')}>
+        <span className="box-icon">🎁</span>
+        <div>
+          <b>Ящик-сюрприз</b>
+          <span className="muted small">Раз в день: листики, подкормки, горшки, декор — и шанс на редкий черенок ✨</span>
+        </div>
+        <Btn small kind={boxReady(g) ? 'gold' : 'soft'} disabled={!boxReady(g) || g.leaves < BOX_PRICE} onClick={openBox}>
+          {boxReady(g) ? `${BOX_PRICE} 🍃` : 'завтра'}
+        </Btn>
       </div>
       <div className="chips scroll">
         {CATS.map(([k, v]) => (
@@ -144,6 +156,21 @@ function StarsShop() {
         </div>
       )}
 
+      {!g.starterPack && (
+        <div className="plus-card starter-pack">
+          <div className="plus-head">🎁 <b>Стартовый пакет</b> <span className="sale">−65%</span></div>
+          <div className="starter-row">
+            <PlantArt sp="monstera" form="albo" stage={3} seed="pack" pot="khokhloma" />
+            <ul>
+              <li>✨ Редкий черенок «Монстера Альбо»</li>
+              <li>❤️ Горшок «Хохлома»</li>
+              <li>🍃 300 листиков</li>
+            </ul>
+          </div>
+          <Btn kind="gold" disabled={busy === 'starter'} onClick={() => buy('starter')}>Забрать · 49 ⭐ · один раз</Btn>
+        </div>
+      )}
+
       <div className="plus-card">
         <div className="plus-head">🌟 <b>Садовник+</b>{plus && <span className="owned">активен ещё {fmt(Math.max(g.plusUntil ?? 0, t) - t)}</span>}</div>
         <ul>
@@ -156,6 +183,13 @@ function StarsShop() {
           {plus ? 'Продлить' : 'Подключить'} · {plusP.stars} ⭐ в месяц
         </Btn>
         <p className="muted small center">Продлевается раз в 30 дней, отменить можно в любой момент в настройках Telegram.</p>
+        <Btn kind="soft" disabled={busy === 'plus_gift'} onClick={() => buy('plus_gift')}>🎁 Подарить месяц другу · 99 ⭐</Btn>
+        {(g.plusGifts ?? []).map((x) => (
+          <div key={x.code} className="gift-code">
+            <span className="small">🎁 Подарок «Садовник+» {x.sent ? '· ссылка отправлена' : '· ждёт отправки'}</span>
+            <Btn small kind={x.sent ? 'ghost' : 'primary'} onClick={() => sharePlusGift(x.code)}>{x.sent ? 'Ещё раз' : 'Отправить'}</Btn>
+          </div>
+        ))}
       </div>
 
       {activeEvent(t) && (

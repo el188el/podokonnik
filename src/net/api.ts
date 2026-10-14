@@ -252,3 +252,6 @@ export const contestVote = (target: string) => call<{ status: 'ok' | 'dup' | 'li
 
 /** Загрузить картинку для сторис — вернётся публичная ссылка. */
 export const storyUpload = (image: string) => call<{ url: string }>('/story', { image }, { timeout: 20e3 });
+
+/** Забрать подарочную подписку по коду. */
+export const plusClaim = (code: string) => call<{ status: 'ok' | 'gone' | 'own' | 'dup' | 'taken'; from?: string; plusUntil?: number }>('/plus/claim', { code });

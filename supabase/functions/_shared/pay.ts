@@ -62,12 +62,32 @@ export async function grant(paid: Paid) {
   } else if (product.kind === 'pass') {
     await db.from('inbox').insert({ player_id: playerId, kind: 'purchase', payload: { product: product.id } });
     text = '🎟 Сезонный пропуск открыт! Забирай награды платной ветки в игре.';
+  } else if (product.kind === 'starter') {
+    const f = product.form ? FORM_BY_ID[product.form] : undefined;
+    await db.from('inbox').insert({ player_id: playerId, kind: 'purchase', payload: { product: product.id, leaves: product.leaves, form: f?.id, sp: f?.sp, item: product.item } });
+    text = '🎁 Стартовый пакет уже на подоконнике: редкий черенок, горшок «Хохлома» и 300 листиков. Удачи в саду!';
+  } else if (product.kind === 'plus_gift') {
+    const code = giftCode();
+    await db.from('plus_gifts').insert({ code, buyer: playerId, charge_id: paid.chargeId });
+    await db.from('inbox').insert({ player_id: playerId, kind: 'plus_gift', payload: { code } });
+    text = `🎁 Подарок готов! Перешли другу эту ссылку — по ней он получит месяц «Садовник+»:\n${appLink('p' + code)}`;
   } else if (product.kind === 'form' && product.form) {
     const f = FORM_BY_ID[product.form];
     await db.from('inbox').insert({ player_id: playerId, kind: 'purchase', payload: { product: product.id, form: f.id, sp: f.sp } });
     text = `✨ Черенок «${f.name}» ждёт в запасе. Поставь его в воду — или подари другу!`;
   }
   if (text) await send(paid.chatId, text, { text: '🪴 Открыть подоконник', url: appLink() });
+}
+
+function giftCode() {
+  const abc = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789';
+  return Array.from(crypto.getRandomValues(new Uint8Array(12)), (x) => abc[x % abc.length]).join('');
+}
+
+/** Одноразовый товар уже куплен? */
+export async function alreadyBought(playerId: string, productId: string) {
+  const { count } = await db.from('purchases').select('charge_id', { count: 'exact', head: true }).eq('player_id', playerId).eq('product', productId).eq('refunded', false);
+  return (count ?? 0) > 0;
 }
 
 export async function markRefunded(chargeId: string) {

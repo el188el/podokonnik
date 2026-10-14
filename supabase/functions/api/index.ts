@@ -8,8 +8,8 @@ import { publicView, thirstyCount, VISIT_DAY_LIMIT, VISIT_HOST_LIMIT, VISIT_REWA
 import { sp as species } from '../_shared/game/species.ts';
 import type { GameState } from '../_shared/game/types.ts';
 import { CORS, fail, json } from '../_shared/http.ts';
-import { invoiceLink } from '../_shared/pay.ts';
-import { PRODUCT_BY_ID } from '../_shared/game/products.ts';
+import { alreadyBought, invoiceLink } from '../_shared/pay.ts';
+import { PLUS_DAYS, PRODUCT_BY_ID } from '../_shared/game/products.ts';
 import { activeEvent } from '../_shared/game/events.ts';
 import { FORM_BY_ID } from '../_shared/game/products.ts';
 import { hueOf } from '../_shared/game/breeding.ts';
@@ -605,11 +605,31 @@ async function storyUpload(playerId: string, b: Body) {
   return json({ url: pub.publicUrl });
 }
 
+// ─────────────────── подарочная подписка ───────────────────
+async function plusClaim(playerId: string, b: Body) {
+  const code = str(b.code, 16);
+  if (!/^[A-Za-z0-9]{12}$/.test(code)) return json({ status: 'gone' });
+  const { data: g } = await db.rpc('claim_plus_gift', { p_code: code, p_player: playerId });
+  if (!g?.code) {
+    const { data: row } = await db.from('plus_gifts').select('buyer, claimed_by').eq('code', code).maybeSingle();
+    return json({ status: !row ? 'gone' : row.buyer === playerId ? 'own' : row.claimed_by === playerId ? 'dup' : 'taken' });
+  }
+  const { data: until } = await db.rpc('extend_plus', { p_player: playerId, p_days: PLUS_DAYS, p_until: null });
+  const plusUntil = Date.parse(String(until));
+  const me = await playerName(playerId);
+  await db.from('inbox').insert({ player_id: playerId, kind: 'purchase', payload: { product: 'plus', plusUntil } });
+  await befriend(playerId, g.buyer, me, true).catch(() => false);
+  const { data: buyer } = await db.from('players').select('tg_id, name').eq('id', g.buyer).maybeSingle();
+  if (buyer?.tg_id) await send(buyer.tg_id, `🌟 ${escHtml(me)} получил(а) твой подарок — месяц «Садовник+». Спасибо за щедрость!`);
+  return json({ status: 'ok', from: buyer?.name || 'Друг', plusUntil });
+}
+
 // ─────────────────── оплата ───────────────────
 async function payInvoice(playerId: string, b: Body) {
   const product = PRODUCT_BY_ID[str(b.product, 40)];
   if (!product) return fail('bad_product');
   if (product.kind === 'pass' && !activeEvent(Date.now())) return fail('no_event');
+  if (product.once && (await alreadyBought(playerId, product.id))) return fail('already');
   const { data: me } = await db.from('players').select('tg_id').eq('id', playerId).single();
   if (!me?.tg_id) return fail('telegram_only', 403);
   const link = await invoiceLink(product, playerId);
@@ -653,6 +673,7 @@ Deno.serve(async (req) => {
       case '/contest/enter': return await contestEnter(playerId, body);
       case '/contest/vote': return await contestVote(playerId, body);
       case '/story': return await storyUpload(playerId, body);
+      case '/plus/claim': return await plusClaim(playerId, body);
       default: return fail('not_found', 404);
     }
   } catch (e) {

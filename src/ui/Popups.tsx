@@ -7,7 +7,10 @@ import { sp } from '../game/species';
 import { achievementById, claimGift, claimGiftOnline, claimStreak, closePopup, freeSlot, popup, toast, useStore } from '../game/store';
 import { PlantArt } from './art/PlantArt';
 import { Btn, Modal } from './kit/kit';
-import { shareThanks } from './share';
+import { sharePlusGift, shareThanks } from './share';
+import type { BoxPrize } from '../game/box';
+import { FORM_BY_ID } from '../game/products';
+import { ITEM_BY_ID } from '../game/shop';
 import { sharePlantStory } from './story';
 import { AGE_MARKS, daysText } from '../game/age';
 
@@ -99,6 +102,16 @@ export function Popups() {
           </div>
         );
       })()}
+      {p?.kind === 'plusGift' && (
+        <div className="center">
+          <div className="gicon">🎁</div>
+          <h2>Подарок готов!</h2>
+          <p>Отправь ссылку другу — по ней он получит месяц «Садовник+» 🌟</p>
+          <Btn kind="gold" onClick={async () => { await sharePlusGift(p.code); closePopup(); }}>Отправить другу</Btn>
+          <Btn kind="ghost" onClick={closePopup}>Позже (ссылка будет в магазине)</Btn>
+        </div>
+      )}
+      {p?.kind === 'box' && <BoxReveal prize={p.prize} />}
       {p?.kind === 'contest' && (
         <div className="center">
           <motion.div className="gicon" initial={{ scale: 0.3, rotate: -20 }} animate={{ scale: 1, rotate: 0 }}>{['🥇', '🥈', '🥉'][p.place - 1] ?? '🏆'}</motion.div>
@@ -187,3 +200,28 @@ function GiftCard({ gift, full }: { gift: PendingGift & { ok: boolean }; full: b
   );
 }
 
+
+function BoxReveal({ prize }: { prize: BoxPrize }) {
+  const f = prize.kind === 'form' ? FORM_BY_ID[prize.id] : undefined;
+  const it = prize.kind === 'item' ? ITEM_BY_ID[prize.id] : undefined;
+  return (
+    <div className="center">
+      <motion.div className="gicon" initial={{ scale: 0.4, rotate: -25 }} animate={{ scale: [0.4, 1.25, 1], rotate: [-25, 10, 0] }} transition={{ duration: 0.7 }}>
+        {prize.kind === 'leaves' ? '🍃' : prize.kind === 'feed' ? '🧪' : it ? it.icon : '✨'}
+      </motion.div>
+      <p className="muted small">В ящике-сюрпризе…</p>
+      {f && (
+        <div className="postcard big2 gold-frame"><PlantArt sp={f.sp} form={f.id} stage={0} /></div>
+      )}
+      <h2>
+        {prize.kind === 'leaves' && `+${prize.n} листиков`}
+        {prize.kind === 'feed' && `Подкормка ×${prize.n}`}
+        {it && it.name}
+        {f && `Редкий черенок «${f.name}»!`}
+      </h2>
+      {it && <p className="muted">{it.desc} Уже в коллекции.</p>}
+      {f && <p className="muted">Он в запасе — поставь в воду или подари.</p>}
+      <Btn kind="primary" onClick={closePopup}>Здорово!</Btn>
+    </div>
+  );
+}

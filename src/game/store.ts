@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import * as api from '../net/api';
 import { ADS_PER_DAY, showRewardedAd } from '../net/ads';
 import { track } from '../net/track';
+import { CONFIG, tgAppLink } from '../config';
 import { fetchWeather } from '../net/weather';
 import { compress, deletePhoto, savePhoto } from '../net/photos';
 import { photoReward, pushPhoto } from './twins';
@@ -12,11 +13,12 @@ import { platform } from '../platform';
 import { ACHIEVEMENTS, checkAchievements } from './achievements';
 import { freshAgeMarks } from './age';
 import { CARE_TASK_REWARD } from './calendar';
+import { BOX_PRICE, rollBox, type BoxPrize } from './box';
 import { SHELVES, shelfDone } from './album';
 import { D, FEED_MS, H, HANG_SLOTS, MAX_CUTTINGS, MIST_MS, NEIGHBOR_COOLDOWN, NEIGHBOR_FREE_DAYS, SLOTS, STAGE_NAME } from './constants';
 import { giftLink, makeCode } from './gifts';
 import { XP, levelReward, unlocksAt, xpToNext, SILL_UNLOCK } from './progression';
-import { QUEST_BONUS, WEEKLY_CHEST, bumpQuest, bumpWeekly, rollDay, rollWeek, streakReward, weeklyVisit } from './quests';
+import { QUEST_BONUS, WEEKLY_CHEST, dayKey, bumpQuest, bumpWeekly, rollDay, rollWeek, streakReward, weeklyVisit } from './quests';
 import { ITEM_BY_ID, ITEMS, placeOf, potIdOf } from './shop';
 import { advance, badLight, bestZone, canCut, cramped, ctxFor, hasLamp, type SimEvent } from './sim';
 import { activeEvent, EVENT_TOKENS, eventSeason, tierOf, type GameEvent, type PassReward } from './events';
@@ -39,6 +41,8 @@ export type Popup =
   | { kind: 'thanks'; sp: string; from: string }
   | { kind: 'age'; plant: string; days: number }
   | { kind: 'contest'; place: number; leaves: number }
+  | { kind: 'plusGift'; code: string }
+  | { kind: 'box'; prize: BoxPrize }
   | { kind: 'migrated' };
 
 export interface AwayReport {
@@ -386,6 +390,13 @@ function applyInbox(items: api.InboxItem[]) {
           g.plusUntil = Math.max(g.plusUntil ?? 0, Number(it.payload.plusUntil) || 0);
           g.owned.pot_gold = 1;
           toast('🌟 «Садовник+» включён! Золотой горшок уже в коллекции');
+        } else if (pr?.kind === 'starter') {
+          g.starterPack = true;
+          g.leaves += pr.leaves ?? 0;
+          if (pr.item) g.owned[pr.item] = 1;
+          const f = pr.form ? FORM_BY_ID[pr.form] : undefined;
+          if (f) { g.cuttings.push({ id: makeCode(8), sp: f.sp, form: f.id, at: Date.now() }); discover(g, f.sp); }
+          toast('🎁 Стартовый пакет: редкий черенок, горшок и 300 🍃 — уже у тебя!');
         }
         haptic('success');
       } else if (it.kind === 'swap_got' || it.kind === 'swap_return') {
@@ -397,6 +408,11 @@ function applyInbox(items: api.InboxItem[]) {
           discover(g, spId);
           toast(it.kind === 'swap_return' ? `Черенок ${sp(spId).gen} вернулся с барахолки` : `🔄 ${String(it.payload.from ?? 'Садовник')}: черенок ${sp(spId).gen} пришёл по обмену!`);
         }
+      } else if (it.kind === 'plus_gift') {
+        const code = String(it.payload.code ?? '');
+        if (code && !(g.plusGifts ?? []).some((x) => x.code === code)) g.plusGifts = [...(g.plusGifts ?? []), { code, at: Date.now() }];
+        popup({ kind: 'plusGift', code });
+        haptic('success');
       } else if (it.kind === 'contest_win') {
         const leaves = Number(it.payload.leaves) || 0;
         g.leaves += leaves;
@@ -1701,4 +1717,49 @@ export function doCareTask(key: string) {
     haptic('light');
     toast(`📅 Отмечено! +${CARE_TASK_REWARD} 🍃`);
   });
+}
+
+// ─────────────────── ящик-сюрприз и подарочная подписка ───────────────────
+export const boxReady = (g: GameState, t = now()) => g.box !== dayKey(t);
+
+export function openBox() {
+  mut((g, t) => {
+    if (!boxReady(g, t)) { toast('Ящик-сюрприз открывается раз в день — приходи завтра 🎁'); return; }
+    if (g.leaves < BOX_PRICE) { toast(`Нужно ${BOX_PRICE} 🍃`); return; }
+    g.leaves -= BOX_PRICE;
+    g.box = dayKey(t);
+    const prize = rollBox(g, Math.random);
+    if (prize.kind === 'leaves') g.leaves += prize.n;
+    else if (prize.kind === 'feed') g.owned.feed = (g.owned.feed ?? 0) + prize.n;
+    else if (prize.kind === 'item') g.owned[prize.id] = 1;
+    else if (prize.kind === 'form') {
+      const f = FORM_BY_ID[prize.id];
+      if (g.cuttings.length < MAX_CUTTINGS) { g.cuttings.push({ id: makeCode(8), sp: f.sp, form: f.id, at: t }); discover(g, f.sp); }
+      else g.leaves += 150;
+    }
+    track('box', { prize: prize.kind });
+    haptic(prize.kind === 'form' ? 'success' : 'light');
+    popup({ kind: 'box', prize });
+  });
+}
+
+export const plusGiftLink = (code: string) => tgAppLink('p' + code) || `${CONFIG.siteUrl}?start=p${code}`;
+
+export function markPlusGiftSent(code: string) {
+  mut((g) => { const x = g.plusGifts?.find((y) => y.code === code); if (x) x.sent = true; });
+}
+
+export async function claimPlusGift(code: string) {
+  try {
+    const r = await api.plusClaim(code);
+    if (r.status === 'ok') {
+      track('plus_gift_claim');
+      toast(`🌟 ${r.from ?? 'Друг'} подарил(а) тебе месяц «Садовник+»!`);
+      pushNow();
+    } else {
+      toast(r.status === 'own' ? 'Это твой подарок — отправь ссылку другу 🎁' : r.status === 'dup' ? 'Этот подарок уже у тебя 🌟' : r.status === 'taken' ? 'Этот подарок уже кто-то забрал' : 'Подарок не найден');
+    }
+  } catch {
+    toast('Не получилось забрать подарок. Проверь интернет');
+  }
 }

@@ -3,7 +3,7 @@ import { CONFIG, tgAppLink } from '../config';
 import { playerId } from '../net/api';
 import { NOTES } from '../game/constants';
 import { sp } from '../game/species';
-import { setShowoffDone, toast } from '../game/store';
+import { markPlusGiftSent, plusGiftLink, setShowoffDone, toast } from '../game/store';
 import type { PendingGift, Plant, Twin } from '../game/types';
 import { platform } from '../platform';
 import { PlantArt } from './art/PlantArt';
@@ -117,4 +117,11 @@ export async function shareBeforeAfter(tw: Twin, a: { id: string; at: number }, 
   const days = Math.max(1, Math.round((b.at - a.at) / 86400e3));
   const r = await platform().share({ text: `${tw.nick}: было и стало за ${days} дн. 🌿 Слежу за своими растениями в «Подоконнике»`, url: gameLink(), files: file ? [file] : undefined });
   report(r);
+}
+
+/** Отправить другу ссылку на подарочную подписку. */
+export async function sharePlusGift(code: string) {
+  const r = await platform().share({ text: 'Дарю тебе месяц «Садовник+» в игре «Подоконник» 🌟 Забирай по ссылке:', url: plusGiftLink(code) });
+  report(r);
+  if (r !== 'fail' && r !== 'cancel') markPlusGiftSent(code);
 }

@@ -216,6 +216,9 @@ export interface GameState {
   bloomed?: string[];   // виды, которые цвели у игрока
   shelves?: string[];   // забранные награды полок альбома
   calendar?: { month: string; done: string[] }; // отмеченные дела календаря ухода
+  starterPack?: boolean; // стартовый пакет куплен
+  plusGifts?: { code: string; at: number; sent?: boolean }[]; // купленные подписки в подарок
+  box?: string;          // день, когда открывали ящик-сюрприз
   tutorial: number;
 }
 

@@ -3,7 +3,7 @@ import { useEffect } from 'react';
 import { D, H, MIN } from '../game/constants';
 import { decodeGift, legacyGift } from '../game/gifts';
 import { xpToNext } from '../game/progression';
-import { debug, joinCoop, openSheet, setTab, showGift, toast, useStore, type Tab } from '../game/store';
+import { claimPlusGift, debug, joinCoop, openSheet, setTab, showGift, toast, useStore, type Tab } from '../game/store';
 import { loggedIn, playerId } from '../net/api';
 import { platform } from '../platform';
 import { Safe } from './kit/kit';
@@ -44,6 +44,12 @@ export function App() {
     } else if (g.pending.length) showGift({ ...g.pending[0], ok: true });
     const start = platform().startParam ?? q.get('start') ?? '';
     if (/^v[0-9a-f-]{36}$/.test(start) && start.slice(1) !== playerId()) openSheet({ kind: 'visit', id: start.slice(1), name: 'друга' });
+    if (/^p[A-Za-z0-9]{12}$/.test(start)) {
+      const code = start.slice(1);
+      let tries = 0;
+      const go = () => (loggedIn() ? claimPlusGift(code) : ++tries < 20 ? setTimeout(go, 500) : toast('Подарок можно забрать, когда есть интернет'));
+      go();
+    }
     if (/^c[A-Za-z0-9]{10}$/.test(start)) {
       // вход на сервер идёт параллельно — ждём токен и вступаем
       const code = start.slice(1);

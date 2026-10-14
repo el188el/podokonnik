@@ -580,3 +580,17 @@ svg.big.sad { filter: sepia(0.6) saturate(0.6); }
 .care-cal { margin-top: 10px; }
 .care-task { display: flex; gap: 8px; align-items: flex-start; width: 100%; text-align: left; background: var(--soft); border: 0; border-radius: 12px; padding: 8px 10px; margin: 0 0 6px; font: inherit; font-size: 13px; color: inherit; cursor: pointer; }
 .care-task.done { opacity: 0.6; }
+
+/* ящик-сюрприз и стартовый пакет */
+.box-card { display: flex; align-items: center; gap: 10px; background: #fff; border-radius: 18px; padding: 10px 12px; margin: 0 0 10px; box-shadow: 0 2px 0 var(--line); }
+.box-card.ready { background: linear-gradient(90deg, #fff4d6, #fff); }
+.box-card > div { flex: 1; display: flex; flex-direction: column; min-width: 0; }
+.box-icon { font-size: 32px; }
+.box-card.ready .box-icon { animation: wiggle 2.4s ease-in-out infinite; }
+@keyframes wiggle { 0%, 80%, 100% { transform: rotate(0); } 85% { transform: rotate(-12deg); } 90% { transform: rotate(10deg); } 95% { transform: rotate(-6deg); } }
+.starter-pack { background: linear-gradient(#fff6e0, #fff); }
+.starter-row { display: flex; align-items: center; gap: 8px; }
+.starter-row svg { width: 90px; height: 130px; flex: none; }
+.starter-row ul { margin: 0; padding-left: 4px; list-style: none; font-size: 14px; line-height: 1.6; }
+.sale { background: #e0574f; color: #fff; border-radius: 8px; padding: 1px 6px; font-size: 12px; margin-left: 6px; }
+.gift-code { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-top: 6px; }

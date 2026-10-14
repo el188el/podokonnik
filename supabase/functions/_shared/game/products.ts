@@ -34,7 +34,7 @@ export const formsOf = (spId: string) => FORMS.filter((f) => f.sp === spId);
 /** Шанс, что обычный черенок окажется редкой формой. */
 export const RARE_DROP = 0.03;
 
-export type ProductKind = 'plus' | 'leaves' | 'form' | 'pass';
+export type ProductKind = 'plus' | 'leaves' | 'form' | 'pass' | 'starter' | 'plus_gift';
 
 export interface Product {
   id: string;
@@ -44,6 +44,8 @@ export interface Product {
   desc: string;
   leaves?: number;
   form?: string;
+  item?: string;  // предмет магазина в наборе
+  once?: boolean; // купить можно только один раз
 }
 
 export const PLUS_DAYS = 30;
@@ -59,6 +61,14 @@ export const PRODUCTS: Product[] = [
   {
     id: 'pass', kind: 'pass', stars: 149, title: 'Сезонный пропуск',
     desc: 'Платная ветка наград текущего ивента: эксклюзивный горшок, декор, листики, подкормки и редкая форма.',
+  },
+  {
+    id: 'starter', kind: 'starter', stars: 49, once: true, leaves: 300, form: 'albo', item: 'pot_khokhloma', title: 'Стартовый пакет',
+    desc: 'Один раз и с большой скидкой: редкий черенок «Монстера Альбо», горшок «Хохлома» и 300 листиков.',
+  },
+  {
+    id: 'plus_gift', kind: 'plus_gift', stars: 99, title: 'Садовник+ в подарок',
+    desc: 'Месяц «Садовник+» для друга. Пришлём ссылку-подарок — отправь её кому захочешь.',
   },
   ...FORMS.filter((f) => !f.event).map((f): Product => ({
     id: `form_${f.id}`, kind: 'form', form: f.id, stars: f.sp === 'monstera' || f.sp === 'ficus' ? 75 : 50,
