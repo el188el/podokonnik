@@ -4,6 +4,7 @@ import { canCut } from '../_shared/game/sim.ts';
 import { replayFriendWaters, type FriendWater } from '../_shared/game/social.ts';
 import { sp } from '../_shared/game/species.ts';
 import type { GameState } from '../_shared/game/types.ts';
+import { MONTH_IN, monthHeadline } from '../_shared/game/calendar.ts';
 
 export interface Reminder {
   text: string;
@@ -35,6 +36,13 @@ export function pickReminder(state: GameState, now: number, tzOffsetMin: number,
     const acc = sp(t.sp).acc;
     const adj = /[ую]$/.test(acc) ? 'ую' : /[эео]$/.test(acc) ? 'ее' : 'ий';
     return { text: `🏠 Пора полить настоящ${adj} ${acc} «${t.nick}»${more} 💧 Потом отметь полив в игре`, button: '💧 Отметить полив' };
+  }
+  // раз в месяц, 1-го числа днём — главное дело календаря ухода
+  const local = new Date(now + tzOffsetMin * 60e3);
+  if ((state.twins ?? []).length && local.getUTCDate() === 1 && local.getUTCHours() >= 11) {
+    const m = local.getUTCMonth() + 1;
+    const head = monthHeadline(m, state.twins!.map((t) => t.sp));
+    if (head) return { text: `📅 Что сделать с растениями в ${MONTH_IN[m - 1]}: ${head}`, button: '📅 Календарь ухода' };
   }
   if (!Array.isArray(state.plants) || !state.plants.length) return null;
 

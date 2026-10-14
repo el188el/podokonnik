@@ -111,3 +111,12 @@ Deno.test('совместный подоконник: общая логика р
   assertEquals(coopAct(c, { kind: 'water', plant: 'x1' }, 'Миша', t + 1000), { ok: true, effect: 'rooting' });
   assertEquals(c.log[0].who, 'Миша');
 });
+
+Deno.test('напоминание: календарь ухода 1-го числа', () => {
+  const s = newStateForTest(Date.UTC(2026, 9, 1, 9));
+  s.twins = [{ id: 't', sp: 'decembrist', nick: 'Декабрист', every: 7, createdAt: 0, lastWater: Date.UTC(2026, 9, 1, 8), waters: 1, streak: 1, notify: true }];
+  const r = pickReminder(s, Date.UTC(2026, 9, 1, 9), 180, Date.UTC(2026, 9, 1, 8));
+  assert(r?.text.includes('октябре'));
+  assert(r?.text.includes('Декабрист'));
+  assertEquals(pickReminder(s, Date.UTC(2026, 9, 2, 9), 180, Date.UTC(2026, 9, 2, 8)), null);
+});

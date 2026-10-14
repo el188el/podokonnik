@@ -11,6 +11,7 @@ import { CONTEST_ENTRY_REWARD, CONTEST_VOTE_REWARD, weekKey } from './contest';
 import { platform } from '../platform';
 import { ACHIEVEMENTS, checkAchievements } from './achievements';
 import { freshAgeMarks } from './age';
+import { CARE_TASK_REWARD } from './calendar';
 import { SHELVES, shelfDone } from './album';
 import { D, FEED_MS, H, HANG_SLOTS, MAX_CUTTINGS, MIST_MS, NEIGHBOR_COOLDOWN, NEIGHBOR_FREE_DAYS, SLOTS, STAGE_NAME } from './constants';
 import { giftLink, makeCode } from './gifts';
@@ -1684,4 +1685,20 @@ export async function voteContest(target: string): Promise<boolean> {
     toast('Не получилось. Проверь интернет');
     return false;
   }
+}
+
+// ─────────────────── календарь ухода ───────────────────
+export const monthKey = (t: number) => { const d = new Date(t); return `${d.getFullYear()}-${d.getMonth() + 1}`; };
+
+/** Отметить сезонное дело для настоящих растений: +5 🍃 один раз. */
+export function doCareTask(key: string) {
+  mut((g, t) => {
+    const m = monthKey(t);
+    if (g.calendar?.month !== m) g.calendar = { month: m, done: [] };
+    if (g.calendar.done.includes(key)) return;
+    g.calendar.done.push(key);
+    g.leaves += CARE_TASK_REWARD;
+    haptic('light');
+    toast(`📅 Отмечено! +${CARE_TASK_REWARD} 🍃`);
+  });
 }

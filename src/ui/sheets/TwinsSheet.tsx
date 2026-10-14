@@ -4,6 +4,8 @@ import { fmt, plural } from '../../game/sim';
 import { SPECIES, sp } from '../../game/species';
 import { addTwin, addTwinPhoto, closeSheet, openSheet, now, removeTwin, removeTwinPhoto, updateTwin, useStore, waterTwin } from '../../game/store';
 import { photoDue, twinStage } from '../../game/twins';
+import { MONTH_IN, careTasks } from '../../game/calendar';
+import { doCareTask, monthKey } from '../../game/store';
 import { loadPhoto } from '../../net/photos';
 import { shareBeforeAfter } from '../share';
 import type { Twin } from '../../game/types';
@@ -23,8 +25,33 @@ export function TwinsSheet() {
         Заведи двойника своего настоящего цветка. Бот напомнит, когда его пора полить, а когда отметишь полив здесь — двойник подрастёт. Полил вовремя: +3 🍃 и серия.
       </p>
       {twins.map((t) => <TwinCard key={t.id} t={t} />)}
+      <CareCalendar twins={twins} />
       {adding ? <AddTwin onDone={() => setAdding(false)} /> : <Btn onClick={() => setAdding(true)}>➕ Добавить настоящее растение</Btn>}
       <Btn kind="ghost" onClick={closeSheet}>Закрыть</Btn>
+    </div>
+  );
+}
+
+/** Календарь ухода: сезонные дела этого месяца для настоящих растений. */
+function CareCalendar({ twins }: { twins: Twin[] }) {
+  const cal = useStore((s) => s.game.calendar);
+  const t = now();
+  const month = new Date(t).getMonth() + 1;
+  const done = cal?.month === monthKey(t) ? cal.done : [];
+  const tasks = careTasks(month, twins.map((x) => x.sp));
+  return (
+    <div className="panel care-cal">
+      <h3>📅 Уход в {MONTH_IN[month - 1]}</h3>
+      {tasks.map((k) => {
+        const ok = done.includes(k.key);
+        return (
+          <button key={k.key} className={'care-task' + (ok ? ' done' : '')} disabled={ok} onClick={() => doCareTask(k.key)}>
+            <span>{ok ? '✅' : k.icon}</span>
+            <span>{k.sp ? <b>{sp(k.sp).name}: </b> : null}{k.text}</span>
+          </button>
+        );
+      })}
+      <p className="muted small">Сделал(а) по-настоящему — отметь: +5 🍃 за каждое дело.</p>
     </div>
   );
 }

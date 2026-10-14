@@ -214,6 +214,7 @@ export interface GameState {
   forms?: string[];     // собранные редкие формы
   bloomed?: string[];   // виды, которые цвели у игрока
   shelves?: string[];   // забранные награды полок альбома
+  calendar?: { month: string; done: string[] }; // отмеченные дела календаря ухода
   tutorial: number;
 }
 

@@ -577,3 +577,6 @@ svg.big.sad { filter: sepia(0.6) saturate(0.6); }
 .scene[data-wp='wp_brick'] { --wp: linear-gradient(#c98f76 2px, transparent 2px) 0 0 / 44px 20px, linear-gradient(90deg, #c98f76 2px, transparent 2px) 0 0 / 44px 20px, #b8664b; }
 .scene .wall, .hang-row { background: var(--wp); }
 .story-link { padding: 0; margin: 2px 0; font-size: 13px; }
+.care-cal { margin-top: 10px; }
+.care-task { display: flex; gap: 8px; align-items: flex-start; width: 100%; text-align: left; background: var(--soft); border: 0; border-radius: 12px; padding: 8px 10px; margin: 0 0 6px; font: inherit; font-size: 13px; color: inherit; cursor: pointer; }
+.care-task.done { opacity: 0.6; }
