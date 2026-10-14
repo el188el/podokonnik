@@ -5,6 +5,8 @@ import { closeSheet, countDoctor, now, useStore } from '../../game/store';
 import type { Twin } from '../../game/types';
 import { PlantArt } from '../art/PlantArt';
 import { Btn } from '../kit/kit';
+import { CONFIG } from '../../config';
+import { platform } from '../../platform';
 
 const NO_TWINS: Twin[] = [];
 
@@ -80,6 +82,7 @@ export function DoctorSheet({ sp: preset }: { sp?: string }) {
           )}
         </div>
       ))}
+      {CONFIG.channel && <button className="linkish" onClick={() => platform().openLink(`https://t.me/${CONFIG.channel}`)}>📢 Больше советов — в канале игры</button>}
       <p className="muted small">Это подсказка, а не точный диагноз. Если растение быстро теряет листья — покажи его в цветочном магазине.</p>
       <Btn kind="soft" onClick={() => setSym(null)}>← Другой симптом</Btn>
       <Btn kind="ghost" onClick={closeSheet}>Закрыть</Btn>

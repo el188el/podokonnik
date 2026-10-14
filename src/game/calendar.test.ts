@@ -11,3 +11,16 @@ describe('календарь ухода', () => {
     expect(monthHeadline(9, ['decembrist'])).toContain('Декабрист');
   });
 });
+
+describe('совет дня', () => {
+  it('каждый день новый и не пустой', async () => {
+    const { dailyTip } = await import('./tips');
+    const seen = new Set<string>();
+    for (let d = 0; d < 21; d++) {
+      const tip = dailyTip(Date.UTC(2026, 9, 1 + d, 7));
+      expect(tip.text.length).toBeGreaterThan(20);
+      seen.add(tip.title + tip.text);
+    }
+    expect(seen.size).toBe(21);
+  });
+});

@@ -15,6 +15,8 @@ export const CONFIG = {
   adsBlock: (env.VITE_ADSGRAM_BLOCK as string | undefined) || '',
   /** Client ID приложения Discord (для Discord Activity). */
   discordClientId: (env.VITE_DISCORD_CLIENT_ID as string | undefined) || '',
+  /** Telegram-канал игры (имя без @): советы по растениям и итоги конкурса. */
+  channel: ((env.VITE_TG_CHANNEL as string | undefined) || '').replace(/^@/, ''),
 };
 
 /** Внутри Discord Activity все запросы идут через прокси Discord (URL Mapping «/sb»). */

@@ -3,7 +3,7 @@
 
 import { safeEqual } from '../_shared/crypto.ts';
 import { db } from '../_shared/db.ts';
-import { appLink, env, secret } from '../_shared/env.ts';
+import { TG_CHANNEL, appLink, env, secret } from '../_shared/env.ts';
 import { checkPreCheckout, grant, markRefunded } from '../_shared/pay.ts';
 import { send, tg } from '../_shared/tg.ts';
 
@@ -94,6 +94,8 @@ async function handle(u: Update) {
     ].join('\n'));
   } else if (cmd === '/terms') {
     await send(m.chat.id, TERMS);
+  } else if (cmd === '/channel') {
+    await send(m.chat.id, TG_CHANNEL ? `📢 Канал игры: советы по настоящим растениям каждый день и итоги конкурса «Подоконник недели» — ${TG_CHANNEL}` : 'Канал игры скоро появится 🌱');
   } else if (cmd === '/help') {
     await send(m.chat.id, HELP, { text: '🪴 Открыть подоконник', url: appLink() });
   } else if (cmd === '/notify') {

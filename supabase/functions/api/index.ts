@@ -3,7 +3,7 @@
 
 import { verifyInitData, signSession, verifySession } from '../_shared/crypto.ts';
 import { db } from '../_shared/db.ts';
-import { BOT_TOKEN, appLink, env, secret } from '../_shared/env.ts';
+import { BOT_TOKEN, TG_CHANNEL, appLink, env, secret } from '../_shared/env.ts';
 import { publicView, thirstyCount, VISIT_DAY_LIMIT, VISIT_HOST_LIMIT, VISIT_REWARD, type FriendWater } from '../_shared/game/social.ts';
 import { sp as species } from '../_shared/game/species.ts';
 import type { GameState } from '../_shared/game/types.ts';
@@ -536,6 +536,11 @@ async function awardContest(week: string) {
   if (!fresh?.length) return;
   if (!winners.length) return;
   await db.from('inbox').insert(winners.map((w) => ({ player_id: w.id, kind: 'contest_win', payload: { place: w.place, leaves: CONTEST_PRIZES[w.place - 1], votes: w.votes, week } })));
+  if (TG_CHANNEL) {
+    const medal = ['🥇', '🥈', '🥉'];
+    const lines = winners.map((w) => `${medal[w.place - 1]} ${escHtml(w.name)} — ❤️ ${w.votes}`).join('\n');
+    await send(TG_CHANNEL, `🏆 <b>Подоконник недели</b> · «${escHtml(themeOf(week).title)}»\n\n${lines}\n\nНовая тема уже началась — выставляй свой подоконник!`, { text: '🏆 Участвовать', url: appLink() }).catch(() => false);
+  }
   const { data: tg } = await db.from('players').select('id, tg_id, notify').in('id', winners.map((w) => w.id));
   for (const p of tg ?? []) {
     const w = winners.find((x) => x.id === p.id)!;

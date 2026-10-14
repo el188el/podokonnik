@@ -4,7 +4,8 @@
 
 import { safeEqual } from '../_shared/crypto.ts';
 import { db } from '../_shared/db.ts';
-import { appLink, secret } from '../_shared/env.ts';
+import { TG_CHANNEL, appLink, secret } from '../_shared/env.ts';
+import { dailyTip } from '../_shared/game/tips.ts';
 import type { GameState } from '../_shared/game/types.ts';
 import { send } from '../_shared/tg.ts';
 import { pickReminder } from './remind.ts';
@@ -26,6 +27,12 @@ Deno.serve(async (req) => {
   }
 
   const now = Date.now();
+  // совет дня в канал: в 10:00–10:29 по Москве (задание запускается раз в 30 минут)
+  const msk = new Date(now + 3 * 3600e3);
+  if (TG_CHANNEL && msk.getUTCHours() === 10 && msk.getUTCMinutes() < 30) {
+    const tip = dailyTip(now);
+    await send(TG_CHANNEL, `<b>${tip.title}</b>\n\n${tip.text}`, { text: '🪴 Открыть Подоконник', url: appLink() }).catch((e) => console.warn('channel', e));
+  }
   const { data: players, error } = await db
     .from('players')
     .select('id, tg_id, tz_offset, last_seen, last_notified, saves(state)')

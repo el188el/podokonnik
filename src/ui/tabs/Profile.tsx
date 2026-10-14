@@ -6,6 +6,7 @@ import { fmt } from '../../game/sim';
 import { ageDays } from '../../game/age';
 import { isPlus, now, openSheet, setName, setSetting, toggleDecor, useStore } from '../../game/store';
 import { platform } from '../../platform';
+import { CONFIG } from '../../config';
 import { online, sendSettings } from '../../net/api';
 import { Bar, Btn, Leaves } from '../kit/kit';
 
@@ -94,6 +95,7 @@ export function Profile() {
             <input type="checkbox" checked={g.settings.notify !== false} onChange={(e) => { setSetting('notify', e.target.checked); sendSettings({ notify: e.target.checked }); }} /> Напоминания от бота
           </label>
         )}
+        {CONFIG.channel && <Btn onClick={() => pf.openLink(`https://t.me/${CONFIG.channel}`)}>📢 Канал игры: советы по растениям</Btn>}
         {pf.kind !== 'discord' && <Btn onClick={() => openSheet({ kind: 'weather' })}>🌦 Погода за окном: {g.settings.place ? g.settings.place.city : 'выключена'}</Btn>}
         {pf.kind === 'web' && <Btn onClick={() => openSheet({ kind: 'install' })}>📲 Добавить на главный экран</Btn>}
         <p className="muted small">

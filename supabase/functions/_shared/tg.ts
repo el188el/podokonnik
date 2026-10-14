@@ -20,7 +20,7 @@ export async function tg<T = unknown>(method: string, body: Record<string, unkno
 
 export const openButton = (text: string, url: string) => ({ inline_keyboard: [[{ text, url }]] });
 
-export function send(chatId: number, text: string, button?: { text: string; url: string }) {
+export function send(chatId: number | string, text: string, button?: { text: string; url: string }) {
   return tg('sendMessage', {
     chat_id: chatId,
     text,
