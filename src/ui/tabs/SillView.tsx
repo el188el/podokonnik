@@ -6,6 +6,7 @@ import { sp } from '../../game/species';
 import { now, openSheet, plantAt, setActiveSill, setTool, showCoop, showGift, useStore, waterAll, type Tool } from '../../game/store';
 import { loggedIn } from '../../net/api';
 import { CoopSill } from './CoopSill';
+import { canFulfil } from '../../game/orders';
 import { FallingTokens } from '../FallingTokens';
 import { useEffect } from 'react';
 import { chatter } from '../../game/mood';
@@ -164,6 +165,11 @@ function OwnSill() {
       )}
       {g.tutorial < TUTORIAL_DONE ? <Guide /> : <p className="hint">{hint(g, t)}</p>}
 
+      {g.tutorial >= TUTORIAL_DONE && (g.orders?.list.length ?? 0) > 0 && (
+        <button className={'mini-banner orders-banner' + (g.orders!.list.some((o) => canFulfil(g, o).ok) ? ' ready' : '')} onClick={() => openSheet({ kind: 'orders' })}>
+          📋 Соседи просят: {g.orders!.list.length}{g.orders!.list.some((o) => canFulfil(g, o).ok) ? ' · можно помочь!' : ''}
+        </button>
+      )}
       {(() => {
         const c = firstChest(g, t);
         if (!c) return null;

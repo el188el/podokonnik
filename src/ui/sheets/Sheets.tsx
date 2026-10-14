@@ -24,6 +24,7 @@ import { NameSheet } from './NameSheet';
 import { LevelsSheet } from './LevelsSheet';
 import { PlaceSheet } from './PlaceSheet';
 import { PotsSheet } from './PotsSheet';
+import { OrdersSheet } from './OrdersSheet';
 import { StarterSheet } from './StarterSheet';
 
 export function Sheets() {
@@ -49,6 +50,7 @@ export function Sheets() {
       {sheet?.kind === 'levels' && <LevelsSheet />}
       {sheet?.kind === 'place' && <PlaceSheet slot={sheet.slot} />}
       {sheet?.kind === 'pots' && <PotsSheet plant={sheet.plant} />}
+      {sheet?.kind === 'orders' && <OrdersSheet />}
       {sheet?.kind === 'starter' && <StarterSheet />}
       </Safe>
     </Sheet>

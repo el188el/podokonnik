@@ -144,6 +144,19 @@ export interface WeeklyQuest {
   claimed: boolean;
 }
 
+export type OrderKind = 'cutting' | 'bloom';
+
+export interface Order {
+  id: string;
+  who: string;   // id соседа
+  kind: OrderKind;
+  sp: string;
+  reward: number;
+  xp: number;
+  at: number;
+  until: number;
+}
+
 export interface QuestState {
   id: string;
   kind: QuestKind;
@@ -227,6 +240,7 @@ export interface GameState {
   grannyPot?: string;    // день, когда Валентина Петровна выручила горшком
   caught?: { day: string; n: number }; // пойманные падающие жетоны сезона
   invites?: number[];    // забранные ступени лестницы приглашений
+  orders?: { list: Order[]; next: number; done: number; hearts: Record<string, number> }; // заказы соседей
   tutorial: number;
 }
 

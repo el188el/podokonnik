@@ -12,6 +12,7 @@ import { CONTEST_ENTRY_REWARD, CONTEST_VOTE_REWARD, weekKey } from './contest';
 import { platform } from '../platform';
 import { ACHIEVEMENTS, checkAchievements } from './achievements';
 import { freshAgeMarks } from './age';
+import { HEARTS_FOR_GIFT, canFulfil, neighborOf, rollOrders } from './orders';
 import { INVITE_LADDER } from './invites';
 import { addMastery, type MasteryKind } from './mastery';
 import { CARE_TASK_REWARD } from './calendar';
@@ -72,6 +73,7 @@ export type Sheet =
   | { kind: 'levels' }
   | { kind: 'place'; slot: number }
   | { kind: 'pots'; plant?: string }
+  | { kind: 'orders' }
   | null;
 
 export type Tab = 'sill' | 'shop' | 'friends' | 'herbarium' | 'quests' | 'profile';
@@ -616,6 +618,7 @@ export async function boot() {
   checkAges(g, t);
   rollWeekly(g, t);
   catchUpPerks(g);
+  rollOrders(g, t);
   if (fresh && g.streak.claimedDay !== g.streak.day && g.plants.length) popup({ kind: 'streak', count: g.streak.count, reward: streakReward(g.streak.count) * (isPlus(g) ? 2 : 1) });
   after(g);
   scheduleSave();
@@ -653,6 +656,7 @@ export function tick() {
   handleEvents(g, ev, false);
   checkAges(g, t);
   rollWeekly(g, t);
+  if (rollOrders(g, t) && (g.orders?.list.length ?? 0) > 0 && document.visibilityState === 'visible') toast('📋 Соседи оставили записку на доске объявлений');
   if (rollDay(g, t, isPlus(g, t)) && g.plants.length && g.streak.claimedDay !== g.streak.day) {
     popup({ kind: 'streak', count: g.streak.count, reward: streakReward(g.streak.count) * (isPlus(g) ? 2 : 1) });
   }
@@ -1963,5 +1967,37 @@ export function claimInvite(n: number, active: number) {
     track('invite_reward', { n });
     haptic('success');
     toast(`${step.icon} «${step.title}»: ${step.text}!`);
+  });
+}
+
+// ─────────────────── заказы соседей ───────────────────
+export function fulfilOrder(id: string) {
+  mut((g, t) => {
+    const board = g.orders;
+    const o = board?.list.find((x) => x.id === id);
+    if (!board || !o) return;
+    const can = canFulfil(g, o);
+    if (!can.ok) { toast(o.kind === 'cutting' ? `Нужен черенок ${sp(o.sp).gen} в запасе ✂️` : `Нужна цветущая ${sp(o.sp).name.toLowerCase()} 🌸`); return; }
+    if (can.cutting) g.cuttings = g.cuttings.filter((c) => c.id !== can.cutting);
+    board.list = board.list.filter((x) => x.id !== id);
+    board.done += 1;
+    g.leaves += o.reward;
+    addXp(g, o.xp);
+    const n = neighborOf(o.who);
+    const hearts = (board.hearts[o.who] ?? 0) + 1;
+    board.hearts[o.who] = hearts;
+    eventToken(g, 'quest', t);
+    if (o.kind === 'cutting') weekly(g, 'gift');
+    track('order_done', { kind: o.kind });
+    haptic('success');
+    if (hearts === HEARTS_FOR_GIFT) {
+      if (n.gift.item) {
+        g.owned[n.gift.item] = 1;
+        const sill = g.sills.find((s) => s.id === g.activeSill);
+        if (sill && ITEM_BY_ID[n.gift.item]?.cat === 'decor' && !g.sills.some((s) => s.decor.includes(n.gift.item!))) sill.decor.push(n.gift.item);
+      }
+      if (n.gift.leaves) g.leaves += n.gift.leaves;
+      toast(`${n.icon} ${n.name} в восторге и дарит тебе: ${n.gift.text}! ❤️`);
+    } else toast(`${n.icon} ${n.name}: «Спасибо, золотце!» +${o.reward} 🍃 ❤️ ${Math.min(hearts, HEARTS_FOR_GIFT)}/${HEARTS_FOR_GIFT}`);
   });
 }
