@@ -5,6 +5,7 @@
 import type { ReactNode } from 'react';
 import { DEEP_ROW, GLASS_ROW, HANG_ROW } from '../game/layout';
 import { ITEM_BY_ID, placeOf } from '../game/shop';
+import { DecorArt, hasDecorArt } from './art/DecorArt';
 import type { Sky } from '../game/weather';
 
 export interface SceneProps {
@@ -21,13 +22,21 @@ export interface SceneProps {
 }
 
 const icon = (id: string) => ITEM_BY_ID[id]?.icon ?? '';
-const LEDGE_POS = ['4%', '35%', '65%', '96%']; // промежутки между горшками
+const LEDGE_POS = ['4%', '25%', '50%', '75%', '96%']; // промежутки между горшками (по 4 в ряду)
+
+function Deco({ id, left }: { id: string; left: string }) {
+  return (
+    <span className={'deco deco-' + id} style={{ left }}>
+      {hasDecorArt(id) ? <DecorArt id={id} scale={0.85} /> : icon(id)}
+    </span>
+  );
+}
 
 export function SillScene({ decor, tod, winter, sky, theme, win = 'E', cell, hangCell, className = '' }: SceneProps) {
   const at = (place: string) => decor.filter((d) => placeOf(d) === place);
   const windowD = at('window');
-  const sillD = at('sill').slice(0, 4);
-  const tableD = at('table').slice(0, 4);
+  const sillD = at('sill').slice(0, 5);
+  const tableD = at('table').slice(0, 5);
   const wallD = at('wall');
   const snow = sky === 'snow' || (!sky && (winter || theme === 'winter'));
   const rain = sky === 'rain' || sky === 'storm';
@@ -54,8 +63,9 @@ export function SillScene({ decor, tod, winter, sky, theme, win = 'E', cell, han
           {sky === 'fog' && <div className="fog" />}
           {theme === 'autumn' && <div className="fall">{['🍂', '🍁', '🍂', '🍁', '🍂'].map((x, i) => <span key={i} style={{ left: `${8 + i * 19}%`, animationDelay: `${i * 1.7}s` }}>{x}</span>)}</div>}
           {theme === 'spring' && <div className="fall petals">{['🌸', '🌸', '🌸', '🌸'].map((x, i) => <span key={i} style={{ left: `${12 + i * 22}%`, animationDelay: `${i * 2.1}s` }}>{x}</span>)}</div>}
-          {windowD.includes('feeder') && <div className="feeder"><span className="feeder-box">🏠</span><span className="tit">🐦</span></div>}
-          {windowD.includes('suncatcher') && <div className="suncatcher">🌈</div>}
+          {windowD.includes('feeder') && <div className="feeder"><DecorArt id="feeder" /></div>}
+          {windowD.includes('birdhouse') && <div className="birdhouse"><DecorArt id="birdhouse" /></div>}
+          {windowD.includes('suncatcher') && <div className="suncatcher"><DecorArt id="suncatcher" /></div>}
         </div>
         <div className="frame" />
         {windowD.includes('paper_snow') && <div className="paper-snow">{['❄', '❅', '❆', '❄'].map((x, i) => <span key={i}>{x}</span>)}</div>}
@@ -73,7 +83,7 @@ export function SillScene({ decor, tod, winter, sky, theme, win = 'E', cell, han
         {wallD.includes('carpet') && <div className="carpet" />}
         <div className="wall-items">
           {wallD.filter((d) => d !== 'carpet').slice(0, 3).map((d) => (
-            <span key={d} className={'wall-' + d}>{icon(d)}</span>
+            <span key={d} className={'wall-' + d}>{hasDecorArt(d) ? <DecorArt id={d} scale={0.9} /> : icon(d)}</span>
           ))}
         </div>
       </div>
@@ -84,14 +94,14 @@ export function SillScene({ decor, tod, winter, sky, theme, win = 'E', cell, han
           {GLASS_ROW.map((i) => (
             <div className="cell glass" data-slot={i} data-zone="glass" key={i}>{cell(i)}</div>
           ))}
-          <div className="ledge-decor">{sillD.map((d, i) => <span key={d} className={'deco deco-' + d} style={{ left: LEDGE_POS[i] }}>{icon(d)}</span>)}</div>
+          <div className="ledge-decor">{sillD.map((d, i) => <Deco key={d} id={d} left={LEDGE_POS[i]} />)}</div>
         </div>
         <div className="ledge" />
         <div className="row row-deep">
           {DEEP_ROW.map((i) => (
             <div className="cell deep" data-slot={i} data-zone="deep" key={i}>{cell(i)}</div>
           ))}
-          <div className="ledge-decor">{tableD.map((d, i) => <span key={d} className={'deco deco-' + d} style={{ left: LEDGE_POS[i] }}>{icon(d)}</span>)}</div>
+          <div className="ledge-decor">{tableD.map((d, i) => <Deco key={d} id={d} left={LEDGE_POS[i]} />)}</div>
         </div>
         <div className="table" />
       </div>

@@ -12,6 +12,7 @@ import { adsAvailable } from '../../net/ads';
 import { tgAppLink } from '../../config';
 import { platform } from '../../platform';
 import { PlantArt } from '../art/PlantArt';
+import { DecorArt, hasDecorArt } from '../art/DecorArt';
 import { Btn, Leaves } from '../kit/kit';
 
 type Cat = 'plants' | ShopCat | 'sills' | 'stars';
@@ -88,7 +89,7 @@ export function Shop() {
             return (
               <div key={it.id} className="row-item">
                 <div className="ricon">
-                  {it.cat === 'pots' ? <PlantArt sp="chlorophytum" stage={2} pot={potIdOf(it.id)} seed="pot" /> : it.icon}
+                  {it.cat === 'pots' ? <PlantArt sp="chlorophytum" stage={2} pot={potIdOf(it.id)} seed="pot" /> : hasDecorArt(it.id) ? <DecorArt id={it.id} scale={1.5} className="shop-decor" /> : it.icon}
                 </div>
                 <div className="rtext">
                   <b>{it.name}</b>

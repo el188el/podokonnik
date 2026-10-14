@@ -614,3 +614,18 @@ svg.big.sad { filter: sepia(0.6) saturate(0.6); }
   .scene { --cellh: 196px; }
   .scene .slot .art { width: 120px; height: 171px; }
 }
+
+/* нарисованный декор */
+.deco { font-size: 20px; filter: drop-shadow(0 1px 0 #0001); }
+.deco .decor-svg { display: block; overflow: visible; }
+.deco-cat { transform: translateX(-60%); }
+.deco-lamp .decor-svg, .deco-candle .decor-svg, .deco-lantern .decor-svg { filter: drop-shadow(0 0 6px #ffe06699); }
+.wall-items { align-items: flex-start; top: 6px; padding: 0 6px; }
+.wall-items .decor-svg { display: block; filter: drop-shadow(0 2px 1px #0002); }
+.scene .feeder { right: 10%; top: 6px; font-size: 0; }
+.scene .birdhouse { position: absolute; left: 9%; top: 6px; }
+.scene .suncatcher { font-size: 0; top: 0; }
+.feeder .tit { position: static; animation: hop 6s infinite; transform-box: fill-box; }
+.pendulum { transform-origin: 17px 33px; animation: pend 2s ease-in-out infinite; }
+@keyframes pend { 0%, 100% { transform: rotate(9deg); } 50% { transform: rotate(-9deg); } }
+.shop-decor { max-width: 100%; height: auto; max-height: 80px; margin: 6px auto; display: block; }
