@@ -12,6 +12,7 @@ import { PlantArt } from './art/PlantArt';
 import { roundInfo } from '../game/onboarding';
 import { ageMark } from '../game/age';
 import { PROBLEMS } from '../game/problems';
+import { diagnose } from '../game/diagnose';
 
 const lastEnough: Record<string, number> = {};
 
@@ -28,6 +29,12 @@ function bubbleFor(p: Plant, t: number, flash?: { text: string; until: number })
   if (p.moisture > 1) return { text: 'Перелили 😵', cls: '' };
   if (p.moisture < 0.25) return { text: isThirstySad(p) ? 'Мне грустно… 💧' : 'Хочу пить', cls: isThirstySad(p) ? 'sad' : '' };
   if (p.problem) return { text: `${PROBLEMS[p.problem.kind].icon} ${PROBLEMS[p.problem.kind].short}`, cls: 'sad' };
+  // здоровье падает — показываем, из-за чего
+  if (p.stage >= 2 && p.health < 90) {
+    const c = diagnose(g, p, t).find((x) => x.hurts);
+    if (c) return { text: `${c.icon} ${c.title}`, cls: 'sad' };
+    if (p.health < 50) return { text: '❤️‍🩹 Поправляется', cls: '' };
+  }
   const bad = badLight(p, t, ctx);
   if (bad === 'hot') return { text: isLightSad(p) ? 'Жарко на солнце 🥵' : 'Жарковато', cls: '' };
   if (bad === 'dark') return { text: isLightSad(p) ? 'Темновато… 🌥' : 'Темновато', cls: '' };

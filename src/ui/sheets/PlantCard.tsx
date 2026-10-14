@@ -6,7 +6,7 @@ import { POTS } from '../../game/shop';
 import { canCut, cramped, ctxFor, cutLeft, fmt, isSad, isThirstySad, lightLevel, need, neighborsOf, nextStageAt, stageProgress } from '../../game/sim';
 import { DIFFICULTY_LABEL, sp } from '../../game/species';
 import {
-  adsLeft, addDrain, boostBlock, boostPlant, breedPartners, drainTray, freshSoil, treat, closeSheet, feed, mist, pollinate, watchAd, move, now, openSheet, ownsPot, plantInPot, removePlant, renamePlant, setPot, takeCutting, toast, useStore, water,
+  adsLeft, addDrain, buyItem, toggleVent, boostBlock, boostPlant, breedPartners, drainTray, freshSoil, treat, closeSheet, feed, mist, pollinate, watchAd, move, now, openSheet, ownsPot, plantInPot, removePlant, renamePlant, setPot, takeCutting, toast, useStore, water,
 } from '../../game/store';
 import { adsAvailable } from '../../net/ads';
 import { ageDays, ageMark, daysText, nextAgeMark } from '../../game/age';
@@ -20,6 +20,8 @@ import { shareShowoff, shareThanks } from '../share';
 import { sharePlantStory } from '../story';
 import { genName, isHeirloom } from '../../game/lineage';
 import { coldLimit, rhWord, tempWord } from '../../game/climate';
+import { diagnose, recoverHours, type Fix } from '../../game/diagnose';
+import type { Plant } from '../../game/types';
 import type { Ancestor } from '../../game/types';
 
 export function PlantCard({ id }: { id: string }) {
@@ -148,6 +150,7 @@ export function PlantCard({ id }: { id: string }) {
           </div>
         );
       })()}
+      {potted && <HealthBox p={p} />}
       {!p.problem && <p className="need">💡 {need(p, t, ctx)}</p>}
       {potted && p.moisture > 1 && (
         <div className="problem-box over-box">
@@ -331,6 +334,59 @@ export function Lineage({ line, title = '🌳 Родословная' }: { line:
           <li key={i}><span className="gen">{genName(i)}</span> {a.n}, {a.y}{a.k ? ` · «${a.k}»` : ''}{a.h ? ' 🏺' : ''}</li>
         ))}
       </ol>
+    </div>
+  );
+}
+
+/** Здоровье: почему падает и что сделать — с кнопками действий и покупок. */
+function HealthBox({ p }: { p: Plant }) {
+  const g = useStore((st) => st.game);
+  const t = now();
+  // перелив и болезнь показаны своими блоками ниже
+  const causes = diagnose(g, p, t).filter((c) => c.title !== 'Перелив' && !(p.problem && c.title === PROBLEMS[p.problem.kind].name));
+  const hurting = diagnose(g, p, t).some((c) => c.hurts);
+  if (p.health >= 95 && !causes.length) return null;
+  const sill = g.sills.find((s) => s.id === p.sill) ?? g.sills[0];
+  const run = (f: Fix) => {
+    if (f.kind === 'water') water(p.id, true);
+    else if (f.kind === 'mist') mist(p.id, true);
+    else if (f.kind === 'move') move(p.id, f.to);
+    else if (f.kind === 'vent') toggleVent(sill.id);
+    else if (f.kind === 'tray') drainTray(p.id);
+    else if (f.kind === 'soil') freshSoil(p.id);
+    else if (f.kind === 'drain') addDrain(p.id);
+    else if (f.kind === 'buy') buyItem(f.item);
+  };
+  return (
+    <div className={'health-box' + (hurting ? ' hurt' : '')}>
+      <div className="hb-head">
+        <span className="hb-heart">{hurting ? '💔' : p.health < 95 ? '❤️‍🩹' : '💚'}</span>
+        <div>
+          <b>Здоровье {Math.round(p.health)}% — {hurting ? 'падает' : p.health < 95 ? 'идёт на поправку' : 'в порядке'}</b>
+          <small>{hurting ? 'Вот что ему мешает:' : p.health < 95 ? `Сейчас ничего не вредит — восстановится примерно за ${recoverHours(p)} ч.${p.health < 30 ? ' Пока слабое, растёт медленнее.' : ''}` : 'Но есть что улучшить:'}</small>
+        </div>
+      </div>
+      {causes.map((c) => (
+        <div key={c.title} className="hb-cause">
+          <b>{c.icon} {c.title}{c.hurts ? ' · вредит' : ''}</b>
+          <span className="small">{c.text}</span>
+          {c.fixes.length > 0 && (
+            <div className="hb-fixes">
+              {c.fixes.map((f) => {
+                if (f.kind === 'buy' || f.kind === 'cure') {
+                  const it = ITEM_BY_ID[f.item];
+                  if (!it) return null;
+                  const have = (g.owned[f.item] ?? 0) > 0;
+                  const locked = it.level && g.level < it.level;
+                  if (f.kind === 'cure') return <Btn key={f.item} small kind="gold" onClick={() => treat(p.id, f.item)}>{it.icon} {it.name} {have ? `(${g.owned[f.item]})` : `· ${it.price} 🍃`}</Btn>;
+                  return <Btn key={f.item} small kind="gold" disabled={!!locked} onClick={() => run(f)}>{f.label} {locked ? `· с ${it.level} ур.` : have ? '(есть)' : `· ${it.price} 🍃`}</Btn>;
+                }
+                return <Btn key={f.label} small onClick={() => run(f)}>{f.label}</Btn>;
+              })}
+            </div>
+          )}
+        </div>
+      ))}
     </div>
   );
 }
