@@ -1,5 +1,6 @@
-// Напоминания от бота. Вызывается по расписанию (GitHub Actions, раз в 30 минут)
+// Напоминания от бота. Вызывается планировщиком pg_cron внутри Supabase раз в 30 минут
 // с заголовком x-cron-secret. Пишет не чаще раза в 6 часов и не в тихие часы.
+// POST ?setup=1 (при деплое) ставит или обновляет само задание в pg_cron.
 
 import { safeEqual } from '../_shared/crypto.ts';
 import { db } from '../_shared/db.ts';
@@ -13,6 +14,16 @@ const GAP = 6 * 3600e3;
 Deno.serve(async (req) => {
   const got = req.headers.get('x-cron-secret') ?? '';
   if (!safeEqual(got, await secret('cron'))) return new Response('forbidden', { status: 403 });
+
+  if (new URL(req.url).searchParams.has('setup')) {
+    const url = `${Deno.env.get('SUPABASE_URL')}/functions/v1/notify`;
+    const { error } = await db.rpc('schedule_notify', { p_url: url, p_secret: await secret('cron') });
+    if (error) {
+      console.error(error);
+      return new Response(`setup failed: ${error.message}`, { status: 500 });
+    }
+    return new Response('scheduled');
+  }
 
   const now = Date.now();
   const { data: players, error } = await db

@@ -69,3 +69,10 @@ jobs:
           curl -sf "$API/setChatMenuButton" -H 'Content-Type: application/json' \
             -d "{\"menu_button\":{\"type\":\"web_app\",\"text\":\"🪴 Играть\",\"web_app\":{\"url\":\"$SITE_URL\"}}}" > /dev/null
           echo "Бот подключён"
+
+      - name: Расписание напоминаний (pg_cron)
+        if: env.BOT_TOKEN != ''
+        run: |
+          SECRET=$(printf 'podokonnik:cron' | openssl dgst -sha256 -hmac "$BOT_TOKEN" -hex | sed 's/.* //' | cut -c1-48)
+          curl -sf -X POST "https://$REF.supabase.co/functions/v1/notify?setup=1" -H "x-cron-secret: $SECRET"
+          echo
