@@ -499,3 +499,17 @@ svg.big.sad { filter: sepia(0.6) saturate(0.6); }
 .before-after figure { margin: 0; text-align: center; font-size: 12px; font-weight: 600; }
 .before-after .photo { width: 100%; height: auto; aspect-ratio: 4 / 5; }
 .ba-actions { grid-column: 1 / -1; display: flex; gap: 8px; justify-content: center; }
+
+/* цветочный доктор */
+.doctor-banner { background: #e8f4ff; color: #1f4f7a; text-align: left; }
+.twin-pick.wrap { flex-wrap: wrap; overflow: visible; justify-content: center; }
+.symptoms { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin: 10px 0; }
+.symptom { display: flex; align-items: center; gap: 8px; text-align: left; background: var(--soft); border: 0; border-radius: 14px; padding: 10px; font: inherit; font-size: 13px; font-weight: 600; cursor: pointer; color: inherit; }
+.symptom span { font-size: 20px; }
+.doc-special { background: #fff6d8; border-radius: 14px; padding: 10px 12px; margin: 8px 0; font-size: 14px; }
+.cause { background: var(--soft); border-radius: 14px; padding: 10px 12px; margin: 6px 0; cursor: pointer; }
+.cause.top { background: #e6f5ea; }
+.cause p { margin: 6px 0 0; }
+.cause-head { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+.tag { font-size: 11px; color: var(--muted, #7a8a85); white-space: nowrap; }
+.tag.hi { color: var(--green); font-weight: 700; }

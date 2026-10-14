@@ -159,6 +159,7 @@ export interface Stats {
   questsDone: number;
   nightWater: number;
   hybrids?: number;
+  doctor?: number;      // консультаций «доктора»
 }
 
 export interface GameState {

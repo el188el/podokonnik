@@ -43,6 +43,7 @@ export const ACHIEVEMENTS: Achievement[] = [
   { id: 'violet_rainbow', icon: '🎨', title: 'Радуга фиалок', text: 'Собери 5 цветов фиалок', reward: 120, done: (s) => (s.hues?.violet ?? []).filter((h) => h !== 'purple').length >= 4, progress: (s) => n((s.hues?.violet ?? []).filter((h) => h !== 'purple').length + 1, 5) },
   { id: 'age_30', icon: '🎂', title: 'Месяц вместе', text: 'Держи одно растение 30 дней', reward: 40, done: (s) => s.plants.some((p) => ageDays(p, s.simAt) >= 30), progress: (s) => n(Math.max(0, ...s.plants.map((p) => ageDays(p, s.simAt))), 30) },
   { id: 'age_100', icon: '🏅', title: 'Долгожитель', text: 'Держи одно растение 100 дней', reward: 150, done: (s) => s.plants.some((p) => ageDays(p, s.simAt) >= 100), progress: (s) => n(Math.max(0, ...s.plants.map((p) => ageDays(p, s.simAt))), 100) },
+  { id: 'doctor_3', icon: '🩺', title: 'Цветочный доктор', text: 'Разберись с 3 симптомами у «доктора»', reward: 20, done: (s) => (s.stats.doctor ?? 0) >= 3, progress: (s) => n(s.stats.doctor ?? 0, 3) },
   { id: 'quests_20', icon: '📋', title: 'Ответственный', text: 'Выполни 20 ежедневных заданий', reward: 60, done: (s) => s.stats.questsDone >= 20, progress: (s) => n(s.stats.questsDone, 20) },
 ];
 

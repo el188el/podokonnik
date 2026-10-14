@@ -54,6 +54,7 @@ export type Sheet =
   | { kind: 'starter' }
   | { kind: 'twins' }
   | { kind: 'weather' }
+  | { kind: 'doctor'; sp?: string }
   | null;
 
 export type Tab = 'sill' | 'shop' | 'friends' | 'herbarium' | 'quests' | 'profile';
@@ -1178,6 +1179,12 @@ export async function addTwinPhoto(id: string, file: Blob): Promise<boolean> {
     toast('Не получилось сохранить фото');
     return false;
   }
+}
+
+/** Засчитать консультацию «доктора» (для достижения). */
+export function countDoctor() {
+  mut((g) => { g.stats.doctor = (g.stats.doctor ?? 0) + 1; });
+  track('doctor');
 }
 
 export function removeTwinPhoto(id: string, photoId: string) {

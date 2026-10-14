@@ -16,6 +16,7 @@ import { Visit } from './Visit';
 import { EventSheet } from './EventSheet';
 import { TwinsSheet } from './TwinsSheet';
 import { WeatherSheet } from './WeatherSheet';
+import { DoctorSheet } from './DoctorSheet';
 import { StarterSheet } from './StarterSheet';
 
 export function Sheets() {
@@ -34,6 +35,7 @@ export function Sheets() {
       {sheet?.kind === 'event' && <EventSheet />}
       {sheet?.kind === 'twins' && <TwinsSheet />}
       {sheet?.kind === 'weather' && <WeatherSheet />}
+      {sheet?.kind === 'doctor' && <DoctorSheet sp={sheet.sp} />}
       {sheet?.kind === 'starter' && <StarterSheet />}
       </Safe>
     </Sheet>
@@ -196,6 +198,7 @@ function Herb({ id }: { id: string }) {
             </tbody>
           </table>
           <ul className="facts">{s.facts.map((f) => <li key={f}>{f}</li>)}</ul>
+          <Btn small kind="soft" onClick={() => openSheet({ kind: 'doctor', sp: id })}>🩺 Что-то не так с настоящим растением?</Btn>
           {PALETTES[id] && (
             <div className="palette">
               <b className="small">🎨 Цвета цветков: {1 + (g.hues?.[id] ?? []).filter((h) => h !== PALETTES[id][0].id).length}/{PALETTES[id].length}</b>

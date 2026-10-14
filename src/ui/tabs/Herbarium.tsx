@@ -13,6 +13,7 @@ export function Herbarium() {
         </span>
       </div>
       <p className="muted small">Всё о видах, которые ты открыл(а): как поливать, где ставить и как вырастить такое же дома.</p>
+      <button className="mini-banner doctor-banner" onClick={() => openSheet({ kind: 'doctor' })}>🩺 Что с моим цветком? Желтеют листья, не цветёт — подскажем причину</button>
       {[1, 2, 3].map((d) => (
         <section key={d}>
           <h3>{DIFFICULTY_LABEL[d]}</h3>

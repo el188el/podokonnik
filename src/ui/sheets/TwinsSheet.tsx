@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { D } from '../../game/constants';
 import { fmt, plural } from '../../game/sim';
 import { SPECIES, sp } from '../../game/species';
-import { addTwin, addTwinPhoto, closeSheet, now, removeTwin, removeTwinPhoto, updateTwin, useStore, waterTwin } from '../../game/store';
+import { addTwin, addTwinPhoto, closeSheet, openSheet, now, removeTwin, removeTwinPhoto, updateTwin, useStore, waterTwin } from '../../game/store';
 import { photoDue, twinStage } from '../../game/twins';
 import { loadPhoto } from '../../net/photos';
 import { shareBeforeAfter } from '../share';
@@ -120,6 +120,7 @@ function TwinCard({ t }: { t: Twin }) {
                 <button key={d} className={'chip' + (t.every === d ? ' on' : '')} onClick={() => updateTwin(t.id, { every: d })}>{d} дн</button>
               ))}
             </div>
+            <Btn small kind="soft" onClick={() => openSheet({ kind: 'doctor', sp: t.sp })}>🩺 Что-то не так с растением?</Btn>
             <Btn small kind="warn" onClick={() => removeTwin(t.id)}>Удалить двойника</Btn>
           </div>
         )}
