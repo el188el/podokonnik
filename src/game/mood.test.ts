@@ -35,3 +35,22 @@ describe('настроение и реплики', () => {
     expect([...all].some((x) => x.includes('вместе уже 40'))).toBe(true);
   });
 });
+
+describe('реплики', () => {
+  it('у каждого вида свои фразы и много вариантов в целом', async () => {
+    const { SPECIES } = await import('./species');
+    const t = new Date(2026, 5, 14, 13).getTime(); // июнь: без сухого воздуха от батарей
+    const seen = new Set<string>();
+    for (const s of SPECIES) {
+      const g = newState(t);
+      const p = newPlant({ sp: s.id, sill: 'room', slot: 0, zone: s.zone, stage: 3, moisture: 0.8, growth: 30 }, t);
+      g.plants.push(p);
+      for (let i = 0; i < 200; i++) {
+        const line = chatter(p, t, ctxFor(g, p, t), null, i / 200);
+        expect(line.length).toBeGreaterThan(3);
+        seen.add(line);
+      }
+    }
+    expect(seen.size).toBeGreaterThan(90);
+  });
+});
