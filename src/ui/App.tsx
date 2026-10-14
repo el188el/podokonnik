@@ -84,6 +84,7 @@ export function App() {
           <button onClick={debug.fill}>Заполнить</button>
           <button onClick={debug.rich}>+1000 🍃</button>
           <button onClick={debug.decor}>Декор</button>
+          <button onClick={debug.older}>+30 дн. возраста</button>
           <button onClick={debug.reset}>Сброс</button>
         </div>
       )}

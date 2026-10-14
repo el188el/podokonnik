@@ -3,6 +3,7 @@ import { WINDOWS } from '../../game/constants';
 import { xpToNext } from '../../game/progression';
 import { ITEM_BY_ID, DECOR_IDS } from '../../game/shop';
 import { fmt } from '../../game/sim';
+import { ageDays } from '../../game/age';
 import { isPlus, now, openSheet, setName, setSetting, toggleDecor, useStore } from '../../game/store';
 import { platform } from '../../platform';
 import { online, sendSettings } from '../../net/api';
@@ -23,6 +24,7 @@ export function Profile() {
     ['💌 Получено', g.stats.giftsGot],
     ['🌸 Цветений', g.stats.blooms],
     ['🚑 Спасено', g.stats.rescues],
+    ['🎂 Старейшее растение, дней', Math.max(0, ...g.plants.map((p) => ageDays(p, t)))],
   ];
   return (
     <div className="tab">

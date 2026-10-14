@@ -9,6 +9,7 @@ import { canCut as canCutNow } from '../game/sim';
 import type { Plant } from '../game/types';
 import { PlantArt } from './art/PlantArt';
 import { roundInfo } from '../game/onboarding';
+import { ageMark } from '../game/age';
 
 const lastEnough: Record<string, number> = {};
 
@@ -69,6 +70,7 @@ export function Slot({ plant: p, sill, slot }: { plant: Plant; sill: string; slo
   const roundPending = !!ri && !ri.done && !(round?.key === ri.key && round.checked.includes(p.id));
   const sad = isSad(p);
   const fresh = fx && Date.now() - fx.at < 1400;
+  const age = ageMark(p, t);
 
   function reset() {
     clearTimeout(st.current.timer);
@@ -113,7 +115,7 @@ export function Slot({ plant: p, sill, slot }: { plant: Plant; sill: string; slo
   return (
     <div
       ref={ref}
-      className={`slot${sad ? ' sad' : ''}${p.moisture > 0.6 && p.stage >= 2 ? ' wet' : ''}${p.stage >= 2 && p.moisture <= 0 ? ' dry' : ''}`}
+      className={`slot${age?.frame ? ' gold' : ''}${sad ? ' sad' : ''}${p.moisture > 0.6 && p.stage >= 2 ? ' wet' : ''}${p.stage >= 2 && p.moisture <= 0 ? ' dry' : ''}`}
       role="button"
       aria-label={`${s.name}, ${STAGE_NAME[p.stage]}`}
       onContextMenu={(e) => e.preventDefault()}
@@ -172,6 +174,7 @@ export function Slot({ plant: p, sill, slot }: { plant: Plant; sill: string; slo
       )}
       {p.stage === 0 && !p.rootStart && <div className="finger">👆</div>}
       {roundPending && <div className="round-dot" title="загляни в обходе">👀</div>}
+      {age && age.days >= 30 && <div className="age-badge" title={age.title}>{age.icon}</div>}
       <motion.div
         className="art"
         key={p.stage}

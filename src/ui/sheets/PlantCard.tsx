@@ -9,9 +9,10 @@ import {
   adsLeft, breedPartners, closeSheet, feed, mist, pollinate, watchAd, move, now, openSheet, ownsPot, plantInPot, removePlant, renamePlant, repot, setPot, takeCutting, toast, useStore, water,
 } from '../../game/store';
 import { adsAvailable } from '../../net/ads';
+import { ageDays, ageMark, daysText, nextAgeMark } from '../../game/age';
 import { PlantArt } from '../art/PlantArt';
 import { Bar, Btn } from '../kit/kit';
-import { shareShowoff, shareThanks } from '../share';
+import { shareAge, shareShowoff, shareThanks } from '../share';
 
 export function PlantCard({ id }: { id: string }) {
   const g = useStore((s) => s.game);
@@ -54,6 +55,9 @@ export function PlantCard({ id }: { id: string }) {
   const mistOn = p.mistUntil && t < p.mistUntil;
   const feedOn = p.feedUntil && t < p.feedUntil;
   const showoff = !!p.from && t - (p.claimedAt ?? p.createdAt) >= SHOWOFF_MS;
+  const days = ageDays(p, t);
+  const mark = ageMark(p, t);
+  const nextMark = nextAgeMark(p, t);
 
   return (
     <div className="card">
@@ -65,7 +69,7 @@ export function PlantCard({ id }: { id: string }) {
         </div>
       )}
       <div className="card-head">
-        <PlantArt sp={p.sp} form={p.form} hue={p.hue} stage={p.stage} seed={p.id} pot={p.pot} bigPot={p.bigPot} blooming={p.blooming} className={'big' + (isSad(p) ? ' sad' : '')} />
+        <PlantArt sp={p.sp} form={p.form} hue={p.hue} stage={p.stage} seed={p.id} pot={p.pot} bigPot={p.bigPot} blooming={p.blooming} className={'big' + (isSad(p) ? ' sad' : '') + (mark?.frame ? ' gold-frame' : '')} />
         <div>
           {editing ? (
             <input
@@ -85,6 +89,11 @@ export function PlantCard({ id }: { id: string }) {
           <p className="muted small">{p.nick ? s.name + ' · ' : ''}{s.folk ? `«${s.folk}» · ` : ''}{DIFFICULTY_LABEL[s.difficulty]}</p>
           {p.form && FORM_BY_ID[p.form] && <p className="rare-mark">✨ {FORM_BY_ID[p.form].name}</p>}
           {p.from && <p className="giftmark">🎁 Подарок от {p.from.name}</p>}
+          <p className={'age-line' + (mark?.frame ? ' gold' : '')}>
+            {mark?.icon ?? '🗓'} С тобой {days < 1 ? 'первый день' : daysText(days)}
+            {nextMark && <span className="muted"> · до {nextMark.icon} ещё {daysText(nextMark.days - days)}</span>}
+            {mark && mark.days >= 30 && <button className="linkish" onClick={() => shareAge(p, days)}>поделиться</button>}
+          </p>
           <p className="stage-line">
             <b>{STAGE_NAME[p.stage]}</b>
             {p.blooming && ' · цветёт 🌸'}

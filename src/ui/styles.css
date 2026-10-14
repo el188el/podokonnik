@@ -462,3 +462,12 @@ svg.big.sad { filter: sepia(0.6) saturate(0.6); }
 .give-pick { display: flex; gap: 6px; overflow-x: auto; margin-top: 6px; }
 .cutting.on { box-shadow: inset 0 0 0 2px var(--green); }
 .list-form .chips { max-height: 150px; overflow-y: auto; }
+
+/* долгожители */
+.slot.gold::before { content: ''; position: absolute; left: -6px; right: -6px; top: 18px; bottom: 6px; border-radius: 50% 50% 18px 18px; background: radial-gradient(ellipse at 50% 62%, #ffe08a99, #ffe08a33 55%, transparent 72%); pointer-events: none; z-index: 0; }
+.slot.gold .plant-svg { filter: drop-shadow(0 0 6px #f6c94a88); }
+.age-badge { position: absolute; left: 4px; top: 26px; font-size: 14px; background: #fff8e0; border-radius: 10px; padding: 1px 3px; box-shadow: 0 1px 3px #0002; z-index: 4; pointer-events: none; }
+.age-line { margin: 4px 0; font-size: 13px; }
+.age-line.gold { color: #a87408; font-weight: 600; }
+.linkish { background: none; border: 0; color: var(--green); text-decoration: underline; font: inherit; padding: 0 0 0 6px; cursor: pointer; }
+.gold-frame { border-radius: 16px; box-shadow: 0 0 0 3px #e6b94a, 0 0 14px #f3cf6a99; background: #fffaf0; }

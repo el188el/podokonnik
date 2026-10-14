@@ -7,7 +7,8 @@ import { sp } from '../game/species';
 import { achievementById, claimGift, claimGiftOnline, claimStreak, closePopup, freeSlot, popup, toast, useStore } from '../game/store';
 import { PlantArt } from './art/PlantArt';
 import { Btn, Modal } from './kit/kit';
-import { shareThanks } from './share';
+import { shareAge, shareThanks } from './share';
+import { AGE_MARKS, daysText } from '../game/age';
 
 export function Popups() {
   const p = useStore((s) => s.popups[0]);
@@ -79,6 +80,24 @@ export function Popups() {
           <Btn kind="ghost" onClick={closePopup}>На подоконник</Btn>
         </div>
       )}
+      {p?.kind === 'age' && (() => {
+        const pl = g.plants.find((x) => x.id === p.plant);
+        const m = AGE_MARKS.find((x) => x.days === p.days)!;
+        if (!pl) return <Btn kind="primary" onClick={closePopup}>Ок</Btn>;
+        const name = pl.nick || sp(pl.sp).name;
+        return (
+          <div className="center">
+            <motion.div className={'postcard big2' + (m.frame ? ' gold-frame' : '')} initial={{ scale: 0.6, rotate: -8 }} animate={{ scale: 1, rotate: 0 }}>
+              <PlantArt sp={pl.sp} form={pl.form} hue={pl.hue} stage={pl.stage} seed={pl.id} pot={pl.pot} bigPot={pl.bigPot} blooming={pl.blooming} />
+            </motion.div>
+            <h2>{m.icon} {name}: {daysText(p.days)} вместе!</h2>
+            <p className="muted">{m.frame ? 'Настоящий долгожитель — теперь у него золотая рамка на подоконнике.' : 'Целый месяц заботы — растение это чувствует.'}</p>
+            <p><b>+{m.reward} 🍃</b></p>
+            <Btn kind="gold" onClick={() => { shareAge(pl, p.days); closePopup(); }}>Похвастаться 📸</Btn>
+            <Btn kind="ghost" onClick={closePopup}>Ура!</Btn>
+          </div>
+        );
+      })()}
       {p?.kind === 'migrated' && (
         <div className="center">
           <div className="gicon">🏡</div>

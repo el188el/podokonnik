@@ -2,6 +2,7 @@ import { createElement } from 'react';
 import { CONFIG, tgAppLink } from '../config';
 import { playerId } from '../net/api';
 import { NOTES } from '../game/constants';
+import { daysText } from '../game/age';
 import { sp } from '../game/species';
 import { setShowoffDone, toast } from '../game/store';
 import type { PendingGift, Plant } from '../game/types';
@@ -52,7 +53,7 @@ export async function shareInvite() {
 }
 
 /** PNG-картинка растения для «Показать, как подросло». */
-export async function plantPng(p: Plant): Promise<File | null> {
+export async function plantPng(p: Plant, caption?: string): Promise<File | null> {
   const { renderToStaticMarkup } = await import('react-dom/server');
   const svg = renderToStaticMarkup(createElement(PlantArt, { sp: p.sp, form: p.form, hue: p.hue, stage: p.stage, seed: p.id, pot: p.pot, bigPot: p.bigPot, blooming: p.blooming }))
     .replace('<svg', '<svg xmlns="http://www.w3.org/2000/svg" width="560" height="800"');
@@ -73,7 +74,7 @@ export async function plantPng(p: Plant): Promise<File | null> {
   x.fillStyle = '#2E4A45';
   x.font = 'bold 34px system-ui, sans-serif';
   x.textAlign = 'center';
-  x.fillText(`${sp(p.sp).name} · Подоконник 🌱`, 400, 760);
+  x.fillText(caption ?? `${sp(p.sp).name} · Подоконник 🌱`, 400, 760);
   return new Promise((ok) => c.toBlob((b) => ok(b && new File([b], `podokonnik-${p.sp}.png`, { type: 'image/png' })), 'image/png'));
 }
 
@@ -82,5 +83,14 @@ export async function shareShowoff(p: Plant) {
   setShowoffDone(p.id);
   const file = await plantPng(p).catch(() => null);
   const r = await platform().share({ text: `Смотри, как подрос твой черенок: ${s.name} 🌱`, url: gameLink(), files: file ? [file] : undefined });
+  report(r);
+}
+
+/** «100 дней с монстерой» — похвастаться долгожителем. */
+export async function shareAge(p: Plant, days: number) {
+  const s = sp(p.sp);
+  const name = p.nick || s.name;
+  const file = await plantPng(p, `${name}: ${daysText(days)} вместе 🌿`).catch(() => null);
+  const r = await platform().share({ text: `${daysText(days)} вместе: ${name} растёт у меня на подоконнике 🌿`, url: gameLink(), files: file ? [file] : undefined });
   report(r);
 }

@@ -4,6 +4,7 @@ import { ADS_PER_DAY, showRewardedAd } from '../net/ads';
 import { track } from '../net/track';
 import { platform } from '../platform';
 import { ACHIEVEMENTS, checkAchievements } from './achievements';
+import { freshAgeMarks } from './age';
 import { D, FEED_MS, H, MAX_CUTTINGS, MIST_MS, NEIGHBOR_COOLDOWN, NEIGHBOR_FREE_DAYS, SLOTS, STAGE_NAME } from './constants';
 import { giftLink, makeCode } from './gifts';
 import { XP, levelReward, unlocksAt, xpToNext, SILL_UNLOCK } from './progression';
@@ -28,6 +29,7 @@ export type Popup =
   | { kind: 'streak'; count: number; reward: number }
   | { kind: 'gift'; gift: PendingGift & { ok: boolean } }
   | { kind: 'thanks'; sp: string; from: string }
+  | { kind: 'age'; plant: string; days: number }
   | { kind: 'migrated' };
 
 export interface AwayReport {
@@ -208,6 +210,20 @@ function handleEvents(g: GameState, ev: SimEvent[], quiet: boolean) {
       p.lowestHealth = 100;
       toast(`${sp(p.sp).name} снова полно сил. Ты спас(ла) его! 🚑`);
     }
+  }
+}
+
+/** Дни рождения растений: 7, 30, 100, 365 дней — награда и праздник. */
+function checkAges(g: GameState, t: number) {
+  for (const p of g.plants) {
+    const fresh = freshAgeMarks(p, t);
+    if (!fresh.length) continue;
+    const reward = fresh.reduce((n, m) => n + m.reward, 0);
+    g.leaves += reward;
+    const top = fresh[fresh.length - 1];
+    log(g, `${p.nick || sp(p.sp).name}: ${top.title.toLowerCase()} ${top.icon}`, t);
+    if (top.days >= 30) popup({ kind: 'age', plant: p.id, days: top.days });
+    else toast(`${top.icon} ${p.nick || sp(p.sp).name}: ${top.title.toLowerCase()}! +${reward} 🍃`);
   }
 }
 
@@ -446,6 +462,7 @@ export async function boot() {
     }
     popup({ kind: 'away', report });
   }
+  checkAges(g, t);
   if (fresh && g.streak.claimedDay !== g.streak.day && g.plants.length) popup({ kind: 'streak', count: g.streak.count, reward: streakReward(g.streak.count) * (isPlus(g) ? 2 : 1) });
   after(g);
   scheduleSave();
@@ -480,6 +497,7 @@ export function tick() {
   const g: GameState = structuredClone(st.game);
   const ev = advance(g, t);
   handleEvents(g, ev, false);
+  checkAges(g, t);
   if (rollDay(g, t, isPlus(g, t)) && g.plants.length && g.streak.claimedDay !== g.streak.day) {
     popup({ kind: 'streak', count: g.streak.count, reward: streakReward(g.streak.count) * (isPlus(g) ? 2 : 1) });
   }
@@ -979,6 +997,10 @@ export const debug = {
     });
   },
   rich() { mut((g) => { g.leaves += 1000; addXp(g, 500); }); },
+  /** Состарить все растения на 30 дней — проверить бейджи долгожителей. */
+  older() {
+    mut((g, t) => { for (const p of g.plants) p.createdAt -= 30 * D; checkAges(g, t); });
+  },
   decor() {
     mut((g) => {
       const sill = g.sills.find((s) => s.id === g.activeSill)!;

@@ -99,6 +99,7 @@ export interface Plant {
   from?: { name: string; note: number; code: string };
   claimedAt?: number;
   showoffDone?: boolean;
+  ageSeen?: number;     // последняя отпразднованная отметка возраста (дней)
 }
 
 export interface Sill {
