@@ -6,7 +6,9 @@
 import { D, H, MIN, QUICK_ROOT_MIN, WINDOWS } from './constants.ts';
 import { sp } from './species.ts';
 import { isDim, isSunny, weatherAt } from './weather.ts';
-import type { GameState, Plant, Sill, Stage } from './types.ts';
+import { PROBLEMS, problemEffect, SHADY, stepProblem, trySpread } from './problems.ts';
+import { rowSlots, zoneOfSlot } from './layout.ts';
+import type { GameState, Plant, ProblemKind, Sill, Stage } from './types.ts';
 
 export const STEP_H = 0.25;
 const MAX_CATCHUP = 60 * D;
@@ -16,7 +18,8 @@ export type SimEvent =
   | { kind: 'stage'; plant: string; stage: Stage }
   | { kind: 'wilt'; plant: string }
   | { kind: 'bloom'; plant: string }
-  | { kind: 'neighbor'; plant: string };
+  | { kind: 'neighbor'; plant: string }
+  | { kind: 'problem'; plant: string; problem: ProblemKind; spread?: boolean };
 
 // ─────────── сезоны ───────────
 export const month = (t: number) => new Date(t).getMonth() + 1;
@@ -29,22 +32,23 @@ export function seasonName(t: number) {
 
 // ─────────── свет ───────────
 /** dim — пасмурно за окном: у стекла нет прямого солнца. */
-export function lightLevel(sill: Sill, zone: Plant['zone'], t: number, lamp: boolean, dim = false): number {
+export function lightLevel(sill: Sill, zone: Plant['zone'], t: number, lamp: boolean, dim = false, shade = false): number {
   const w = WINDOWS[sill.window ?? 'E'];
   let l = w[zone] - (isWinter(t) ? 1 : 0);
   if (dim && zone === 'glass') l = Math.min(l, 3);
+  if (shade) l -= 1;
   l += lamp ? 1 : 0;
   return Math.max(1, Math.min(4, l));
 }
 
-export function lightBad(p: Plant, sill: Sill, t: number, lamp: boolean, dim = false): 'hot' | 'dark' | null {
+export function lightBad(p: Plant, sill: Sill, t: number, lamp: boolean, dim = false, shade = false): 'hot' | 'dark' | null {
   if (p.stage < 2) return null;
   const s = sp(p.sp);
-  const l = lightLevel(sill, p.zone, t, lamp, dim);
+  const l = lightLevel(sill, p.zone, t, lamp, dim, shade);
   return l > s.light[1] ? 'hot' : l < s.light[0] ? 'dark' : null;
 }
 
-export const badLight = (p: Plant, t: number, ctx: Ctx) => lightBad(p, ctx.sill, t, ctx.lamp, ctx.dim);
+export const badLight = (p: Plant, t: number, ctx: Ctx) => lightBad(p, ctx.sill, t, ctx.lamp, ctx.dim, ctx.shade);
 
 export function bestZone(spId: string, sill: Sill, t: number, lamp: boolean, dim = false): Plant['zone'] {
   const s = sp(spId);
@@ -97,6 +101,9 @@ export interface Ctx {
   neighbor: boolean;
   dim?: boolean;   // пасмурно за окном
   sunny?: boolean; // ясный день
+  shade?: boolean; // затеняет большой сосед
+  humid?: boolean; // на подоконнике увлажнитель
+  repel?: boolean; // рядом взрослая герань — отпугивает вредителей
 }
 
 export function growthRate(p: Plant, t: number, ctx: Ctx) {
@@ -110,6 +117,8 @@ export function growthRate(p: Plant, t: number, ctx: Ctx) {
   if (p.feedUntil && t < p.feedUntil) r *= 1.5;
   if (isWinter(t)) r *= 0.75;
   if (p.health < 30) r *= 0.4;
+  r *= problemEffect(p).slow;
+  if (ctx.humid && sp(p.sp).mist === 'love') r *= 1.1;
   return r;
 }
 
@@ -166,6 +175,7 @@ function stepPlant(p: Plant, dtH: number, t: number, ctx: Ctx, ev: SimEvent[]) {
   if (!ctx.neighbor && p.dryFor > s.drought * 24) dmg += 2 * dtH;
   if (p.moisture > 1) dmg += (s.overwater === 'sensitive' ? 2 : s.overwater === 'normal' ? 0.6 : 0) * dtH;
   if (p.badLightFor > 20 && p.health > 50) lightDmg = Math.min(dtH, p.health - 50);
+  dmg += problemEffect(p).dmg * dtH;
   if (dmg + lightDmg > 0) p.health = Math.max(0, p.health - dmg - lightDmg);
   else p.health = Math.min(100, p.health + 3 * dtH);
   p.lowestHealth = Math.min(p.lowestHealth, p.health);
@@ -206,6 +216,7 @@ function stepPlant(p: Plant, dtH: number, t: number, ctx: Ctx, ev: SimEvent[]) {
 export function canBloom(p: Plant, t: number, ctx: Ctx) {
   const b = sp(p.sp).bloom;
   if (!b || p.stage !== 4 || p.health < 70 || p.dryFor > 0) return false;
+  if (p.problem && (p.problem.kind === 'rot' || p.problem.kind === 'leggy' || p.problem.sev > 0.6)) return false;
   if (badLight(p, t, ctx)) return false;
   if (b.months && !b.months.includes(month(t))) return false;
   if (b.needsRest && p.rest < 7 * 24) return false;
@@ -214,10 +225,27 @@ export function canBloom(p: Plant, t: number, ctx: Ctx) {
 
 export const hasLamp = (state: GameState, sill: Sill) => sill.decor.includes('lamp') && (state.owned.lamp ?? 0) > 0;
 
+/** Соседи по ряду: слева и справа. */
+export function neighborsOf(state: Pick<GameState, 'plants'>, p: Plant): Plant[] {
+  const row = rowSlots(zoneOfSlot(p.slot));
+  const i = row.indexOf(p.slot);
+  if (i < 0) return [];
+  const near = [row[i - 1], row[i + 1]].filter((x) => x !== undefined);
+  return state.plants.filter((x) => x.sill === p.sill && x.id !== p.id && near.includes(x.slot));
+}
+
+export const hasDecorOn = (state: GameState, sill: Sill, id: string) => sill.decor.includes(id) && (state.owned[id] ?? 0) > 0;
+
 export function ctxFor(state: GameState, p: Plant, t: number): Ctx {
   const sill = state.sills.find((s) => s.id === p.sill) ?? state.sills[0];
   const w = weatherAt(state, t);
-  return { sill, lamp: hasLamp(state, sill), neighbor: !!state.neighbor && t < state.neighbor.until, dim: isDim(w), sunny: isSunny(w) };
+  const near = neighborsOf(state, p);
+  return {
+    sill, lamp: hasLamp(state, sill), neighbor: !!state.neighbor && t < state.neighbor.until, dim: isDim(w), sunny: isSunny(w),
+    shade: !SHADY.includes(p.sp) && near.some((n) => SHADY.includes(n.sp) && n.stage === 4),
+    humid: hasDecorOn(state, sill, 'humidifier'),
+    repel: near.some((n) => n.sp === 'geranium' && n.stage === 4),
+  };
 }
 
 /** Досчитать мир до момента t. Возвращает события для тостов и экрана «Пока тебя не было». */
@@ -225,11 +253,26 @@ export function advance(state: GameState, t: number): SimEvent[] {
   const ev: SimEvent[] = [];
   let from = Math.max(state.simAt, t - MAX_CATCHUP);
   if (t <= from) return ev;
-  const step = STEP_H * H;
+  const stepMs = STEP_H * H;
   while (from < t) {
-    const dt = Math.min(step, t - from);
+    const dt = Math.min(stepMs, t - from);
     const at = from + dt;
-    for (const p of state.plants) stepPlant(p, dt / H, at, ctxFor(state, p, at), ev);
+    const step = Math.floor(at / (STEP_H * H));
+    const m = month(at);
+    for (const p of state.plants) {
+      const ctx = ctxFor(state, p, at);
+      stepPlant(p, dt / H, at, ctx, ev);
+      const bad = badLight(p, at, ctx);
+      const k = stepProblem(p, dt / H, at, { month: m, hot: bad === 'hot', dark: bad === 'dark', humid: !!ctx.humid, repel: !!ctx.repel, step });
+      if (k) ev.push({ kind: 'problem', plant: p.id, problem: k });
+    }
+    // вредители переползают на соседей
+    for (const p of state.plants) {
+      if (!p.problem) continue;
+      for (const n of neighborsOf(state, p)) {
+        if (trySpread(p, n, dt / H, at, step)) ev.push({ kind: 'problem', plant: n.id, problem: n.problem!.kind, spread: true });
+      }
+    }
     from = at;
   }
   state.simAt = t;
@@ -241,6 +284,7 @@ export function need(p: Plant, t: number, ctx: Ctx): string {
   const s = sp(p.sp);
   if (p.stage === 0) return p.rootStart ? 'Черенок пускает корни, подожди немного' : 'Налей воды в стакан, и черенок пустит корни';
   if (p.stage === 1) return 'Корни есть! Посади в горшок 🪴';
+  if (p.problem) return `${PROBLEMS[p.problem.kind].icon} ${PROBLEMS[p.problem.kind].name}: ${PROBLEMS[p.problem.kind].heal}`;
   const bad = badLight(p, t, ctx);
   if (p.moisture > 1) return 'Перелили 😬 Дай земле просохнуть';
   if (bad === 'hot') return p.zone === 'glass' ? 'Переставь в глубину комнаты: у стекла слишком жарко' : 'Тут жарковато даже в глубине — поставь фитолампу на другое окно';

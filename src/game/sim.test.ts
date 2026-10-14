@@ -46,6 +46,7 @@ describe('укоренение', () => {
 describe('рост', () => {
   it('при хорошем уходе доходит до взрослого за сумму часов стадий', () => {
     const { g, p } = potted('tradescantia');
+    p.guardUntil = T0 + 1e12; // без вредителей — проверяем чистый рост
     const [, adult] = stageMarks('tradescantia');
     // поливаем каждый день
     for (let t = T0; t < T0 + (adult + 1) * H; t += 12 * H) {

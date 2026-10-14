@@ -12,6 +12,7 @@ import { CONTEST_ENTRY_REWARD, CONTEST_VOTE_REWARD, weekKey } from './contest';
 import { platform } from '../platform';
 import { ACHIEVEMENTS, checkAchievements } from './achievements';
 import { freshAgeMarks } from './age';
+import { CURES, GUARD_MS, PROBLEMS } from './problems';
 import { HEARTS_FOR_GIFT, canFulfil, neighborOf, rollOrders } from './orders';
 import { INVITE_LADDER } from './invites';
 import { addMastery, type MasteryKind } from './mastery';
@@ -23,7 +24,7 @@ import { giftLink, makeCode } from './gifts';
 import { XP, levelPerks, levelReward, unlocksAt, xpToNext, SILL_UNLOCK } from './progression';
 import { QUEST_BONUS, WEEKLY_CHEST, dayKey, bumpQuest, bumpWeekly, rollDay, rollWeek, streakReward, weeklyVisit } from './quests';
 import { ITEM_BY_ID, ITEMS, placeOf, potIdOf } from './shop';
-import { advance, badLight, bestZone, canCut, cramped, ctxFor, fmt, hasLamp, stageMarks, type SimEvent } from './sim';
+import { advance, badLight, bestZone, canCut, cramped, ctxFor, fmt, hasLamp, neighborsOf, stageMarks, type SimEvent } from './sim';
 import { activeEvent, EVENT_TOKENS, eventSeason, tierOf, type GameEvent, type PassReward } from './events';
 import { FORM_BY_ID, FORMS, PRODUCT_BY_ID, RARE_DROP, formsOf } from './products';
 import { replayFriendWaters, type FriendWater } from './social';
@@ -303,6 +304,10 @@ function handleEvents(g: GameState, ev: SimEvent[], quiet: boolean) {
     } else if (e.kind === 'wilt') {
       log(g, `${s.name} засохло и сбросило листья 🥀`, g.simAt);
       if (!quiet) { toast(`${s.name} засыхает и сбрасывает листья 🥀 Полей и поставь на свет`); haptic('error'); }
+    } else if (e.kind === 'problem') {
+      const info = PROBLEMS[e.problem];
+      log(g, `${s.name}: ${info.name.toLowerCase()}`, g.simAt);
+      if (!quiet) { toast(`${info.icon} ${e.spread ? 'Перебралось на' : 'Беда у'} «${p.nick || s.name}»: ${info.name.toLowerCase()}! Загляни в карточку`); haptic('warning'); }
     } else if (e.kind === 'bloom') {
       g.stats.blooms += 1;
       p.bloomedOnce = true;
@@ -865,7 +870,17 @@ export function mist(plantId: string, insist = true) {
     fx(p.id, 'mist');
     say(p.id, 'Спасибо! 😊');
     haptic('light');
-    toast(`${s.name} радуется! 12 ч растёт быстрее 💦`);
+    // влажность мешает клещу
+    if (p.problem?.kind === 'mite') p.problem.sev = Math.max(0.1, p.problem.sev - 0.15);
+    // брызги летят на соседей: тем, кого нельзя мочить, это вредно
+    const splashed = neighborsOf(g, p).filter((n) => n.stage >= 2 && sp(n.sp).mist === 'no');
+    for (const n of splashed) {
+      n.splashedAt = t;
+      n.health = Math.max(5, n.health - 4);
+      say(n.id, 'Брр, брызги! 💧', 2000);
+    }
+    if (splashed.length) toast(`💦 Брызги попали на ${splashed.map((n) => sp(n.sp).acc).join(' и ')} — им опрыскивание вредно. Переставь подальше`);
+    else toast(`${s.name} радуется! 12 ч растёт быстрее 💦`);
     return true;
   });
 }
@@ -2004,5 +2019,33 @@ export function fulfilOrder(id: string) {
       if (n.gift.leaves) g.leaves += n.gift.leaves;
       toast(`${n.icon} ${n.name} в восторге и дарит тебе: ${n.gift.text}! ❤️`);
     } else toast(`${n.icon} ${n.name}: «Спасибо, золотце!» +${o.reward} 🍃 ❤️ ${Math.min(hearts, HEARTS_FOR_GIFT)}/${HEARTS_FOR_GIFT}`);
+  });
+}
+
+// ─────────────────── лечение ───────────────────
+/** Обработать растение средством. Если средства нет — купить за листики. */
+export function treat(plantId: string, cure: string) {
+  return mut((g, t) => {
+    const p = findPlant(g, plantId);
+    const pr = p?.problem;
+    if (!p || !pr || !CURES[cure]?.includes(pr.kind)) return false;
+    if ((g.owned[cure] ?? 0) <= 0) {
+      const price = ITEM_BY_ID[cure]?.price ?? 0;
+      if (g.leaves < price) { toast(`Нужно ${price} 🍃`); return false; }
+      g.leaves -= price;
+    } else g.owned[cure] -= 1;
+    const info = PROBLEMS[pr.kind];
+    // гниль лечится, только если не продолжать заливать
+    if (pr.kind === 'rot' && p.moisture > 1) p.moisture = 1;
+    p.problem = undefined;
+    p.guardUntil = t + GUARD_MS;
+    g.stats.cured = (g.stats.cured ?? 0) + 1;
+    addXp(g, 15);
+    fx(p.id, 'grow');
+    haptic('success');
+    say(p.id, 'Спасибо, полегчало! 😮‍💨', 2400);
+    toast(`${ITEM_BY_ID[cure]?.icon ?? '💊'} ${info.name} побеждена! Неделю растение под защитой`);
+    track('cure', { kind: pr.kind });
+    return true;
   });
 }

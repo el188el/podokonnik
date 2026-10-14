@@ -126,6 +126,12 @@ export const ITEMS: ShopItem[] = [
   { id: 'herb_frame', cat: 'decor', place: 'wall', name: 'Гербарий в рамке', icon: '🖼️', price: 0, desc: 'Засушенные листья всех сезонов.', eventOnly: true, album: true },
   { id: 'bouquet', cat: 'decor', place: 'table', name: 'Букет-победитель', icon: '💐', price: 0, desc: 'Всё, что цвело на твоём подоконнике.', eventOnly: true, album: true },
 
+  // уход: средства от вредителей и болезней
+  { id: 'soap', cat: 'care', name: 'Мыльный раствор', icon: '🧼', price: 8, desc: 'От тли. Хозяйственное мыло и тёплая вода — бабушкин рецепт.', consumable: true },
+  { id: 'traps', cat: 'care', name: 'Жёлтые ловушки', icon: '🟨', price: 12, desc: 'Клейкие ловушки от грибных мошек.', consumable: true },
+  { id: 'fungicide', cat: 'care', name: 'Фитоспорин', icon: '💊', price: 20, desc: 'От корневой гнили и мучнистой росы.', consumable: true },
+  { id: 'acaricide', cat: 'care', name: 'Фитоверм', icon: '🧴', price: 25, desc: 'От паутинного клеща, тли и мучнистого червеца.', consumable: true },
+  { id: 'humidifier', cat: 'decor', place: 'sill', name: 'Увлажнитель', icon: '💨', price: 180, desc: 'Эффект: клещ заводится в 2,5 раза реже, любители влажности растут на 10% быстрее.', level: 5 },
   // уход
   { id: 'feed', cat: 'care', name: 'Подкормка', icon: '🧪', price: 15, desc: 'Сутки растение растёт в 1,5 раза быстрее.', consumable: true },
   { id: 'potL', cat: 'care', name: 'Большой горшок (L)', icon: '🪴', price: 25, desc: 'Для пересадки взрослого растения, когда ему тесно.', consumable: true },

@@ -3,6 +3,7 @@
 import { canCut } from '../_shared/game/sim.ts';
 import { replayFriendWaters, type FriendWater } from '../_shared/game/social.ts';
 import { sp } from '../_shared/game/species.ts';
+import { PROBLEMS } from '../_shared/game/problems.ts';
 import type { GameState } from '../_shared/game/types.ts';
 import { MONTH_IN, monthHeadline } from '../_shared/game/calendar.ts';
 
@@ -53,6 +54,12 @@ export function pickReminder(state: GameState, now: number, tzOffsetMin: number,
 
   const wilting = potted.filter((p) => p.health < 40 && !neighbor).map((p) => p.sp);
   if (wilting.length) return { text: `🥀 ${names(wilting)} совсем плохо. Загляни, пока не поздно!`, button: '🚑 Спасти' };
+
+  const sick = potted.find((p) => p.problem && (PROBLEMS[p.problem.kind]?.pest || p.problem.kind === 'rot'));
+  if (sick?.problem) {
+    const info = PROBLEMS[sick.problem.kind];
+    return { text: `${info.icon} У растения «${sp(sick.sp).name}» — ${info.name.toLowerCase()}!${info.pest ? ' Вылечи, пока не перебралось на соседей' : ' Нужна помощь'}`, button: '💊 Вылечить' };
+  }
 
   const thirsty = neighbor ? [] : potted.filter((p) => p.moisture < 0.2).map((p) => p.sp);
   if (thirsty.length) return { text: `💧 ${names(thirsty)} ${thirsty.length === 1 ? 'хочет' : 'хотят'} пить`, button: '💧 Полить' };

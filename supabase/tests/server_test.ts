@@ -127,3 +127,13 @@ Deno.test('оплата: стартовый пакет и подарочная �
   assertEquals(parsePayload(`starter|${id}`)?.product.once, true);
   assertEquals(parsePayload(`plus_gift|${id}`)?.product.kind, 'plus_gift');
 });
+
+Deno.test('напоминание: вредитель важнее жажды', () => {
+  const now = Date.UTC(2026, 10, 3, 9);
+  const s = newStateForTest(now);
+  s.plants = [
+    { ...s.plants[0], id: 'a', sp: 'violet', stage: 4, moisture: 0.1, problem: { kind: 'mite', at: now, sev: 0.5 } },
+  ] as typeof s.plants;
+  const r = pickReminder(s, now, 180, now - 3 * 3600e3);
+  assert(r?.text.includes('клещ'));
+});

@@ -103,6 +103,13 @@ export interface Plant {
   showoffDone?: boolean;
   ageSeen?: number;     // последняя отпразднованная отметка возраста (дней)
   waterBy?: { name: string; at: number }; // кто полил последним (общий подоконник)
+  problem?: { kind: ProblemKind; at: number; sev: number }; // вредитель или болезнь (sev 0…1)
+  guardUntil?: number;  // защита после лечения
+  wetFor?: number;      // часов подряд с переливом
+  hotFor?: number;      // часов подряд на слишком ярком солнце
+  darkFor?: number;     // часов подряд в темноте
+  goodFor?: number;     // часов подряд при хорошем свете
+  splashedAt?: number;  // когда на листья попала вода (для тех, кому нельзя)
   named?: boolean;      // награда за имя уже выдана
 }
 
@@ -131,6 +138,8 @@ export interface PendingGift {
   note: number;
   code: string;
 }
+
+export type ProblemKind = 'rot' | 'gnats' | 'mite' | 'aphid' | 'mealybug' | 'mildew' | 'burn' | 'leggy';
 
 export type WeeklyKind = 'water' | 'plant' | 'gift' | 'cut' | 'mist' | 'adult' | 'bloom' | 'friendWater' | 'days' | 'feed';
 
@@ -185,6 +194,7 @@ export interface Stats {
   nightWater: number;
   hybrids?: number;
   doctor?: number;      // консультаций «доктора»
+  cured?: number;       // вылечено растений
 }
 
 export interface GameState {

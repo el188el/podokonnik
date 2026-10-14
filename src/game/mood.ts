@@ -24,6 +24,7 @@ export function moodOf(p: Plant, t: number, ctx: Ctx): Mood {
   if (p.mistUntil && t < p.mistUntil) s += 10;
   if (p.feedUntil && t < p.feedUntil) s += 5;
   if (p.blooming) s += 10;
+  if (p.problem) s -= 15 + 25 * p.problem.sev;
   s = Math.max(0, Math.min(100, s));
   if (s >= 95) return { icon: '😍', label: 'счастливо', score: s };
   if (s >= 75) return { icon: '😊', label: 'довольно', score: s };
@@ -45,6 +46,7 @@ export function chatter(p: Plant, t: number, ctx: Ctx, w: Weather | null, r: num
   const bad = badLight(p, t, ctx);
   if (bad === 'dark') lines.push('Скучаю по солнышку 🌥', 'Темновато тут…');
   if (bad === 'hot') lines.push('Жарко! Отодвинь от стекла 🥵', 'Я сейчас сгорю ☀️');
+  if (p.problem) lines.push({ rot: 'Корни болят… 😣', gnats: 'Тут мошки летают 🦟', mite: 'Кто-то кусает листья 🕷', aphid: 'Меня облепила тля! 🐛', mealybug: 'Что это за вата на мне? 😖', mildew: 'Я вся в налёте 😷', burn: 'Обгорела на солнце 🥵', leggy: 'Мне бы света побольше… 🌥' }[p.problem.kind]);
   if (lines.length) return pick(lines, r);
 
   if (w && w.sky === 'rain') lines.push('Дождик за окном 🌧 А мне и тут хорошо', 'Слышишь, как стучит дождь?');

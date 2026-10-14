@@ -3,14 +3,16 @@ import { LIGHT_NAME, SHOWOFF_MS, STAGE_NAME, ZONE_NAME } from '../../game/consta
 import { FORM_BY_ID } from '../../game/products';
 import { BREED_COOLDOWN, canBreed, hueOf } from '../../game/breeding';
 import { POTS } from '../../game/shop';
-import { canCut, cramped, ctxFor, cutLeft, fmt, isSad, isThirstySad, lightLevel, need, nextStageAt, stageProgress } from '../../game/sim';
+import { canCut, cramped, ctxFor, cutLeft, fmt, isSad, isThirstySad, lightLevel, need, neighborsOf, nextStageAt, stageProgress } from '../../game/sim';
 import { DIFFICULTY_LABEL, sp } from '../../game/species';
 import {
-  adsLeft, breedPartners, closeSheet, feed, mist, pollinate, watchAd, move, now, openSheet, ownsPot, plantInPot, removePlant, renamePlant, repot, setPot, takeCutting, toast, useStore, water,
+  adsLeft, breedPartners, treat, closeSheet, feed, mist, pollinate, watchAd, move, now, openSheet, ownsPot, plantInPot, removePlant, renamePlant, repot, setPot, takeCutting, toast, useStore, water,
 } from '../../game/store';
 import { adsAvailable } from '../../net/ads';
 import { ageDays, ageMark, daysText, nextAgeMark } from '../../game/age';
 import { PlantArt } from '../art/PlantArt';
+import { PROBLEMS, cureFor } from '../../game/problems';
+import { ITEM_BY_ID } from '../../game/shop';
 import { chatter, moodOf } from '../../game/mood';
 import { weatherAt } from '../../game/weather';
 import { Bar, Btn } from '../kit/kit';
@@ -52,7 +54,7 @@ export function PlantCard({ id }: { id: string }) {
   const t = now();
   const s = sp(p.sp);
   const ctx = ctxFor(g, p, t);
-  const light = lightLevel(ctx.sill, p.zone, t, ctx.lamp, ctx.dim);
+  const light = lightLevel(ctx.sill, p.zone, t, ctx.lamp, ctx.dim, ctx.shade);
   const next = nextStageAt(p, t, ctx);
   const potted = p.stage >= 2;
   const mistOn = p.mistUntil && t < p.mistUntil;
@@ -114,7 +116,39 @@ export function PlantCard({ id }: { id: string }) {
         const m = moodOf(p, t, ctx);
         return <p className="mood-line">{m.icon} <b>{m.label}</b> · <i>«{chatter(p, t, ctx, weatherAt(g, t), (p.id.charCodeAt(0) + Math.floor(t / 600e3)) % 17 / 17)}»</i></p>;
       })()}
-      <p className="need">💡 {need(p, t, ctx)}</p>
+      {p.problem && (() => {
+        const info = PROBLEMS[p.problem.kind];
+        const cures = cureFor(p.problem.kind);
+        return (
+          <div className="problem-box">
+            <div className="problem-head"><span className="problem-icon">{info.icon}</span><div><b>{info.name}</b><Bar value={p.problem.sev} color="#e0574f" label={p.problem.sev > 0.7 ? 'сильно' : p.problem.sev > 0.4 ? 'заметно' : 'только началось'} /></div></div>
+            <p className="small"><b>Признаки:</b> {info.sign}</p>
+            <p className="small"><b>Почему:</b> {info.cause}</p>
+            <p className="small"><b>Что делать:</b> {info.heal}</p>
+            {info.pest && <p className="small warn-text">⚠️ Переползает на соседей — лечи поскорее.</p>}
+            <div className="actions">
+              {cures.map((c) => {
+                const it = ITEM_BY_ID[c];
+                const have = g.owned[c] ?? 0;
+                return <Btn key={c} small kind="gold" onClick={() => treat(p.id, c)}>{it.icon} {it.name} {have ? `(${have})` : `· ${it.price} 🍃`}</Btn>;
+              })}
+              {(p.problem.kind === 'burn' || p.problem.kind === 'leggy') && <Btn small onClick={() => move(p.id, p.zone === 'glass' ? 'deep' : 'glass')}>{p.zone === 'glass' ? '↓ Убрать от солнца' : '↑ Ближе к свету'}</Btn>}
+            </div>
+          </div>
+        );
+      })()}
+      {!p.problem && <p className="need">💡 {need(p, t, ctx)}</p>}
+      {potted && (() => {
+        const near = neighborsOf(g, p);
+        const notes: string[] = [];
+        if (ctx.shade) notes.push('🌳 Большой сосед затеняет — света меньше');
+        if (ctx.repel) notes.push('🌸 Рядом взрослая герань — вредители заводятся реже');
+        if (ctx.humid) notes.push('💨 Увлажнитель рядом — клещу неуютно');
+        if (s.mist === 'love' && near.some((n) => sp(n.sp).mist === 'no')) notes.push(`⚠️ Опрыскивая, заденешь соседа: ${near.filter((n) => sp(n.sp).mist === 'no').map((n) => sp(n.sp).acc).join(', ')}`);
+        const sick = near.filter((n) => n.problem && PROBLEMS[n.problem.kind].pest);
+        if (sick.length) notes.push(`🐛 У соседа вредители — могут перебраться сюда`);
+        return notes.length ? <div className="neighbors-note">{notes.map((x) => <span key={x} className="small">{x}</span>)}</div> : null;
+      })()}
 
       {potted && (
         <div className="meters">

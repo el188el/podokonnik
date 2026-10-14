@@ -10,6 +10,7 @@ import type { Plant } from '../game/types';
 import { PlantArt } from './art/PlantArt';
 import { roundInfo } from '../game/onboarding';
 import { ageMark } from '../game/age';
+import { PROBLEMS } from '../game/problems';
 
 const lastEnough: Record<string, number> = {};
 
@@ -25,6 +26,7 @@ function bubbleFor(p: Plant, t: number, flash?: { text: string; until: number })
   if (p.stage === 1) return { text: (g.owned.pot ?? 0) > 0 ? 'Посади меня 🪴' : 'Нужен горшок 🪴', cls: 'ready' };
   if (p.moisture > 1) return { text: 'Перелили 😵', cls: '' };
   if (p.moisture < 0.25) return { text: isThirstySad(p) ? 'Мне грустно… 💧' : 'Хочу пить', cls: isThirstySad(p) ? 'sad' : '' };
+  if (p.problem) return { text: `${PROBLEMS[p.problem.kind].icon} ${PROBLEMS[p.problem.kind].short}`, cls: 'sad' };
   const bad = badLight(p, t, ctx);
   if (bad === 'hot') return { text: isLightSad(p) ? 'Жарко на солнце 🥵' : 'Жарковато', cls: '' };
   if (bad === 'dark') return { text: isLightSad(p) ? 'Темновато… 🌥' : 'Темновато', cls: '' };
@@ -174,6 +176,7 @@ export function Slot({ plant: p, sill, slot }: { plant: Plant; sill: string; slo
       )}
       {p.stage === 0 && !p.rootStart && <div className="finger">👆</div>}
       {roundPending && <div className="round-dot" title="загляни в обходе">👀</div>}
+      {p.problem && <div className={'pest pest-' + p.problem.kind} style={{ opacity: 0.45 + 0.55 * p.problem.sev }}>{p.problem.kind === 'gnats' ? <><i /><i /><i /></> : null}</div>}
       {age && age.days >= 30 && <div className="age-badge" title={age.title}>{age.icon}</div>}
       <motion.div
         className="art"
