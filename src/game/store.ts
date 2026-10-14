@@ -14,7 +14,7 @@ import { ACHIEVEMENTS, checkAchievements } from './achievements';
 import { freshAgeMarks } from './age';
 import { catText } from './cat';
 import { CURES, GUARD_MS, PROBLEMS } from './problems';
-import { HEARTS_FOR_GIFT, canFulfil, neighborOf, rollOrders } from './orders';
+import { HEARTS_FOR_GIFT, canFulfil, neighborOf, orderGives, orderNeed, rollOrders } from './orders';
 import { INVITE_LADDER } from './invites';
 import { addMastery, type MasteryKind } from './mastery';
 import { CARE_TASK_REWARD } from './calendar';
@@ -2065,8 +2065,8 @@ export function fulfilOrder(id: string) {
     const o = board?.list.find((x) => x.id === id);
     if (!board || !o) return;
     const can = canFulfil(g, o);
-    if (!can.ok) { toast(o.kind === 'cutting' ? `Нужен черенок ${sp(o.sp).gen} в запасе ✂️` : `Нужна цветущая ${sp(o.sp).name.toLowerCase()} 🌸`); return; }
-    if (can.cutting) g.cuttings = g.cuttings.filter((c) => c.id !== can.cutting);
+    if (!can.ok) { toast(`Пока не выйдет: ${orderNeed(o)} — ${sp(o.sp).name.toLowerCase()}`); return; }
+    if (can.cuttings?.length) g.cuttings = g.cuttings.filter((c) => !can.cuttings!.includes(c.id));
     board.list = board.list.filter((x) => x.id !== id);
     board.done += 1;
     g.leaves += o.reward;
@@ -2075,7 +2075,7 @@ export function fulfilOrder(id: string) {
     const hearts = (board.hearts[o.who] ?? 0) + 1;
     board.hearts[o.who] = hearts;
     eventToken(g, 'quest', t);
-    if (o.kind === 'cutting') weekly(g, 'gift');
+    if (orderGives(o)) weekly(g, 'gift');
     track('order_done', { kind: o.kind });
     haptic('success');
     if (hearts === HEARTS_FOR_GIFT) {

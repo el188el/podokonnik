@@ -37,7 +37,7 @@ describe('заказы соседей', () => {
     const o = g.orders!.list[0];
     expect(canFulfil(g, o).ok).toBe(false);
     g.cuttings.push({ id: 'c1', sp: 'geranium', at: T0 });
-    expect(canFulfil(g, o)).toEqual({ ok: true, cutting: 'c1' });
+    expect(canFulfil(g, o)).toMatchObject({ ok: true, cutting: 'c1' });
   });
 
   it('просроченные записки исчезают', () => {
@@ -45,5 +45,36 @@ describe('заказы соседей', () => {
     rollOrders(g, T0);
     rollOrders(g, T0 + 25 * H);
     expect(g.orders!.list.every((o) => o.until > T0 + 25 * H)).toBe(true);
+  });
+
+  it('на старте — простые просьбы, на высоком уровне — редкости, цвета и по нескольку черенков', () => {
+    const kinds = (level: number) => {
+      const seen = new Set<string>();
+      for (let i = 0; i < 300; i++) {
+        const g = game();
+        g.level = level;
+        g.forms = ['albo'];
+        g.plants.push(newPlant({ sp: 'monstera', sill: 'room', slot: 1, zone: 'glass', stage: 4 }, T0));
+        g.hues = { violet: ['pink'] };
+        rollOrders(g, T0);
+        for (const o of g.orders!.list) seen.add(o.kind + (o.n && o.n > 1 ? `×${o.n}` : ''));
+      }
+      return seen;
+    };
+    const low = kinds(1);
+    expect([...low].every((k) => ['cutting', 'adult', 'healthy'].includes(k))).toBe(true);
+    const high = kinds(12);
+    expect(high.has('rare')).toBe(true);
+    expect(high.has('hue')).toBe(true);
+    expect([...high].some((k) => k.startsWith('cutting×'))).toBe(true);
+  });
+
+  it('несколько черенков — нужно столько, сколько просят', () => {
+    const g = game();
+    g.orders = { list: [{ id: 'o', who: 'tamara', kind: 'cutting', sp: 'geranium', n: 2, reward: 50, xp: 10, at: T0, until: T0 + 24 * H }], next: T0 + 1e9, done: 0, hearts: {} };
+    g.cuttings.push({ id: 'c1', sp: 'geranium', at: T0 });
+    expect(canFulfil(g, g.orders.list[0]).ok).toBe(false);
+    g.cuttings.push({ id: 'c2', sp: 'geranium', at: T0 });
+    expect(canFulfil(g, g.orders.list[0])).toMatchObject({ ok: true, cuttings: ['c1', 'c2'] });
   });
 });

@@ -171,13 +171,16 @@ export interface WeeklyQuest {
   claimed: boolean;
 }
 
-export type OrderKind = 'cutting' | 'bloom';
+export type OrderKind = 'cutting' | 'bloom' | 'adult' | 'healthy' | 'rare' | 'hue';
 
 export interface Order {
   id: string;
   who: string;   // id соседа
   kind: OrderKind;
   sp: string;
+  n?: number;     // сколько черенков
+  form?: string;  // редкая форма (kind: 'rare')
+  hue?: string;   // цвет цветков (kind: 'hue')
   reward: number;
   xp: number;
   at: number;
