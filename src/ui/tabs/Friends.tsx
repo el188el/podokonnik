@@ -5,6 +5,7 @@ import { openSheet, useStore } from '../../game/store';
 import * as api from '../../net/api';
 import { Btn } from '../kit/kit';
 import { Market } from './Market';
+import { Contest } from './Contest';
 import { shareInvite, shareVacation } from '../share';
 
 function seen(ms: number) {
@@ -19,7 +20,7 @@ function seen(ms: number) {
 
 export function Friends() {
   const name = useStore((s) => s.game.name);
-  const [mode, setMode] = useState<'friends' | 'market'>('friends');
+  const [mode, setMode] = useState<'friends' | 'market' | 'contest'>('friends');
   const [list, setList] = useState<api.Friend[] | null>(null);
   const [error, setError] = useState(false);
 
@@ -43,9 +44,10 @@ export function Friends() {
         <div className="segment">
           <button className={mode === 'friends' ? 'on' : ''} onClick={() => setMode('friends')}>👯 Друзья</button>
           <button className={mode === 'market' ? 'on' : ''} onClick={() => setMode('market')}>🔄 Барахолка</button>
+          <button className={mode === 'contest' ? 'on' : ''} onClick={() => setMode('contest')}>🏆 Конкурс</button>
         </div>
       )}
-      {mode === 'market' && api.loggedIn() ? <Market /> : <>
+      {mode === 'contest' && api.loggedIn() ? <Contest /> : mode === 'market' && api.loggedIn() ? <Market /> : <>
       <section className="panel invite">
         <h3>👯 Позови друзей</h3>
         <p className="muted small">Друг получит +30 🍃 на первые черенки, а ты +50 🍃. Подаренный черенок тоже делает вас друзьями.</p>

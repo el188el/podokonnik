@@ -98,6 +98,14 @@ export function Popups() {
           </div>
         );
       })()}
+      {p?.kind === 'contest' && (
+        <div className="center">
+          <motion.div className="gicon" initial={{ scale: 0.3, rotate: -20 }} animate={{ scale: 1, rotate: 0 }}>{['🥇', '🥈', '🥉'][p.place - 1] ?? '🏆'}</motion.div>
+          <h2>{p.place} место в конкурсе!</h2>
+          <p>Твой подоконник понравился игрокам больше других. Приз: <b>+{p.leaves} 🍃</b></p>
+          <Btn kind="primary" onClick={closePopup}>Ура!</Btn>
+        </div>
+      )}
       {p?.kind === 'migrated' && (
         <div className="center">
           <div className="gicon">🏡</div>

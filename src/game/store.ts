@@ -7,6 +7,7 @@ import { compress, deletePhoto, savePhoto } from '../net/photos';
 import { photoReward, pushPhoto } from './twins';
 import type { Place } from './weather';
 import type { CoopAction, CoopResult } from './coop';
+import { CONTEST_ENTRY_REWARD, CONTEST_VOTE_REWARD, weekKey } from './contest';
 import { platform } from '../platform';
 import { ACHIEVEMENTS, checkAchievements } from './achievements';
 import { freshAgeMarks } from './age';
@@ -35,6 +36,7 @@ export type Popup =
   | { kind: 'gift'; gift: PendingGift & { ok: boolean } }
   | { kind: 'thanks'; sp: string; from: string }
   | { kind: 'age'; plant: string; days: number }
+  | { kind: 'contest'; place: number; leaves: number }
   | { kind: 'migrated' };
 
 export interface AwayReport {
@@ -376,6 +378,11 @@ function applyInbox(items: api.InboxItem[]) {
           discover(g, spId);
           toast(it.kind === 'swap_return' ? `Черенок ${sp(spId).gen} вернулся с барахолки` : `🔄 ${String(it.payload.from ?? 'Садовник')}: черенок ${sp(spId).gen} пришёл по обмену!`);
         }
+      } else if (it.kind === 'contest_win') {
+        const leaves = Number(it.payload.leaves) || 0;
+        g.leaves += leaves;
+        popup({ kind: 'contest', place: Number(it.payload.place) || 1, leaves });
+        haptic('success');
       } else if (it.kind === 'coop_join') {
         toast(`💞 ${name} присоединил(ась) к подоконнику «${String(it.payload.sill ?? '')}»`);
         setTimeout(loadCoops, 300);
@@ -1547,3 +1554,53 @@ export async function coopDo(id: number, action: CoopAction, cuttingId?: string)
 }
 
 export const coopInviteCode = (c: api.CoopView) => 'c' + c.code;
+
+// ─────────────────── подоконник недели ───────────────────
+function contestWeek(g: GameState, t: number) {
+  const week = weekKey(t);
+  if (g.contest?.week !== week) g.contest = { week, entered: false, votes: 0 };
+  return g.contest;
+}
+
+/** Выставить подоконник на конкурс (снимок делает сервер по последнему сохранению). */
+export async function enterContest(sillId: string): Promise<boolean> {
+  try {
+    await pushNow(false);
+    const r = await api.contestEnter(sillId);
+    if (r.status === 'empty') { toast('На этом подоконнике пока пусто — посади что-нибудь 🌱'); return false; }
+    mut((g, t) => {
+      const c = contestWeek(g, t);
+      if (!c.entered) {
+        c.entered = true;
+        g.leaves += CONTEST_ENTRY_REWARD;
+        toast(`🏆 Подоконник участвует в конкурсе! +${CONTEST_ENTRY_REWARD} 🍃`);
+      } else toast('📸 Снимок подоконника обновлён');
+    });
+    track('contest_enter');
+    return true;
+  } catch {
+    toast('Не получилось. Проверь интернет');
+    return false;
+  }
+}
+
+export async function voteContest(target: string): Promise<boolean> {
+  try {
+    const r = await api.contestVote(target);
+    if (r.status !== 'ok') {
+      toast(r.status === 'limit' ? 'Все 3 голоса этой недели отданы 💌' : r.status === 'dup' ? 'Ты уже голосовал(а) за этот подоконник' : 'Голос не засчитан');
+      return false;
+    }
+    mut((g, t) => {
+      const c = contestWeek(g, t);
+      c.votes += 1;
+      g.leaves += CONTEST_VOTE_REWARD;
+    });
+    haptic('light');
+    toast(`❤️ Голос отдан! +${CONTEST_VOTE_REWARD} 🍃`);
+    return true;
+  } catch {
+    toast('Не получилось. Проверь интернет');
+    return false;
+  }
+}

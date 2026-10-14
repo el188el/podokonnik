@@ -190,6 +190,7 @@ export interface GameState {
   log: { at: number; text: string }[];
   settings: { sound: boolean; haptics: boolean; quietFrom: number; quietTo: number; notify?: boolean; place?: Place | null };
   weather?: Weather;    // последняя сводка погоды за окном
+  contest?: { week: string; entered: boolean; votes: number }; // награды конкурса за неделю
   inboxSeen?: number[]; // обработанные награды с сервера
   plusUntil?: number;   // «Садовник+» активен до
   events?: Record<string, EventProgress>; // прогресс ивентов по сезонам (autumn-2026)

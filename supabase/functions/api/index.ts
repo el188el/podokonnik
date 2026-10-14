@@ -16,6 +16,7 @@ import { hueOf } from '../_shared/game/breeding.ts';
 import { escHtml, send } from '../_shared/tg.ts';
 import { COOP_MAX_MEMBERS, COOP_MAX_PER_PLAYER, cleanAction, coopAct, coopAdvance, newCoop, type CoopState } from '../_shared/game/coop.ts';
 import type { WindowSide } from '../_shared/game/types.ts';
+import { CONTEST_PRIZES, CONTEST_VOTES, contestShot, prevWeekKey, themeOf, weekEndsAt, weekKey } from '../_shared/game/contest.ts';
 
 const MAX_STATE = 300_000;
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
@@ -522,6 +523,69 @@ async function coopLeave(playerId: string, b: Body) {
   return json({ status: 'ok' });
 }
 
+// ─────────────────── подоконник недели ───────────────────
+const entryOut = (e: { player_id: string; snapshot: unknown; votes: number }, friends: Set<string>) =>
+  ({ id: e.player_id, shot: e.snapshot, votes: e.votes, friend: friends.has(e.player_id) });
+
+/** Раздать призы за прошлую неделю — один раз, кто первый зашёл после конца недели. */
+async function awardContest(week: string) {
+  const { data: top } = await db.from('contest_entries').select('player_id, snapshot, votes')
+    .eq('week', week).gt('votes', 0).order('votes', { ascending: false }).order('created_at').limit(CONTEST_PRIZES.length);
+  const winners = (top ?? []).map((e, i) => ({ id: e.player_id, place: i + 1, votes: e.votes, name: (e.snapshot as { name?: string })?.name ?? 'Садовник' }));
+  const { data: fresh } = await db.from('contest_awards').upsert({ week, winners }, { onConflict: 'week', ignoreDuplicates: true }).select('week');
+  if (!fresh?.length) return;
+  if (!winners.length) return;
+  await db.from('inbox').insert(winners.map((w) => ({ player_id: w.id, kind: 'contest_win', payload: { place: w.place, leaves: CONTEST_PRIZES[w.place - 1], votes: w.votes, week } })));
+  const { data: tg } = await db.from('players').select('id, tg_id, notify').in('id', winners.map((w) => w.id));
+  for (const p of tg ?? []) {
+    const w = winners.find((x) => x.id === p.id)!;
+    if (p.tg_id && p.notify) await send(p.tg_id, `🏆 Твой подоконник занял <b>${w.place} место</b> в конкурсе «Подоконник недели»! Приз +${CONTEST_PRIZES[w.place - 1]} 🍃 уже ждёт в игре.`, { text: '🪴 Забрать приз', url: appLink() });
+  }
+}
+
+async function contest(playerId: string) {
+  const now = Date.now();
+  const week = weekKey(now);
+  const prev = prevWeekKey(now);
+  const { data: awarded } = await db.from('contest_awards').select('winners').eq('week', prev).maybeSingle();
+  if (!awarded) await awardContest(prev).catch((e) => console.warn('award', e));
+  const [{ data: entries }, { data: mine }, { data: votes }, { data: fr }, { data: last }] = await Promise.all([
+    db.from('contest_entries').select('player_id, snapshot, votes').eq('week', week).order('votes', { ascending: false }).order('created_at').limit(60),
+    db.from('contest_entries').select('player_id, snapshot, votes').eq('week', week).eq('player_id', playerId).maybeSingle(),
+    db.from('contest_votes').select('target').eq('week', week).eq('voter', playerId),
+    db.from('friends').select('b').eq('a', playerId),
+    db.from('contest_entries').select('player_id, snapshot, votes').eq('week', prev).gt('votes', 0).order('votes', { ascending: false }).order('created_at').limit(3),
+  ]);
+  const friends = new Set((fr ?? []).map((f) => f.b as string));
+  // друзья — наверх, остальные по голосам
+  const list = (entries ?? []).filter((e) => e.player_id !== playerId).map((e) => entryOut(e, friends))
+    .sort((a, b) => Number(b.friend) - Number(a.friend) || b.votes - a.votes);
+  return json({
+    week, endsAt: weekEndsAt(now), theme: themeOf(week), total: entries?.length ?? 0,
+    entries: list, mine: mine ? entryOut(mine, friends) : null,
+    votes: (votes ?? []).map((v) => v.target), votesMax: CONTEST_VOTES,
+    last: { week: prev, theme: themeOf(prev), top: (last ?? []).map((e) => entryOut(e, friends)) },
+  });
+}
+
+async function contestEnter(playerId: string, b: Body) {
+  const save = await loadSave(playerId);
+  if (!save?.state) return fail('no_save');
+  const shot = contestShot(publicView(save.state as GameState, Date.now()), str(b.sill, 32));
+  if (!shot) return json({ status: 'empty' });
+  const week = weekKey(Date.now());
+  const { error } = await db.from('contest_entries').upsert({ week, player_id: playerId, snapshot: shot, updated_at: new Date().toISOString() }, { onConflict: 'week,player_id' });
+  if (error) return fail('db', 500);
+  return json({ status: 'ok' });
+}
+
+async function contestVote(playerId: string, b: Body) {
+  const target = str(b.target, 40);
+  if (!UUID.test(target)) return fail('bad_args');
+  const { data } = await db.rpc('vote_contest', { p_week: weekKey(Date.now()), p_voter: playerId, p_target: target, p_max: CONTEST_VOTES });
+  return json({ status: data ?? 'error' });
+}
+
 // ─────────────────── оплата ───────────────────
 async function payInvoice(playerId: string, b: Body) {
   const product = PRODUCT_BY_ID[str(b.product, 40)];
@@ -566,6 +630,9 @@ Deno.serve(async (req) => {
       case '/coop/join': return await coopJoin(playerId, body);
       case '/coop/act': return await coopActRoute(playerId, body);
       case '/coop/leave': return await coopLeave(playerId, body);
+      case '/contest': return await contest(playerId);
+      case '/contest/enter': return await contestEnter(playerId, body);
+      case '/contest/vote': return await contestVote(playerId, body);
       default: return fail('not_found', 404);
     }
   } catch (e) {

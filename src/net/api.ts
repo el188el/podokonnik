@@ -225,3 +225,27 @@ export const coopJoin = (code: string) => call<{ status: 'ok' | 'gone' | 'full' 
 export const coopAct = (id: number, action: import('../game/coop').CoopAction) =>
   call<{ result: import('../game/coop').CoopResult; coop?: CoopView }>('/coop/act', { id, action });
 export const coopLeave = (id: number) => call<{ status: string }>('/coop/leave', { id });
+
+// ─────────────────── подоконник недели ───────────────────
+export interface ContestEntry {
+  id: string;
+  shot: import('../game/contest').ContestShot;
+  votes: number;
+  friend: boolean;
+}
+
+export interface ContestData {
+  week: string;
+  endsAt: number;
+  theme: { title: string; hint: string };
+  total: number;
+  entries: ContestEntry[];
+  mine: ContestEntry | null;
+  votes: string[];
+  votesMax: number;
+  last: { week: string; theme: { title: string; hint: string }; top: ContestEntry[] };
+}
+
+export const contest = () => call<ContestData>('/contest', {});
+export const contestEnter = (sill: string) => call<{ status: 'ok' | 'empty' }>('/contest/enter', { sill });
+export const contestVote = (target: string) => call<{ status: 'ok' | 'dup' | 'limit' | 'self' | 'no_entry' }>('/contest/vote', { target });
