@@ -3,7 +3,8 @@
 
 import { safeEqual } from '../_shared/crypto.ts';
 import { db } from '../_shared/db.ts';
-import { appLink, secret } from '../_shared/env.ts';
+import { appLink, env, secret } from '../_shared/env.ts';
+import { checkPreCheckout, grant, markRefunded } from '../_shared/pay.ts';
 import { send, tg } from '../_shared/tg.ts';
 
 const WELCOME = `Привет! Это <b>Подоконник</b> 🌱
@@ -17,26 +18,68 @@ const HELP = `🪴 <b>Как играть</b>
 
 Команды:
 /start — открыть игру
-/notify — включить или выключить напоминания`;
+/notify — включить или выключить напоминания
+/paysupport — помощь с покупками
+/terms — условия покупок`;
+
+const TERMS = `<b>Условия покупок</b>
+• Покупки в Подоконнике — цифровые товары за Telegram Stars: листики, редкие формы растений и подписка «Садовник+».
+• Покупка выдаётся сразу после оплаты. Если что-то не пришло — напиши /paysupport.
+• «Садовник+» продлевается автоматически раз в 30 дней, отменить можно в любой момент в настройках Telegram (Звёзды → Подписки).
+• Возврат возможен, если товар не был выдан. Растения в игре никогда не погибают из-за отсутствия покупок.`;
+
+const ADMIN = Number(env('TG_ADMIN_ID')) || 0;
 
 interface Update {
-  message?: { chat: { id: number; type: string }; from?: { id: number }; text?: string };
-  pre_checkout_query?: { id: string };
+  message?: {
+    chat: { id: number; type: string };
+    from?: { id: number; first_name?: string; username?: string };
+    text?: string;
+    successful_payment?: {
+      currency: string; total_amount: number; invoice_payload: string; telegram_payment_charge_id: string;
+      is_recurring?: boolean; subscription_expiration_date?: number;
+    };
+    refunded_payment?: { telegram_payment_charge_id: string };
+  };
+  pre_checkout_query?: { id: string; currency: string; total_amount: number; invoice_payload: string };
 }
 
 async function handle(u: Update) {
   if (u.pre_checkout_query) {
-    // оплата звёздами появится на этапе монетизации
-    await tg('answerPreCheckoutQuery', { pre_checkout_query_id: u.pre_checkout_query.id, ok: false, error_message: 'Покупки скоро появятся 🌱' });
+    const q = u.pre_checkout_query;
+    const err = await checkPreCheckout(q.invoice_payload, q.currency, q.total_amount);
+    await tg('answerPreCheckoutQuery', err ? { pre_checkout_query_id: q.id, ok: false, error_message: err } : { pre_checkout_query_id: q.id, ok: true });
     return;
   }
   const m = u.message;
+  if (m?.successful_payment) {
+    const sp = m.successful_payment;
+    await grant({
+      chargeId: sp.telegram_payment_charge_id, payload: sp.invoice_payload, amount: sp.total_amount, chatId: m.chat.id,
+      recurring: sp.is_recurring, expiresAt: sp.subscription_expiration_date,
+    });
+    return;
+  }
+  if (m?.refunded_payment) {
+    await markRefunded(m.refunded_payment.telegram_payment_charge_id);
+    return;
+  }
   if (!m?.text || m.chat.type !== 'private') return;
   const [cmd, arg] = m.text.trim().split(/\s+/, 2);
   if (cmd === '/start') {
     const param = arg && /^[A-Za-z0-9_-]{1,512}$/.test(arg) ? arg : undefined;
     const text = param?.startsWith('g') ? `${WELCOME}\n\n🎁 Тебе прислали черенок! Открой игру, чтобы забрать его.` : WELCOME;
     await send(m.chat.id, text, { text: param?.startsWith('g') ? '🎁 Забрать черенок' : '🪴 Открыть подоконник', url: appLink(param) });
+  } else if (cmd === '/paysupport') {
+    const text = m.text.slice('/paysupport'.length).trim();
+    if (!text) {
+      await send(m.chat.id, 'Опиши проблему с покупкой одним сообщением, начав с /paysupport. Например:\n<code>/paysupport оплатил листики, но они не пришли</code>');
+    } else {
+      if (ADMIN) await send(ADMIN, `🆘 Поддержка от ${m.from?.first_name ?? ''} (@${m.from?.username ?? '-'}, id ${m.chat.id}):\n${text.slice(0, 1000).replace(/</g, '&lt;')}`);
+      await send(m.chat.id, 'Спасибо! Мы получили сообщение и ответим здесь, в этом чате 🌿');
+    }
+  } else if (cmd === '/terms') {
+    await send(m.chat.id, TERMS);
   } else if (cmd === '/help') {
     await send(m.chat.id, HELP, { text: '🪴 Открыть подоконник', url: appLink() });
   } else if (cmd === '/notify') {

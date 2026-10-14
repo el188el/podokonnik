@@ -2,12 +2,17 @@ import { useState } from 'react';
 import { SILL_UNLOCK } from '../../game/progression';
 import { ITEMS, potIdOf, type ShopCat } from '../../game/shop';
 import { DIFFICULTY_LABEL, SPECIES } from '../../game/species';
-import { buyItem, buySpecies, now, unlockSill, useStore } from '../../game/store';
+import { FORM_BY_ID, PRODUCTS } from '../../game/products';
+import { fmt } from '../../game/sim';
+import { buyItem, buySpecies, buyStars, isPlus, now, unlockSill, useStore } from '../../game/store';
+import { tgAppLink } from '../../config';
+import { platform } from '../../platform';
 import { PlantArt } from '../art/PlantArt';
 import { Btn, Leaves } from '../kit/kit';
 
-type Cat = 'plants' | ShopCat | 'sills';
+type Cat = 'plants' | ShopCat | 'sills' | 'stars';
 const CATS: [Cat, string][] = [
+  ['stars', '⭐ Звёзды'],
   ['plants', '🌱 Черенки'],
   ['pots', '🪴 Горшки'],
   ['decor', '🖼 Декор'],
@@ -111,9 +116,74 @@ export function Shop() {
         </div>
       )}
 
-      <div className="soon stars">
-        ⭐ Скоро: подписка «Садовник+», редкие пёстрые формы и сезонный пропуск за Telegram Stars.
+      {cat === 'stars' && <StarsShop />}
+    </div>
+  );
+}
+
+function StarsShop() {
+  const g = useStore((s) => s.game);
+  const [busy, setBusy] = useState('');
+  const t = now();
+  const plus = isPlus(g, t);
+  const inTg = platform().kind === 'telegram';
+  const buy = async (id: string) => {
+    setBusy(id);
+    await buyStars(id);
+    setBusy('');
+  };
+  const plusP = PRODUCTS.find((p) => p.kind === 'plus')!;
+  return (
+    <div className="stars-shop">
+      {!inTg && (
+        <div className="soon">
+          ⭐ Покупки за Telegram Stars доступны в Telegram-версии игры.
+          {tgAppLink() && <Btn small kind="primary" onClick={() => platform().openLink(tgAppLink())}>Открыть в Telegram</Btn>}
+        </div>
+      )}
+
+      <div className="plus-card">
+        <div className="plus-head">🌟 <b>Садовник+</b>{plus && <span className="owned">активен ещё {fmt(Math.max(g.plusUntil ?? 0, t) - t)}</span>}</div>
+        <ul>
+          <li>×2 листиков за задания и серию заходов</li>
+          <li>👵 Соседка поливает до 7 дней в любое время</li>
+          <li>🔥 Серия не сгорает, если пропустить один день</li>
+          <li>🪙 Золотой горшок и 🌟 у имени у друзей</li>
+        </ul>
+        <Btn kind="gold" disabled={busy === 'plus'} onClick={() => buy('plus')}>
+          {plus ? 'Продлить' : 'Подключить'} · {plusP.stars} ⭐ в месяц
+        </Btn>
+        <p className="muted small center">Продлевается раз в 30 дней, отменить можно в любой момент в настройках Telegram.</p>
       </div>
+
+      <h3>✨ Редкие формы</h3>
+      <p className="muted small">Черенок попадёт в запас. Его можно вырастить или подарить — и у друга будет такая же редкость. Иногда редкая форма выпадает и из обычного черенка!</p>
+      <div className="grid">
+        {PRODUCTS.filter((p) => p.kind === 'form').map((p) => {
+          const f = FORM_BY_ID[p.form!];
+          const has = (g.forms ?? []).includes(f.id);
+          return (
+            <div key={p.id} className="shop-item rare">
+              <PlantArt sp={f.sp} form={f.id} stage={4} seed="rare" blooming />
+              <b>{f.name}</b>
+              <span className="muted small">{has ? '✓ в коллекции' : f.desc}</span>
+              <Btn small kind="gold" disabled={busy === p.id} onClick={() => buy(p.id)}>{p.stars} ⭐</Btn>
+            </div>
+          );
+        })}
+      </div>
+
+      <h3>🍃 Листики</h3>
+      <div className="list">
+        {PRODUCTS.filter((p) => p.kind === 'leaves').map((p) => (
+          <div key={p.id} className="row-item">
+            <div className="ricon">🍃</div>
+            <div className="rtext"><b>{p.title}</b><span className="muted small">{p.desc}</span></div>
+            <Btn small kind="gold" disabled={busy === p.id} onClick={() => buy(p.id)}>{p.stars} ⭐</Btn>
+          </div>
+        ))}
+      </div>
+      <p className="muted small center">Растения никогда не погибают из-за того, что ты ничего не купил(а). Покупки — только приятные бонусы 🌿 Условия: /terms в боте.</p>
     </div>
   );
 }

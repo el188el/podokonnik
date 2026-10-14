@@ -51,7 +51,14 @@ jobs:
           supabase db push --password "$SUPABASE_DB_PASSWORD"
 
       - name: Секреты функций
-        run: supabase secrets set --project-ref "$REF" TELEGRAM_BOT_TOKEN="$BOT_TOKEN" SITE_URL="$SITE_URL" TG_BOT="$TG_BOT" TG_APP="$TG_APP"
+        env:
+          TG_ADMIN_ID: ${{ vars.TG_ADMIN_ID }}
+        run: |
+          set -- TELEGRAM_BOT_TOKEN="$BOT_TOKEN" SITE_URL="$SITE_URL"
+          [ -n "$TG_BOT" ] && set -- "$@" TG_BOT="$TG_BOT"
+          [ -n "$TG_APP" ] && set -- "$@" TG_APP="$TG_APP"
+          [ -n "$TG_ADMIN_ID" ] && set -- "$@" TG_ADMIN_ID="$TG_ADMIN_ID"
+          supabase secrets set --project-ref "$REF" "$@"
 
       - name: Функции
         run: supabase functions deploy --project-ref "$REF" --use-api
@@ -65,7 +72,7 @@ jobs:
           curl -sf "$API/setWebhook" -H 'Content-Type: application/json' \
             -d "{\"url\":\"https://$REF.supabase.co/functions/v1/bot\",\"secret_token\":\"$SECRET\",\"allowed_updates\":[\"message\",\"pre_checkout_query\"]}" > /dev/null
           curl -sf "$API/setMyCommands" -H 'Content-Type: application/json' \
-            -d '{"commands":[{"command":"start","description":"Открыть подоконник"},{"command":"notify","description":"Вкл/выкл напоминания"},{"command":"help","description":"Как играть"}]}' > /dev/null
+            -d '{"commands":[{"command":"start","description":"Открыть подоконник"},{"command":"notify","description":"Вкл/выкл напоминания"},{"command":"help","description":"Как играть"},{"command":"paysupport","description":"Помощь с покупками"},{"command":"terms","description":"Условия покупок"}]}' > /dev/null
           curl -sf "$API/setChatMenuButton" -H 'Content-Type: application/json' \
             -d "{\"menu_button\":{\"type\":\"web_app\",\"text\":\"🪴 Играть\",\"web_app\":{\"url\":\"$SITE_URL\"}}}" > /dev/null
           echo "Бот подключён"

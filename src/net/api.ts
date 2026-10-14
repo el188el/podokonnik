@@ -28,6 +28,9 @@ export interface ServerSave {
 
 let net: NetState = loadNet();
 let skew = 0;
+let plus = 0;
+/** До какого момента активен «Садовник+» по данным сервера. */
+export const serverPlusUntil = () => plus;
 
 export const online = () => !!CONFIG.apiUrl;
 export const serverSkew = () => skew;
@@ -67,6 +70,7 @@ async function call<T>(path: string, body: unknown, opts: { auth?: boolean; keep
     }
     if (!r.ok) throw new Error(j.error || `http ${r.status}`);
     if (typeof j.serverTime === 'number') skew = j.serverTime - Date.now();
+    if (typeof j.plusUntil === 'number') plus = j.plusUntil;
     return j as T;
   } finally {
     clearTimeout(timer);
@@ -127,6 +131,11 @@ export async function giftClaim(g: PendingGift): Promise<'ok' | 'mine' | 'own' |
   }
 }
 
+export async function payInvoice(product: string): Promise<string> {
+  const r = await call<{ link: string }>('/pay/invoice', { product });
+  return r.link;
+}
+
 export const inboxAck = (ids: number[]) => (ids.length ? call('/inbox/ack', { ids }).catch(() => null) : null);
 export const sendSettings = (s: { notify?: boolean }) => call('/settings', s).catch(() => null);
 
@@ -138,6 +147,7 @@ export interface Friend {
   lastSeen: number;
   thirsty: number;
   plants: number;
+  plus?: boolean;
 }
 
 export const loggedIn = () => !!net.token;

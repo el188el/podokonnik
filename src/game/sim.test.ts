@@ -213,3 +213,24 @@ describe('каталог и перенос', () => {
     expect(s.received).toEqual(['abcdefgh12']);
   });
 });
+
+describe('звёзды и редкие формы', () => {
+  it('редкая форма передаётся в подарке, чужая форма отбрасывается', () => {
+    const g = { sp: 'monstera', from: 'Аня', note: 1, code: 'abcDEF2345', form: 'albo' };
+    expect(decodeGift(encodeGift(g))).toEqual({ ...g, ok: true });
+    const bad = decodeGift(encodeGift({ ...g, form: 'neon' }));
+    expect(bad?.ok).toBe(true);
+    expect(bad?.form).toBeUndefined();
+  });
+
+  it('с «Садовник+» один пропущенный день не сжигает серию', () => {
+    const { g } = potted('chlorophytum');
+    rollDay(g, T0, true);
+    rollDay(g, T0 + 2 * D, true);
+    expect(g.streak.count).toBe(2);
+    const { g: g2 } = potted('chlorophytum');
+    rollDay(g2, T0, false);
+    rollDay(g2, T0 + 2 * D, false);
+    expect(g2.streak.count).toBe(1);
+  });
+});

@@ -66,6 +66,7 @@ export interface Species {
 export interface Plant {
   id: string;
   sp: string;
+  form?: string;        // редкая форма (Альбо, Неон…)
   sill: string;
   slot: number;
   zone: Zone;
@@ -106,12 +107,14 @@ export interface Sill {
 export interface Cutting {
   id: string;
   sp: string;
+  form?: string;
   at: number;
   fromPlant?: string;
 }
 
 export interface PendingGift {
   sp: string;
+  form?: string;
   from: string;
   note: number;
   code: string;
@@ -174,5 +177,7 @@ export interface GameState {
   log: { at: number; text: string }[];
   settings: { sound: boolean; haptics: boolean; quietFrom: number; quietTo: number; notify?: boolean };
   inboxSeen?: number[]; // обработанные награды с сервера
+  plusUntil?: number;   // «Садовник+» активен до
+  forms?: string[];     // собранные редкие формы
   tutorial: number;
 }

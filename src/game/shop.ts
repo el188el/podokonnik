@@ -15,7 +15,7 @@ export interface ShopItem {
   level?: number;
 }
 
-export const POTS: Record<string, { name: string; body: string; rim: string; pattern?: 'gzhel' | 'khokhloma' | 'enamel' | 'glass' | 'concrete' }> = {
+export const POTS: Record<string, { name: string; body: string; rim: string; pattern?: 'gzhel' | 'khokhloma' | 'enamel' | 'glass' | 'concrete' | 'gold' }> = {
   terracotta: { name: 'Глиняный', body: '#E07A55', rim: '#c9603d' },
   white: { name: 'Белая керамика', body: '#f4f1ea', rim: '#dcd6ca' },
   gzhel: { name: 'Гжель', body: '#f7f8fc', rim: '#2d4fa8', pattern: 'gzhel' },
@@ -23,6 +23,7 @@ export const POTS: Record<string, { name: string; body: string; rim: string; pat
   enamel: { name: 'Эмалированная кружка', body: '#f2efe6', rim: '#2f4f8a', pattern: 'enamel' },
   glass: { name: 'Прозрачный', body: '#cfe9ef', rim: '#9fcbd6', pattern: 'glass' },
   concrete: { name: 'Бетон', body: '#a9a9a4', rim: '#8e8e89', pattern: 'concrete' },
+  gold: { name: 'Золотой (Садовник+)', body: '#e9b949', rim: '#c8952a', pattern: 'gold' },
 };
 
 export const ITEMS: ShopItem[] = [

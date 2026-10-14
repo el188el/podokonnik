@@ -302,3 +302,16 @@ svg.big.sad { filter: sepia(0.6) saturate(0.6); }
 .stage.guest-stage .slot .art { width: 92px; height: 132px; }
 .stage.guest-stage .col { flex-basis: 100px; }
 .slot.guest { border: 0; background: none; padding: 0; color: inherit; }
+
+/* ─────────── звёзды ─────────── */
+.plus-card { background: linear-gradient(135deg, #fff6d8, #ffe9a8); border-radius: 20px; padding: 14px; margin: 12px 0; box-shadow: 0 2px 0 #f0d58a; }
+.plus-head { font-size: 18px; display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
+.plus-card ul { padding-left: 18px; margin: 8px 0; font-size: 14px; }
+.plus-card li { margin: 3px 0; }
+.shop-item.rare { background: linear-gradient(#fff, #fff8e6); }
+.rare-mark { color: #b07a10; font-weight: 700; margin: 4px 0; font-size: 14px; }
+.plus-badge { color: #b07a10; }
+.forms-row { display: flex; gap: 8px; overflow-x: auto; padding: 6px 0; }
+.form-chip { flex: 0 0 96px; background: #fff8e6; border-radius: 14px; padding: 6px; text-align: center; font-size: 11px; display: flex; flex-direction: column; align-items: center; }
+.form-chip svg { width: 60px; height: 86px; }
+.stars-shop .soon .btn { margin-top: 8px; }

@@ -83,7 +83,7 @@ export function Visit({ id, name }: { id: string; name: string }) {
                 <button className={'slot guest' + (p.sad ? ' sad' : '')} onClick={() => (p.thirsty ? pour(p.id) : toast(p.stage < 2 ? 'Черенок пускает корни в стакане 🌱' : 'Ему хорошо, поливать не нужно 🌿'))}>
                   {p.thirsty && !view.neighbor && <div className="bubble">Хочу пить 💧</div>}
                   <div className="art">
-                    <PlantArt sp={p.sp} stage={p.stage} seed={p.id} pot={p.pot} bigPot={p.bigPot} blooming={p.blooming} className="plant-svg" />
+                    <PlantArt sp={p.sp} form={p.form} stage={p.stage} seed={p.id} pot={p.pot} bigPot={p.bigPot} blooming={p.blooming} className="plant-svg" />
                   </div>
                   {drops[p.id] && (
                     <div className="fx" key={drops[p.id]}>

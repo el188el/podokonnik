@@ -166,7 +166,7 @@ export function Slot({ plant: p, sill, slot }: { plant: Plant; sill: string; slo
         animate={{ scale: 1 }}
         transition={{ type: 'spring', damping: 9, stiffness: 160 }}
       >
-        <PlantArt sp={p.sp} stage={p.stage} seed={p.id} pot={p.pot} bigPot={p.bigPot} blooming={p.blooming} className="plant-svg" />
+        <PlantArt sp={p.sp} form={p.form} stage={p.stage} seed={p.id} pot={p.pot} bigPot={p.bigPot} blooming={p.blooming} className="plant-svg" />
       </motion.div>
       {fresh && fx.kind === 'water' && (
         <div className="fx" key={fx.at}>

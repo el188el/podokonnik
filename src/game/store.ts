@@ -8,6 +8,7 @@ import { XP, levelReward, unlocksAt, xpToNext, SILL_UNLOCK } from './progression
 import { QUEST_BONUS, bumpQuest, rollDay, streakReward } from './quests';
 import { ITEM_BY_ID, potIdOf } from './shop';
 import { advance, bestZone, canCut, cramped, ctxFor, hasLamp, lightBad, type SimEvent } from './sim';
+import { FORM_BY_ID, PRODUCT_BY_ID, RARE_DROP, formsOf } from './products';
 import { replayFriendWaters, type FriendWater } from './social';
 import { SPECIES, sp } from './species';
 import { loadCloud, loadLocal, newPlant, newState, pickNewer, saveCloud, saveLocal, upgrade } from './storage';
@@ -70,6 +71,9 @@ const get = () => useStore.getState();
 const set = useStore.setState;
 
 export const now = () => Date.now() + api.serverSkew() + (get().game.offset || 0);
+/** «Садовник+» активен (по сохранению или по данным сервера). */
+export const isPlus = (g: GameState, t = now()) => Math.max(g.plusUntil ?? 0, api.serverPlusUntil()) > t;
+const collectForm = (g: GameState, form?: string) => { if (form && !(g.forms ?? []).includes(form)) g.forms = [...(g.forms ?? []), form]; };
 
 // ─────────────────── мелкие помощники ───────────────────
 let toastId = 0;
@@ -229,6 +233,7 @@ export async function pushNow(keepalive = false, force?: number) {
     const r = await api.push(get().game, { keepalive, force });
     if (r.kind === 'conflict') adoptServer(r.save, 'Подтянули прогресс с другого устройства ☁️');
     if (r.kind !== 'skip') applyInbox(r.inbox);
+    syncPlus();
   } catch { /* нет сети — попробуем позже */ } finally {
     pushing = false;
   }
@@ -287,6 +292,23 @@ function applyInbox(items: api.InboxItem[]) {
           fx(p.id, 'water');
         }
         toast(`💧 ${name} полил(а) твой ${sp(String(it.payload.sp ?? p?.sp)).name.toLowerCase()}`);
+      } else if (it.kind === 'purchase') {
+        const pr = PRODUCT_BY_ID[String(it.payload.product)];
+        if (pr?.kind === 'leaves') {
+          g.leaves += Number(it.payload.leaves) || pr.leaves || 0;
+          toast(`🍃 +${pr.leaves} листиков. Спасибо за поддержку!`);
+        } else if (pr?.kind === 'form') {
+          const f = FORM_BY_ID[String(it.payload.form)];
+          if (f) {
+            g.cuttings.push({ id: makeCode(8), sp: f.sp, form: f.id, at: Date.now() });
+            toast(`✨ Черенок «${f.name}» в запасе — поставь в воду или подари!`);
+          }
+        } else if (pr?.kind === 'plus') {
+          g.plusUntil = Math.max(g.plusUntil ?? 0, Number(it.payload.plusUntil) || 0);
+          g.owned.pot_gold = 1;
+          toast('🌟 «Садовник+» включён! Золотой горшок уже в коллекции');
+        }
+        haptic('success');
       } else if (it.kind === 'water_reward') {
         const r = Number(it.payload.reward) || 0;
         g.leaves += r;
@@ -296,6 +318,34 @@ function applyInbox(items: api.InboxItem[]) {
     g.inboxSeen = [...seen].slice(-100);
   });
   api.inboxAck(ids);
+}
+
+function syncPlus() {
+  const sp = api.serverPlusUntil();
+  if (sp > (get().game.plusUntil ?? 0)) mut((g) => { g.plusUntil = sp; });
+}
+
+/** Купить за звёзды: счёт → окно оплаты Telegram → покупка приходит с сервера. */
+export async function buyStars(productId: string): Promise<boolean> {
+  const pf = platform();
+  if (pf.kind !== 'telegram' || !api.loggedIn()) {
+    toast('Покупки за звёзды доступны в Telegram-версии игры ⭐');
+    return false;
+  }
+  try {
+    const link = await api.payInvoice(productId);
+    const st = await pf.pay(link);
+    if (st === 'paid' || st === 'pending') {
+      toast(st === 'paid' ? 'Оплата прошла! Покупка уже в пути ✨' : 'Ждём подтверждения оплаты…');
+      for (const ms of [1500, 4000, 9000, 20000]) setTimeout(() => pushNow(), ms);
+      return true;
+    }
+    if (st === 'failed') toast('Оплата не прошла. Звёзды не списаны');
+    return false;
+  } catch {
+    toast('Не получилось открыть оплату. Проверь интернет');
+    return false;
+  }
 }
 
 /** Вход на сервер при запуске: выбираем, чей прогресс свежее — устройства или сервера. */
@@ -340,7 +390,7 @@ export async function boot() {
   const ev = replayFriendWaters(g, waters, t);
   handleEvents(g, ev, true);
 
-  const fresh = rollDay(g, t);
+  const fresh = rollDay(g, t, isPlus(g, t));
   set({ game: g, ready: true });
 
   if (local.migrated) popup({ kind: 'migrated' });
@@ -352,12 +402,13 @@ export async function boot() {
     }
     popup({ kind: 'away', report });
   }
-  if (fresh && g.streak.claimedDay !== g.streak.day && g.plants.length) popup({ kind: 'streak', count: g.streak.count, reward: streakReward(g.streak.count) });
+  if (fresh && g.streak.claimedDay !== g.streak.day && g.plants.length) popup({ kind: 'streak', count: g.streak.count, reward: streakReward(g.streak.count) * (isPlus(g) ? 2 : 1) });
   after(g);
   scheduleSave();
   if (server) {
     if (server.force !== undefined || api.knownVersion() === 0) pushNow(false, server.force);
     applyInbox(server.inbox);
+    syncPlus();
   }
 }
 
@@ -385,8 +436,8 @@ export function tick() {
   const g: GameState = structuredClone(st.game);
   const ev = advance(g, t);
   handleEvents(g, ev, false);
-  if (rollDay(g, t) && g.plants.length && g.streak.claimedDay !== g.streak.day) {
-    popup({ kind: 'streak', count: g.streak.count, reward: streakReward(g.streak.count) });
+  if (rollDay(g, t, isPlus(g, t)) && g.plants.length && g.streak.claimedDay !== g.streak.day) {
+    popup({ kind: 'streak', count: g.streak.count, reward: streakReward(g.streak.count) * (isPlus(g) ? 2 : 1) });
   }
   after(g);
   set({ game: g });
@@ -575,7 +626,14 @@ export function takeCutting(plantId: string) {
     if (!p || !canCut(p, t)) return null;
     if (g.cuttings.length >= MAX_CUTTINGS) { toast('В стаканах на кухне уже 10 черенков — подари или посади их'); return null; }
     p.lastCut = t;
-    const c = { id: makeCode(8), sp: p.sp, at: t, fromPlant: p.id };
+    // черенок редкой формы остаётся редким; у обычного растения — маленький шанс на сюрприз
+    let form = p.form;
+    const options = formsOf(p.sp);
+    if (!form && options.length && Math.random() < RARE_DROP) {
+      form = options[Math.floor(Math.random() * options.length)].id;
+      toast(`✨ Редкость! Черенок оказался формой «${FORM_BY_ID[form].name}»`);
+    }
+    const c = { id: makeCode(8), sp: p.sp, at: t, fromPlant: p.id, ...(form ? { form } : {}) };
     g.cuttings.push(c);
     g.stats.cuts += 1;
     addXp(g, XP.cut);
@@ -593,7 +651,8 @@ export function plantCutting(cuttingId: string, sill?: string, slot?: number) {
     if (!place) { toast('Все места заняты. Освободи горшок или открой новый подоконник'); return; }
     const sl = g.sills.find((s) => s.id === place.sill)!;
     g.cuttings = g.cuttings.filter((x) => x.id !== cuttingId);
-    g.plants.push(newPlant({ sp: c.sp, sill: place.sill, slot: place.slot, zone: bestZone(c.sp, sl, t, hasLamp(g, sl)) }, t));
+    g.plants.push(newPlant({ sp: c.sp, form: c.form, sill: place.sill, slot: place.slot, zone: bestZone(c.sp, sl, t, hasLamp(g, sl)) }, t));
+    collectForm(g, c.form);
     g.activeSill = place.sill;
     discover(g, c.sp);
     toast('Черенок в стакане. Налей воды — и он пустит корни 💧');
@@ -605,7 +664,7 @@ export function giftCutting(cuttingId: string, from: string, note: number) {
     const c = g.cuttings.find((x) => x.id === cuttingId);
     if (!c) return null;
     g.name = from;
-    const gift: PendingGift = { sp: c.sp, from, note, code: makeCode() };
+    const gift: PendingGift = { sp: c.sp, from, note, code: makeCode(), ...(c.form ? { form: c.form } : {}) };
     g.cuttings = g.cuttings.filter((x) => x.id !== cuttingId);
     g.sent.push({ code: gift.code, sp: c.sp, at: t });
     g.stats.giftsSent += 1;
@@ -653,7 +712,8 @@ export function claimGift(gift: PendingGift): 'ok' | 'dup' | 'full' {
       return 'full';
     }
     const sl = g.sills.find((s) => s.id === place.sill)!;
-    const p = newPlant({ sp: gift.sp, sill: place.sill, slot: place.slot, zone: bestZone(gift.sp, sl, t, hasLamp(g, sl)), quick: true, from: { name: gift.from, note: gift.note, code: gift.code }, claimedAt: t }, t);
+    const p = newPlant({ sp: gift.sp, form: gift.form, sill: place.sill, slot: place.slot, zone: bestZone(gift.sp, sl, t, hasLamp(g, sl)), quick: true, from: { name: gift.from, note: gift.note, code: gift.code }, claimedAt: t }, t);
+    collectForm(g, gift.form);
     g.plants.push(p);
     g.received.push(gift.code);
     g.pending = g.pending.filter((x) => x.code !== gift.code);
@@ -718,7 +778,7 @@ export function toggleDecor(sillId: string, id: string) {
   });
 }
 
-export const ownsPot = (g: GameState, pot: string) => pot === 'terracotta' || (g.owned['pot_' + pot] ?? 0) > 0;
+export const ownsPot = (g: GameState, pot: string) => pot === 'terracotta' || (pot === 'gold' ? isPlus(g) : (g.owned['pot_' + pot] ?? 0) > 0);
 export { potIdOf };
 
 export function unlockSill(id: string) {
@@ -750,9 +810,10 @@ export function startNeighbor(days: number, paid: boolean) {
       const from = active ? g.neighbor!.until : t;
       g.neighbor = { until: from + 7 * D, cooldownUntil: Math.max(g.neighbor?.cooldownUntil ?? 0, from + 7 * D) };
     } else {
-      if (g.neighbor && t < g.neighbor.cooldownUntil) { toast('Соседка уже выручала недавно'); return false; }
-      const d = Math.min(days, NEIGHBOR_FREE_DAYS);
-      g.neighbor = { until: t + d * D, cooldownUntil: t + d * D + NEIGHBOR_COOLDOWN };
+      const plus = isPlus(g, t);
+      if (!plus && g.neighbor && t < g.neighbor.cooldownUntil) { toast('Соседка уже выручала недавно'); return false; }
+      const d = plus ? Math.min(days, 7) : Math.min(days, NEIGHBOR_FREE_DAYS);
+      g.neighbor = { until: t + d * D, cooldownUntil: plus ? t + d * D : t + d * D + NEIGHBOR_COOLDOWN };
     }
     g.stats.neighbor += 1;
     for (const p of g.plants) if (p.stage >= 2 && p.moisture < 1) p.moisture = 1;
@@ -770,7 +831,7 @@ export function claimStreak() {
   mut((g) => {
     if (g.streak.claimedDay === g.streak.day) return;
     g.streak.claimedDay = g.streak.day;
-    const r = streakReward(g.streak.count);
+    const r = streakReward(g.streak.count) * (isPlus(g) ? 2 : 1);
     g.leaves += r;
     if (g.streak.count % 7 === 0) g.owned.feed = (g.owned.feed ?? 0) + 2;
   });
@@ -781,7 +842,7 @@ export function claimQuest(id: string) {
     const q = g.quests.list.find((x) => x.id === id);
     if (!q || q.claimed || q.progress < q.target) return;
     q.claimed = true;
-    g.leaves += q.reward;
+    g.leaves += q.reward * (isPlus(g) ? 2 : 1);
     g.stats.questsDone += 1;
     addXp(g, XP.quest);
     haptic('success');
@@ -792,7 +853,7 @@ export function claimQuestBonus() {
   mut((g) => {
     if (g.quests.bonusClaimed || !g.quests.list.every((q) => q.claimed)) return;
     g.quests.bonusClaimed = true;
-    g.leaves += QUEST_BONUS;
+    g.leaves += QUEST_BONUS * (isPlus(g) ? 2 : 1);
     g.owned.feed = (g.owned.feed ?? 0) + 1;
     haptic('success');
     toast(`Все задания дня! +${QUEST_BONUS} 🍃 и подкормка 🧪`);

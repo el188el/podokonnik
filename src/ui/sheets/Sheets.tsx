@@ -6,6 +6,7 @@ import {
   chooseWindow, closeSheet, giftCutting, now, openSheet, placeCutting, plantCutting, setTab, startNeighbor, stopNeighbor, useStore,
 } from '../../game/store';
 import type { WindowSide } from '../../game/types';
+import { formsOf } from '../../game/products';
 import { PlantArt } from '../art/PlantArt';
 import { Btn, Sheet } from '../kit/kit';
 import { shareGift } from '../share';
@@ -42,7 +43,7 @@ function Picker({ slot, sill }: { slot: number; sill: string }) {
           <div className="grid">
             {g.cuttings.map((c) => (
               <button key={c.id} className="pick" onClick={() => { plantCutting(c.id, sill, slot); closeSheet(); }}>
-                <PlantArt sp={c.sp} stage={0} />
+                <PlantArt sp={c.sp} form={c.form} stage={0} />
                 <b>{sp(c.sp).name}</b>
               </button>
             ))}
@@ -131,7 +132,7 @@ function CuttingSheet({ id }: { id: string }) {
   return (
     <div>
       <div className="postcard">
-        <PlantArt sp={c!.sp} stage={0} className="mid" />
+        <PlantArt sp={c!.sp} form={c!.form} stage={0} className="mid" />
         <div>
           <h2>Черенок {s.gen}</h2>
           <p className="muted small">Поставь в воду у себя или подари другу — он посадит его на свой подоконник.</p>
@@ -183,6 +184,16 @@ function Herb({ id }: { id: string }) {
             </tbody>
           </table>
           <ul className="facts">{s.facts.map((f) => <li key={f}>{f}</li>)}</ul>
+          {formsOf(id).length > 0 && (
+            <div className="forms-row">
+              {formsOf(id).map((f) => (
+                <div key={f.id} className={'form-chip' + ((g.forms ?? []).includes(f.id) ? ' got' : '')}>
+                  <PlantArt sp={id} form={f.id} stage={4} seed="herb" blooming className={(g.forms ?? []).includes(f.id) ? '' : 'unknown'} />
+                  <span>{(g.forms ?? []).includes(f.id) ? '✨ ' + f.name : '✨ ???'}</span>
+                </div>
+              ))}
+            </div>
+          )}
           <div className="soon">
             <p><b>Уход по-настоящему:</b> {s.care}</p>
             <p><b>Купить:</b> {s.buy}</p>

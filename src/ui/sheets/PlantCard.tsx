@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { LIGHT_NAME, SHOWOFF_MS, STAGE_NAME, ZONE_NAME } from '../../game/constants';
+import { FORM_BY_ID } from '../../game/products';
 import { POTS } from '../../game/shop';
 import { canCut, cramped, ctxFor, cutLeft, fmt, isSad, isThirstySad, lightLevel, need, nextStageAt, stageProgress } from '../../game/sim';
 import { DIFFICULTY_LABEL, sp } from '../../game/species';
@@ -31,7 +32,7 @@ export function PlantCard({ id }: { id: string }) {
   return (
     <div className="card">
       <div className="card-head">
-        <PlantArt sp={p.sp} stage={p.stage} seed={p.id} pot={p.pot} bigPot={p.bigPot} blooming={p.blooming} className={'big' + (isSad(p) ? ' sad' : '')} />
+        <PlantArt sp={p.sp} form={p.form} stage={p.stage} seed={p.id} pot={p.pot} bigPot={p.bigPot} blooming={p.blooming} className={'big' + (isSad(p) ? ' sad' : '')} />
         <div>
           {editing ? (
             <input
@@ -49,6 +50,7 @@ export function PlantCard({ id }: { id: string }) {
             </h2>
           )}
           <p className="muted small">{p.nick ? s.name + ' · ' : ''}{s.folk ? `«${s.folk}» · ` : ''}{DIFFICULTY_LABEL[s.difficulty]}</p>
+          {p.form && FORM_BY_ID[p.form] && <p className="rare-mark">✨ {FORM_BY_ID[p.form].name}</p>}
           {p.from && <p className="giftmark">🎁 Подарок от {p.from.name}</p>}
           <p className="stage-line">
             <b>{STAGE_NAME[p.stage]}</b>

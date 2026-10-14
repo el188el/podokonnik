@@ -68,7 +68,7 @@ export function Friends() {
                 <button key={f.id} className="friend" onClick={() => openSheet({ kind: 'visit', id: f.id, name: f.name })}>
                   <span className="avatar">{f.name.slice(0, 1).toUpperCase()}</span>
                   <span className="fbody">
-                    <b>{f.name}</b>
+                    <b>{f.plus ? '🌟 ' : ''}{f.name}</b>
                     <span className="muted small">⭐ {f.level} · 🪴 {f.plants} · {seen(Date.now() - f.lastSeen)}</span>
                   </span>
                   {f.thirsty > 0 ? <span className="thirsty">💧 {f.thirsty}</span> : <span className="muted small">в гости →</span>}

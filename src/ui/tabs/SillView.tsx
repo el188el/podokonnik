@@ -127,7 +127,7 @@ export function SillView() {
           <div className="tray-list">
             {g.cuttings.map((c) => (
               <button key={c.id} className="cutting" onClick={() => openSheet({ kind: 'send', cutting: c.id })}>
-                <PlantArt sp={c.sp} stage={0} noPot className="mini" />
+                <PlantArt sp={c.sp} form={c.form} stage={0} noPot className="mini" />
                 <span>{sp(c.sp).name}</span>
               </button>
             ))}

@@ -8,6 +8,8 @@ import { publicView, thirstyCount, VISIT_DAY_LIMIT, VISIT_HOST_LIMIT, VISIT_REWA
 import { sp as species } from '../_shared/game/species.ts';
 import type { GameState } from '../_shared/game/types.ts';
 import { CORS, fail, json } from '../_shared/http.ts';
+import { invoiceLink } from '../_shared/pay.ts';
+import { PRODUCT_BY_ID } from '../_shared/game/products.ts';
 import { escHtml, send } from '../_shared/tg.ts';
 
 const MAX_STATE = 300_000;
@@ -20,6 +22,11 @@ const str = (v: unknown, max = 64) => (typeof v === 'string' ? v.slice(0, max) :
 async function pendingInbox(playerId: string) {
   const { data } = await db.from('inbox').select('id, kind, payload, created_at').eq('player_id', playerId).is('delivered_at', null).order('id').limit(20);
   return data ?? [];
+}
+
+async function plusUntil(playerId: string) {
+  const { data } = await db.from('players').select('plus_until').eq('id', playerId).single();
+  return data?.plus_until ? Date.parse(data.plus_until) : 0;
 }
 
 async function loadSave(playerId: string) {
@@ -94,6 +101,7 @@ async function auth(b: Body) {
     serverTime: Date.now(),
     save: await loadSave(playerId),
     inbox: await pendingInbox(playerId),
+    plusUntil: await plusUntil(playerId),
   });
 }
 
@@ -120,7 +128,7 @@ async function sync(playerId: string, b: Body) {
     .update({ state, version: version + 1, updated_at: new Date().toISOString() })
     .eq('player_id', playerId).eq('version', version).select('version');
   if (!data?.length) return json({ conflict: true, save: await loadSave(playerId), serverTime: Date.now() });
-  return json({ version: version + 1, serverTime: Date.now(), inbox: await pendingInbox(playerId) });
+  return json({ version: version + 1, serverTime: Date.now(), inbox: await pendingInbox(playerId), plusUntil: await plusUntil(playerId) });
 }
 
 async function giftCreate(playerId: string, b: Body) {
@@ -196,7 +204,7 @@ async function friendsList(playerId: string) {
   const { data: rows } = await db.from('friends').select('b, created_at').eq('a', playerId).order('created_at', { ascending: false }).limit(60);
   const ids = (rows ?? []).map((r) => r.b);
   if (!ids.length) return json({ friends: [] });
-  const { data: players } = await db.from('players').select('id, name, level, last_seen, saves(state)').in('id', ids);
+  const { data: players } = await db.from('players').select('id, name, level, last_seen, plus_until, saves(state)').in('id', ids);
   const pending = new Map<string, FriendWater[]>();
   const { data: waters } = await db.from('inbox').select('player_id, payload').in('player_id', ids).eq('kind', 'friend_water').is('delivered_at', null);
   for (const w of waters ?? []) {
@@ -215,7 +223,7 @@ async function friendsList(playerId: string) {
         plants = v.plants.length;
       }
     } catch (e) { console.warn('view', p.id, e); }
-    return { id: p.id, name: p.name || 'Садовник', level: p.level, lastSeen: Date.parse(p.last_seen), thirsty, plants };
+    return { id: p.id, name: p.name || 'Садовник', level: p.level, lastSeen: Date.parse(p.last_seen), thirsty, plants, plus: !!p.plus_until && Date.parse(p.plus_until) > now };
   });
   friends.sort((a, b) => b.thirsty - a.thirsty || b.lastSeen - a.lastSeen);
   return json({ friends, serverTime: now });
@@ -268,6 +276,16 @@ async function visitWater(playerId: string, b: Body) {
   return json({ status: 'ok', watersLeft: await visitsLeft(playerId, host) });
 }
 
+// ─────────────────── оплата ───────────────────
+async function payInvoice(playerId: string, b: Body) {
+  const product = PRODUCT_BY_ID[str(b.product, 40)];
+  if (!product) return fail('bad_product');
+  const { data: me } = await db.from('players').select('tg_id').eq('id', playerId).single();
+  if (!me?.tg_id) return fail('telegram_only', 403);
+  const link = await invoiceLink(product, playerId);
+  return link ? json({ link }) : fail('invoice', 502);
+}
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: CORS });
   const route = new URL(req.url).pathname.replace(/^.*\/api/, '') || '/';
@@ -290,6 +308,7 @@ Deno.serve(async (req) => {
       case '/friends/add': return await friendAdd(playerId, body);
       case '/visit': return await visit(playerId, body);
       case '/visit/water': return await visitWater(playerId, body);
+      case '/pay/invoice': return await payInvoice(playerId, body);
       default: return fail('not_found', 404);
     }
   } catch (e) {

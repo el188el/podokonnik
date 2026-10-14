@@ -75,3 +75,18 @@ Deno.test('напоминание: друг полил — бот не пише�
   const r = pickReminder(s, day, 180, day - 2 * 86400e3, [{ plantId: 'p1', at: day - 3600e3 }]);
   assert(!r || !r.text.includes('пить'), r?.text);
 });
+
+import { parsePayload } from '../functions/_shared/payload.ts';
+import { PRODUCTS } from '../functions/_shared/game/products.ts';
+
+Deno.test('оплата: payload счёта', () => {
+  const id = '11111111-1111-1111-1111-111111111111';
+  for (const p of PRODUCTS) {
+    const payload = `${p.id}|${id}`;
+    assert(new TextEncoder().encode(payload).length <= 128, p.id);
+    assertEquals(parsePayload(payload)?.product.id, p.id);
+    assert(p.stars >= 1 && p.stars <= 10000);
+  }
+  assertEquals(parsePayload(`fake|${id}`), null);
+  assertEquals(parsePayload('plus|not-a-uuid'), null);
+});

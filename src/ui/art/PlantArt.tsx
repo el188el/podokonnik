@@ -2,7 +2,8 @@
 // стадии и «зерну» конкретного горшка — все немного разные, но узнаваемые.
 // Холст 140×200, земля на y=142, центр x=70. «Вверх» — минус y.
 
-import { useId, type ReactNode } from 'react';
+import { createContext, useContext, useId, type ReactNode } from 'react';
+import { FORM_BY_ID } from '../../game/products';
 import { POTS } from '../../game/shop';
 import { sp } from '../../game/species';
 import type { ArtSpec, Stage } from '../../game/types';
@@ -37,11 +38,16 @@ interface LeafProps {
   x?: number; y?: number; a?: number; s?: number;
   d: string; fill: string; vein?: string | false; L: number; children?: ReactNode; mask?: string;
 }
+/** Цвет пестролистности редкой формы: светлые мазки на каждом листе. */
+const Variegate = createContext<string | undefined>(undefined);
+
 function Leaf({ x = 0, y = 0, a = 0, s = 1, d, fill, vein, L, children, mask }: LeafProps) {
+  const vg = useContext(Variegate);
   return (
     <g transform={`translate(${f(x)},${f(y)}) rotate(${f(a)}) scale(${f(s)})`}>
       <g mask={mask}>
         <path d={d} fill={fill} />
+        {vg && <path d={d} fill={vg} opacity={0.92} transform={`translate(${f(L * 0.1)},${f(-L * 0.08)}) scale(0.55 0.78)`} />}
         {children}
       </g>
       {vein !== false && <path d={`M0,${f(-L * 0.06)} L0,${f(-L * 0.82)}`} stroke={vein ?? '#ffffff'} strokeOpacity={vein ? 1 : 0.28} strokeWidth={1.1} strokeLinecap="round" fill="none" />}
@@ -629,6 +635,12 @@ export function Pot({ skin, big }: { skin: string; big?: boolean }) {
           <path d="M74,162 q6,-6 12,0 q-6,4 -12,0Z M44,176 q6,-6 12,0 q-6,4 -12,0Z" fill="#e6b13a" />
         </g>
       )}
+      {p.pattern === 'gold' && (
+        <g>
+          <path d={`M${x0 + 18},152 L${x0 + 30},192`} stroke="#fff3c4" strokeWidth={5} opacity={0.6} strokeLinecap="round" />
+          <path d="M62,170 l4,-8 l4,8 l8,1 l-6,5 l2,8 l-8,-4 l-8,4 l2,-8 l-6,-5Z" fill="#fff3c4" opacity={0.85} />
+        </g>
+      )}
       {p.pattern === 'concrete' && (
         <g fill="#7e7e79">
           {[[52, 160], [80, 170], [66, 184], [90, 156], [58, 178]].map(([x, y], i) => <circle key={i} cx={x} cy={y} r={1.2} />)}
@@ -651,17 +663,23 @@ export interface PlantArtProps {
   blooming?: boolean;
   className?: string;
   noPot?: boolean;
+  form?: string;
 }
 
-export function PlantArt({ sp: spId, stage, seed = '', pot = 'terracotta', bigPot, blooming, className, noPot }: PlantArtProps) {
+export function PlantArt({ sp: spId, stage, seed = '', pot = 'terracotta', bigPot, blooming, className, noPot, form }: PlantArtProps) {
   const uid = useId().replace(/[^a-zA-Z0-9_-]/g, '');
-  const s = sp(spId);
+  const base = sp(spId);
+  const fm = form ? FORM_BY_ID[form] : undefined;
+  const s = fm && fm.sp === spId ? { ...base, art: { ...base.art, ...fm.art } } : base;
+  const vg = fm && fm.sp === spId ? fm.art.variegate : undefined;
   const r = rng(spId + seed);
   if (stage <= 1) {
     return (
       <svg viewBox="0 0 140 200" className={className} aria-label={s.name}>
         {!noPot && <Glass />}
-        <Cutting art={s.art} roots={stage === 1} r={r} />
+        <Variegate.Provider value={vg}>
+          <Cutting art={s.art} roots={stage === 1} r={r} />
+        </Variegate.Provider>
         {!noPot && <Glass front />}
       </svg>
     );
@@ -673,7 +691,9 @@ export function PlantArt({ sp: spId, stage, seed = '', pot = 'terracotta', bigPo
       {!noPot && <Pot skin={pot} big={bigPot} />}
       <svg x={70} y={142} overflow="visible" className="plant-root">
         <g className="sway">
-          <g transform={`scale(${scale})`}>{DRAW[s.art.kind]({ art: s.art, n, r, bloom: !!blooming, uid })}</g>
+          <Variegate.Provider value={vg}>
+            <g transform={`scale(${scale})`}>{DRAW[s.art.kind]({ art: s.art, n, r, bloom: !!blooming, uid })}</g>
+          </Variegate.Provider>
         </g>
       </svg>
     </svg>

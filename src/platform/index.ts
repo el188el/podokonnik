@@ -33,7 +33,11 @@ export interface Platform {
   setBack(handler: (() => void) | null): void;
   setColors(header: string, bg: string): void;
   cloud: CloudStore | null;
+  /** Оплата счёта (Telegram Stars). В браузере недоступна. */
+  pay(url: string): Promise<PayResult>;
 }
+
+export type PayResult = 'paid' | 'cancelled' | 'failed' | 'pending' | 'unsupported';
 
 // ─────────────────── общие помощники ───────────────────
 export async function copyText(t: string) {
@@ -87,6 +91,7 @@ interface TgWebApp {
   setBottomBarColor?(c: string): void;
   openLink(u: string): void;
   openTelegramLink(u: string): void;
+  openInvoice?(url: string, cb: (status: string) => void): void;
   HapticFeedback: { impactOccurred(s: string): void; notificationOccurred(s: string): void; selectionChanged(): void };
   BackButton: { show(): void; hide(): void; onClick(f: () => void): void; offClick(f: () => void): void };
   CloudStorage: {
@@ -157,6 +162,12 @@ function telegram(tg: TgWebApp): Platform {
         tg.setBottomBarColor?.(bg);
       } catch { /* старый клиент */ }
     },
+    pay(url) {
+      return new Promise((ok) => {
+        if (!tg.openInvoice) return ok('unsupported');
+        tg.openInvoice(url, (st) => ok((['paid', 'cancelled', 'failed', 'pending'].includes(st) ? st : 'failed') as PayResult));
+      });
+    },
     cloud: cloudOk
       ? {
           get: (keys) => new Promise((ok, no) => tg.CloudStorage.getItems(keys, (e, v) => (e ? no(e) : ok(v ?? {})))),
@@ -184,6 +195,7 @@ function web(kind: PlatformKind): Platform {
       window.open(url, '_blank', 'noopener');
     },
     setBack() { /* в браузере есть своя кнопка «назад» */ },
+    pay: async () => 'unsupported',
     setColors(header) {
       document.querySelector('meta[name="theme-color"]')?.setAttribute('content', header);
     },

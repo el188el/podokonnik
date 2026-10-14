@@ -3,7 +3,7 @@ import { WINDOWS } from '../../game/constants';
 import { xpToNext } from '../../game/progression';
 import { ITEM_BY_ID, DECOR_IDS } from '../../game/shop';
 import { fmt } from '../../game/sim';
-import { now, openSheet, setName, setSetting, toggleDecor, useStore } from '../../game/store';
+import { isPlus, now, openSheet, setName, setSetting, toggleDecor, useStore } from '../../game/store';
 import { platform } from '../../platform';
 import { online, sendSettings } from '../../net/api';
 import { Bar, Btn, Leaves } from '../kit/kit';
@@ -34,7 +34,7 @@ export function Profile() {
       <section className="panel">
         <label className="lbl" htmlFor="nm">Как тебя зовут</label>
         <input id="nm" className="inp" maxLength={24} value={name} placeholder="Имя для подарков" onChange={(e) => setN(e.target.value)} onBlur={() => setName(name)} />
-        <p className="lvl">⭐ Уровень {g.level}</p>
+        <p className="lvl">⭐ Уровень {g.level}{isPlus(g) && <span className="plus-badge"> · 🌟 Садовник+</span>}</p>
         <Bar value={g.xp / xpToNext(g.level)} label={`${g.xp}/${xpToNext(g.level)} опыта`} />
       </section>
 

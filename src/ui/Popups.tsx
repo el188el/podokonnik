@@ -95,7 +95,7 @@ function freeSlotsTotal(g: ReturnType<typeof useStore.getState>['game']) {
   return g.sills.reduce((n, s) => n + (freeSlot(g, s.id) >= 0 ? 1 : 0), 0);
 }
 
-function GiftCard({ gift, full }: { gift: { sp: string; from: string; note: number; code: string; ok: boolean }; full: boolean }) {
+function GiftCard({ gift, full }: { gift: { sp: string; form?: string; from: string; note: number; code: string; ok: boolean }; full: boolean }) {
   const g = useStore((s) => s.game);
   if (!gift.ok) {
     return (
@@ -131,7 +131,7 @@ function GiftCard({ gift, full }: { gift: { sp: string; from: string; note: numb
   return (
     <div className="center">
       <motion.div className="postcard big2" initial={{ rotate: -6, y: 20 }} animate={{ rotate: 0, y: 0 }}>
-        <PlantArt sp={gift.sp} stage={0} />
+        <PlantArt sp={gift.sp} form={gift.form} stage={0} />
       </motion.div>
       <h2>{gift.from} дарит тебе черенок {s.gen}</h2>
       {NOTES[gift.note] && <p className="note">«{NOTES[gift.note]}»</p>}

@@ -34,6 +34,7 @@ export function replayFriendWaters(g: GameState, waters: FriendWater[], now: num
 export interface PublicPlant {
   id: string;
   sp: string;
+  form?: string;
   sill: string;
   slot: number;
   zone: Plant['zone'];
@@ -63,7 +64,7 @@ export function publicView(state: GameState, now: number, waters: FriendWater[] 
     level: g.level,
     sills: g.sills.map((s) => ({ id: s.id, name: s.name, window: s.window, decor: s.decor.filter((d) => (g.owned[d] ?? 0) > 0) })),
     plants: g.plants.map((p) => ({
-      id: p.id, sp: p.sp, sill: p.sill, slot: p.slot, zone: p.zone, pot: p.pot, bigPot: p.bigPot,
+      id: p.id, sp: p.sp, form: p.form, sill: p.sill, slot: p.slot, zone: p.zone, pot: p.pot, bigPot: p.bigPot,
       stage: p.stage, blooming: p.blooming, nick: p.nick, thirsty: needsWater(p), sad: p.stage >= 2 && p.health < 60,
     })),
     neighbor: !!g.neighbor && now < g.neighbor.until,

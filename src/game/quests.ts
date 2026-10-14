@@ -59,11 +59,13 @@ function candidates(s: GameState, t: number): { kind: QuestKind; target: number;
 }
 
 /** Обновить серию заходов и задания на сегодня. Возвращает true, если наступил новый день. */
-export function rollDay(s: GameState, t: number): boolean {
+export function rollDay(s: GameState, t: number, plus = false): boolean {
   const today = dayKey(t);
   let fresh = false;
   if (s.streak.day !== today) {
-    s.streak.count = s.streak.day === prevDay(today) ? s.streak.count + 1 : 1;
+    // с «Садовник+» один пропущенный день серию не сжигает
+    const kept = s.streak.day === prevDay(today) || (plus && s.streak.day === prevDay(prevDay(today)));
+    s.streak.count = kept ? s.streak.count + 1 : 1;
     s.streak.best = Math.max(s.streak.best, s.streak.count);
     s.streak.day = today;
     fresh = true;
