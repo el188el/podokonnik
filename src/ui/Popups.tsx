@@ -7,7 +7,8 @@ import { sp } from '../game/species';
 import { achievementById, claimGift, claimGiftOnline, claimStreak, closePopup, freeSlot, popup, toast, useStore } from '../game/store';
 import { PlantArt } from './art/PlantArt';
 import { Btn, Modal } from './kit/kit';
-import { shareAge, shareThanks } from './share';
+import { shareThanks } from './share';
+import { sharePlantStory } from './story';
 import { AGE_MARKS, daysText } from '../game/age';
 
 export function Popups() {
@@ -93,7 +94,7 @@ export function Popups() {
             <h2>{m.icon} {name}: {daysText(p.days)} вместе!</h2>
             <p className="muted">{m.frame ? 'Настоящий долгожитель — теперь у него золотая рамка на подоконнике.' : 'Целый месяц заботы — растение это чувствует.'}</p>
             <p><b>+{m.reward} 🍃</b></p>
-            <Btn kind="gold" onClick={() => { shareAge(pl, p.days); closePopup(); }}>Похвастаться 📸</Btn>
+            <Btn kind="gold" onClick={() => { sharePlantStory(pl, `${daysText(p.days)} вместе`, name, 'age'); closePopup(); }}>Похвастаться 📸</Btn>
             <Btn kind="ghost" onClick={closePopup}>Ура!</Btn>
           </div>
         );

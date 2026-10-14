@@ -249,3 +249,6 @@ export interface ContestData {
 export const contest = () => call<ContestData>('/contest', {});
 export const contestEnter = (sill: string) => call<{ status: 'ok' | 'empty' }>('/contest/enter', { sill });
 export const contestVote = (target: string) => call<{ status: 'ok' | 'dup' | 'limit' | 'self' | 'no_entry' }>('/contest/vote', { target });
+
+/** Загрузить картинку для сторис — вернётся публичная ссылка. */
+export const storyUpload = (image: string) => call<{ url: string }>('/story', { image }, { timeout: 20e3 });

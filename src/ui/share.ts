@@ -2,7 +2,6 @@ import { createElement } from 'react';
 import { CONFIG, tgAppLink } from '../config';
 import { playerId } from '../net/api';
 import { NOTES } from '../game/constants';
-import { daysText } from '../game/age';
 import { sp } from '../game/species';
 import { setShowoffDone, toast } from '../game/store';
 import type { PendingGift, Plant, Twin } from '../game/types';
@@ -83,15 +82,6 @@ export async function shareShowoff(p: Plant) {
   setShowoffDone(p.id);
   const file = await plantPng(p).catch(() => null);
   const r = await platform().share({ text: `Смотри, как подрос твой черенок: ${s.name} 🌱`, url: gameLink(), files: file ? [file] : undefined });
-  report(r);
-}
-
-/** «100 дней с монстерой» — похвастаться долгожителем. */
-export async function shareAge(p: Plant, days: number) {
-  const s = sp(p.sp);
-  const name = p.nick || s.name;
-  const file = await plantPng(p, `${name}: ${daysText(days)} вместе 🌿`).catch(() => null);
-  const r = await platform().share({ text: `${daysText(days)} вместе: ${name} растёт у меня на подоконнике 🌿`, url: gameLink(), files: file ? [file] : undefined });
   report(r);
 }
 

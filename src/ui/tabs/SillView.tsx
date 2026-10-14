@@ -19,6 +19,7 @@ import { TUTORIAL_DONE } from '../../game/store';
 import { SillScene, timeOfDay } from '../SillScene';
 import { SKY, isDim, isSunny, tempText, weatherAt } from '../../game/weather';
 import { platform } from '../../platform';
+import { shareSillStory } from '../story';
 
 
 function hint(g: GameState, t: number): string {
@@ -139,6 +140,9 @@ function OwnSill() {
         )}
         {neighbor && <button className="chip" onClick={() => openSheet({ kind: 'neighbor' })}>👵 соседка</button>}
         <button className={'chip' + (twinsDue ? ' alert' : '')} onClick={() => openSheet({ kind: 'twins' })}>🏠 Настоящие{twinsDue ? ` 💧${twinsDue}` : ''}</button>
+        {g.plants.some((p) => p.sill === sill.id && p.stage >= 2) && (
+          <button className="chip" onClick={() => shareSillStory()} aria-label="Поделиться подоконником">📸</button>
+        )}
       </div>
       {ev && (
         <button className={`event-banner theme-${ev.theme}`} onClick={() => openSheet({ kind: 'event' })}>

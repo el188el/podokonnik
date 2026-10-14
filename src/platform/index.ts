@@ -41,6 +41,8 @@ export interface Platform {
   afterLogin?(r: { discordToken?: string }): void;
   /** Позвать друзей в игру средствами платформы (Discord: окно приглашения). */
   invite?(): Promise<boolean>;
+  /** Опубликовать сторис (Telegram 7.8+): картинка по публичной ссылке. */
+  story?(mediaUrl: string, text: string): boolean;
 }
 
 export type PayResult = 'paid' | 'cancelled' | 'failed' | 'pending' | 'unsupported';
@@ -98,6 +100,7 @@ interface TgWebApp {
   openLink(u: string): void;
   openTelegramLink(u: string): void;
   openInvoice?(url: string, cb: (status: string) => void): void;
+  shareToStory?(mediaUrl: string, params?: { text?: string }): void;
   HapticFeedback: { impactOccurred(s: string): void; notificationOccurred(s: string): void; selectionChanged(): void };
   BackButton: { show(): void; hide(): void; onClick(f: () => void): void; offClick(f: () => void): void };
   CloudStorage: {
@@ -151,6 +154,15 @@ function telegram(tg: TgWebApp): Platform {
     async share({ text, url }) {
       tg.openTelegramLink(`https://t.me/share/url?url=${encodeURIComponent(url)}&text=${encodeURIComponent(text)}`);
       return 'shared';
+    },
+    story(mediaUrl, text) {
+      if (!tg.isVersionAtLeast('7.8') || !tg.shareToStory) return false;
+      try {
+        tg.shareToStory(mediaUrl, { text: text.slice(0, 200) });
+        return true;
+      } catch {
+        return false;
+      }
     },
     openLink(url) {
       if (/^https:\/\/t\.me\//.test(url)) tg.openTelegramLink(url);

@@ -14,7 +14,8 @@ import { PlantArt } from '../art/PlantArt';
 import { chatter, moodOf } from '../../game/mood';
 import { weatherAt } from '../../game/weather';
 import { Bar, Btn } from '../kit/kit';
-import { shareAge, shareShowoff, shareThanks } from '../share';
+import { shareShowoff, shareThanks } from '../share';
+import { sharePlantStory } from '../story';
 
 export function PlantCard({ id }: { id: string }) {
   const g = useStore((s) => s.game);
@@ -91,10 +92,13 @@ export function PlantCard({ id }: { id: string }) {
           <p className="muted small">{p.nick ? s.name + ' · ' : ''}{s.folk ? `«${s.folk}» · ` : ''}{DIFFICULTY_LABEL[s.difficulty]}</p>
           {p.form && FORM_BY_ID[p.form] && <p className="rare-mark">✨ {FORM_BY_ID[p.form].name}</p>}
           {p.from && <p className="giftmark">🎁 Подарок от {p.from.name}</p>}
+          {potted && (
+            <button className="linkish story-link" onClick={() => sharePlantStory(p, p.blooming ? 'Зацвело! 🌸' : p.stage === 4 ? 'Совсем взрослое!' : 'Расту!', p.nick || s.name)}>📲 в сторис</button>
+          )}
           <p className={'age-line' + (mark?.frame ? ' gold' : '')}>
             {mark?.icon ?? '🗓'} С тобой {days < 1 ? 'первый день' : daysText(days)}
             {nextMark && <span className="muted"> · до {nextMark.icon} ещё {daysText(nextMark.days - days)}</span>}
-            {mark && mark.days >= 30 && <button className="linkish" onClick={() => shareAge(p, days)}>поделиться</button>}
+            {mark && mark.days >= 30 && <button className="linkish" onClick={() => sharePlantStory(p, `${daysText(days)} вместе`, p.nick || s.name, 'age')}>поделиться</button>}
           </p>
           <p className="stage-line">
             <b>{STAGE_NAME[p.stage]}</b>

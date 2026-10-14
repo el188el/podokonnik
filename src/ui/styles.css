@@ -576,3 +576,4 @@ svg.big.sad { filter: sepia(0.6) saturate(0.6); }
 .scene[data-wp='wp_wood'] { --wp: repeating-linear-gradient(90deg, #d8a36b 0 26px, #c99158 26px 28px), #d8a36b; }
 .scene[data-wp='wp_brick'] { --wp: linear-gradient(#c98f76 2px, transparent 2px) 0 0 / 44px 20px, linear-gradient(90deg, #c98f76 2px, transparent 2px) 0 0 / 44px 20px, #b8664b; }
 .scene .wall, .hang-row { background: var(--wp); }
+.story-link { padding: 0; margin: 2px 0; font-size: 13px; }
