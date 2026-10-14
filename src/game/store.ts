@@ -33,7 +33,7 @@ import { SPECIES, sp } from './species';
 import { DEEP_ROW, EXTRA_PLACES, GLASS_ROW, rowSlots, zoneOfSlot } from './layout';
 import { BREED_COOLDOWN, canBreed, crossHue, hueOf } from './breeding';
 import { FIRST_CHEST, FIRST_YOUNG_H, ROUND_REWARD, STARTER, firstChest, roundInfo, starterLeft } from './onboarding';
-import { loadCloud, loadLocal, newPlant, newState, pickNewer, saveCloud, saveLocal, upgrade } from './storage';
+import { loadCloud, loadLocal, newPlant, newState, pickNewer, saveCloud, saveLocal, switchLocal, upgrade } from './storage';
 import type { Cutting, EventProgress, GameState, PendingGift, Plant, QuestKind, Twin, WeeklyKind, Zone } from './types';
 
 // ─────────────────── UI-события: тосты, окна наград ───────────────────
@@ -580,7 +580,14 @@ export async function buyStars(productId: string): Promise<boolean> {
 async function connect(local: GameState): Promise<{ state: GameState; force?: number; inbox: api.InboxItem[] } | null> {
   if (!api.online()) return null;
   try {
-    const { save, inbox } = await api.login(local.name);
+    const { save, inbox, switched } = await api.login(local.name);
+    if (switched) {
+      // на устройстве лежал прогресс другого аккаунта — его не берём
+      const me = platform().user?.id;
+      switchLocal('p' + switched, me ?? 'p' + api.playerId());
+      local = loadLocal(Date.now()).state;
+      if (!local.name) local.name = platform().user?.name.split(' ')[0].slice(0, 24) ?? '';
+    }
     if (!save?.state || !Array.isArray(save.state.plants)) return { state: local, inbox };
     const known = api.knownVersion();
     if (known === 0) {
@@ -603,6 +610,8 @@ async function connect(local: GameState): Promise<{ state: GameState; force?: nu
 
 export async function boot() {
   const t0 = Date.now();
+  const sw = api.accountSwitch();
+  if (sw) switchLocal(sw.from, sw.to);
   const local = loadLocal(t0);
   let g = local.state;
   const cloud = platform().cloud;

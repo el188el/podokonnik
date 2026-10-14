@@ -99,6 +99,25 @@ export function loadLocal(t: number): { state: GameState; migrated: boolean; sav
   return { state: newState(t), migrated: false, savedAt: 0 };
 }
 
+// ─────────── несколько аккаунтов на одном телефоне ───────────
+// В Telegram можно переключаться между аккаунтами, а хранилище у веб-приложения общее.
+// Поэтому при смене аккаунта откладываем сохранение прежнего в отдельный ключ
+// и достаём сохранение нового (если он уже играл на этом телефоне).
+
+const ownKey = (owner: string) => `${SAVE_KEY}:${owner}`;
+
+/** Сменился аккаунт: убрать чужое сохранение и достать своё. */
+export function switchLocal(from: string | undefined, to: string) {
+  try {
+    const cur = localStorage.getItem(SAVE_KEY);
+    if (from && cur) localStorage.setItem(ownKey(from), cur);
+    const mine = localStorage.getItem(ownKey(to));
+    if (mine) localStorage.setItem(SAVE_KEY, mine);
+    else localStorage.removeItem(SAVE_KEY);
+    localStorage.removeItem(LEGACY_KEY); // старое сохранение первой версии — тоже не его
+  } catch { /* ignore */ }
+}
+
 export function saveLocal(state: GameState) {
   const savedAt = Date.now();
   try {

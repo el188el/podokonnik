@@ -12,6 +12,7 @@ interface NetState {
   deviceId: string;
   token?: string;
   playerId?: string;
+  owner?: string;   // аккаунт платформы (tg…), чьё сохранение лежит на устройстве
   version: number;
 }
 
@@ -79,8 +80,23 @@ async function call<T>(path: string, body: unknown, opts: { auth?: boolean; keep
   }
 }
 
+/**
+ * Зашли другим аккаунтом Telegram на этом же телефоне? Тогда всё, что лежит
+ * на устройстве (сохранение, токен, версия), — чужое. Возвращает прежнего владельца.
+ */
+export function accountSwitch(): { from?: string; to: string } | null {
+  const me = platform().user?.id;
+  if (!me) return null;
+  if (net.owner === me) return null;
+  if (!net.owner && !net.playerId) { net.owner = me; saveNet(); return null; } // первый запуск на устройстве
+  const from = net.owner ?? (net.playerId ? 'p' + net.playerId : undefined);
+  net = { deviceId: net.deviceId, version: 0, owner: me };
+  saveNet();
+  return { from, to: me };
+}
+
 /** Вход: в Telegram — по подписанным initData, в браузере — как гость по id устройства. */
-export async function login(name: string): Promise<{ save: ServerSave | null; inbox: InboxItem[] }> {
+export async function login(name: string): Promise<{ save: ServerSave | null; inbox: InboxItem[]; switched?: string }> {
   const pf = platform();
   const r = await call<{ token: string; playerId: string; save: ServerSave | null; inbox: InboxItem[]; discordToken?: string }>(
     '/auth',
@@ -95,11 +111,15 @@ export async function login(name: string): Promise<{ save: ServerSave | null; in
     },
     { auth: false, timeout: 8e3 },
   );
+  // старые установки не знали владельца: смену аккаунта узнаём по игроку на сервере
+  const switched = net.playerId && net.playerId !== r.playerId ? net.playerId : undefined;
+  if (switched) net.version = 0;
   net.token = r.token;
   net.playerId = r.playerId;
+  if (pf.user) net.owner = pf.user.id;
   saveNet();
   pf.afterLogin?.(r);
-  return { save: r.save, inbox: r.inbox ?? [] };
+  return { save: r.save, inbox: r.inbox ?? [], switched };
 }
 
 export type SyncResult =
