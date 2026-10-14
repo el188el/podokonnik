@@ -24,7 +24,9 @@ const TABS: [Tab, string, string][] = [
   ['herbarium', '📖', 'Гербарий'],
 ];
 
-const isDebug = new URLSearchParams(location.search).has('debug');
+// Панель отладки (перемотка времени, листики) есть только в тестовых сборках с VITE_DEBUG=1.
+// В опубликованной игре её не включить ни ссылкой, ни иначе.
+const isDebug = import.meta.env.VITE_DEBUG === '1' && new URLSearchParams(location.search).has('debug');
 
 export function App() {
   const tab = useStore((s) => s.tab);
@@ -39,7 +41,7 @@ export function App() {
     if (gift) {
       showGift(gift);
       const keep = new URLSearchParams();
-      if (q.has('debug')) keep.set('debug', '1');
+      if (isDebug) keep.set('debug', '1');
       history.replaceState(null, '', location.pathname + (keep.toString() ? '?' + keep : '') + location.hash);
     } else if (g.pending.length) showGift({ ...g.pending[0], ok: true });
     const start = platform().startParam ?? q.get('start') ?? '';

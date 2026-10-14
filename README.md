@@ -34,7 +34,7 @@
 
 ```bash
 npm install
-npm run dev          # http://localhost:5173/?debug — с панелью перемотки времени
+VITE_DEBUG=1 npm run dev  # http://localhost:5173/?debug — с панелью перемотки времени (только в тестовых сборках)
 npm test             # тесты движка симуляции
 npm run build        # сборка в dist/
 npm run gen:assets   # перегенерировать страницы подарков и картинки превью
