@@ -552,13 +552,192 @@ const hibiscus: Draw = ({ art, n, r, bloom }) => {
   return out;
 };
 
+
+const cactus: Draw = ({ art, n, r, bloom }) => {
+  const H = [24, 44, 64][n], W = [18, 24, 30][n];
+  const body = (x: number, h: number, w: number, k: string) => (
+    <g key={k} transform={`translate(${f(x)},0)`}>
+      <rect x={f(-w / 2)} y={f(-h)} width={f(w)} height={f(h + 2)} rx={f(w / 2)} fill={art.leaf} />
+      {[-0.28, 0, 0.28].map((o) => <path key={o} d={`M${f(o * w)},${f(-h + w * 0.3)} L${f(o * w)},0`} stroke={darker(art.leaf, 0.8)} strokeWidth={1.2} />)}
+      {Array.from({ length: Math.floor(h / 7) }, (_, i) => [-0.42, 0, 0.42].map((o) => (
+        <circle key={`${i}${o}`} cx={f(o * w + j(r, 0.5))} cy={f(-h + 6 + i * 7)} r={0.9} fill={art.leaf2} />
+      )))}
+    </g>
+  );
+  const out: ReactNode[] = [body(0, H, W, 'main')];
+  if (n === 2) { out.push(body(-20, 16, 14, 'b1')); out.push(body(19, 12, 11, 'b2')); }
+  if (bloom && n >= 1) {
+    out.push(<path key="tube" d={`M0,${-H} l-3,-10 l6,0Z`} fill={darker(art.flower!, 0.85)} />);
+    out.push(<Flower5 key="fl" x={0} y={-H - 14} r={11} color={art.flower!} petals={8} center="#fff3c4" />);
+  }
+  return out;
+};
+
+const hoya: Draw = (o) => {
+  const out = vine({ ...o.art, leaf2: undefined }, o.n, o.r, 'ellipse');
+  if (o.bloom && o.n >= 1) {
+    for (const [x, y] of [[-22, -18], [24, -10], [-4, -30]].slice(0, o.n + 1)) {
+      for (let k = 0; k < 7; k++) {
+        const a = (k / 7) * Math.PI * 2;
+        out.push(<Flower5 key={`h${x}${k}`} x={x + Math.cos(a) * 5} y={y + Math.sin(a) * 4} r={3.2} color={o.art.flower!} center="#b0304a" />);
+      }
+    }
+  }
+  return out;
+};
+
+const begonia: Draw = ({ art, n, r, bloom }) => {
+  const count = [3, 6, 9][n];
+  const out: ReactNode[] = [];
+  for (let i = 0; i < count; i++) {
+    const t = i / (count - 1);
+    const a = -65 + t * 130 + j(r, 8);
+    const pet = [6, 14, 22][n] * (0.7 + r() * 0.5);
+    const ex = Math.sin(rad(a)) * pet, ey = -Math.cos(rad(a)) * pet;
+    const L = [16, 22, 28][n];
+    out.push(<path key={'p' + i} d={`M0,0 L${f(ex)},${f(ey)}`} stroke="#b0503a" strokeWidth={1.4} />);
+    out.push(
+      <Leaf key={'l' + i} x={ex} y={ey} a={a * 1.2 + 25} d={P.heart(L, L * 0.75)} fill={art.leaf} L={L} vein={false}>
+        {[0.3, 0.5, 0.7].map((k, q) => <circle key={q} cx={f(j(r, L * 0.18))} cy={f(-L * k)} r={1.6} fill={art.leaf2} />)}
+        <circle cx={f(L * 0.15)} cy={f(-L * 0.45)} r={1.3} fill={art.leaf2} />
+      </Leaf>,
+    );
+  }
+  if (bloom && n >= 1) {
+    for (let c = 0; c < n + 1; c++) {
+      const x = (c - n / 2) * 18, y = -[0, 34, 46][n] - (c % 2) * 6;
+      out.push(<path key={'s' + c} d={`M0,-4 Q${f(x * 0.4)},${f(y * 0.6)} ${f(x)},${f(y)}`} stroke="#b0503a" strokeWidth={1.2} fill="none" />);
+      for (let k = 0; k < 5; k++) out.push(<Flower5 key={`f${c}${k}`} x={x + j(r, 6)} y={y + j(r, 4)} r={4} petals={4} color={art.flower!} rot={r() * 90} />);
+    }
+  }
+  return out;
+};
+
+const fern: Draw = ({ art, n, r }) => {
+  const fronds = [4, 8, 12][n];
+  const L = [26, 44, 60][n];
+  const out: ReactNode[] = [];
+  for (let i = 0; i < fronds; i++) {
+    const t = fronds === 1 ? 0.5 : i / (fronds - 1);
+    const a = rad(-80 + t * 160 + j(r, 6));
+    const len = L * (0.75 + r() * 0.3);
+    const ex = Math.sin(a) * len, ey = -len * 0.55 + Math.abs(Math.sin(a)) * len * 0.35;
+    const cx = Math.sin(a) * len * 0.35, cy = -len * (0.95 - Math.abs(Math.sin(a)) * 0.3);
+    out.push(<path key={'r' + i} d={`M0,0 Q${f(cx)},${f(cy)} ${f(ex)},${f(ey)}`} stroke={darker(art.leaf, 0.8)} strokeWidth={1.3} fill="none" />);
+    const steps = 9;
+    for (let k = 1; k < steps; k++) {
+      const u = k / steps, mu = 1 - u;
+      const x = 2 * mu * u * cx + u * u * ex, y = 2 * mu * u * cy + u * u * ey;
+      const dx = 2 * mu * cx + 2 * u * (ex - cx), dy = 2 * mu * cy + 2 * u * (ey - cy);
+      const ang = (Math.atan2(dy, dx) * 180) / Math.PI + 90;
+      const ll = 7 * (1 - u * 0.6);
+      for (const sd of [-1, 1]) out.push(<Leaf key={`${i}-${k}${sd}`} x={x} y={y} a={ang + sd * 70} d={P.ellipse(ll, ll * 0.45)} fill={k % 2 ? art.leaf : darker(art.leaf, 0.92)} L={ll} vein={false} />);
+    }
+  }
+  return out;
+};
+
+const cyclamen: Draw = ({ art, n, r, bloom }) => {
+  const out: ReactNode[] = [];
+  const count = [4, 6, 9][n];
+  for (let i = 0; i < count; i++) {
+    const a = -80 + (i / (count - 1)) * 160 + j(r, 6);
+    const L = [15, 20, 25][n];
+    out.push(
+      <Leaf key={'l' + i} a={a} y={-2} d={P.heart(L, L * 0.9)} fill={art.leaf} L={L} vein={false}>
+        <path d={P.heart(L * 0.62, L * 0.55)} transform={`translate(0,${f(-L * 0.18)})`} fill="none" stroke={art.leaf2} strokeWidth={1.6} opacity={0.8} />
+      </Leaf>,
+    );
+  }
+  if (bloom && n >= 1) {
+    const k = n === 2 ? 5 : 3;
+    for (let i = 0; i < k; i++) {
+      const x = (i - (k - 1) / 2) * 11 + j(r, 2), top = -[0, 40, 52][n] - (i % 2) * 8;
+      out.push(<path key={'s' + i} d={`M0,-4 Q${f(x * 0.3)},${f(top * 0.5)} ${f(x)},${f(top)}`} stroke="#8a3d55" strokeWidth={1.2} fill="none" />);
+      out.push(
+        <g key={'f' + i} transform={`translate(${f(x)},${f(top)})`}>
+          {[-24, 0, 24].map((d) => <ellipse key={d} cx={f(Math.sin(rad(d)) * 4)} cy={-7} rx={2.6} ry={8} fill={art.flower} transform={`rotate(${d})`} />)}
+          <circle r={1.8} fill={darker(art.flower!, 0.6)} />
+        </g>,
+      );
+    }
+  }
+  return out;
+};
+
+const poinsettia: Draw = ({ art, n, r, bloom }) => {
+  const h = [10, 26, 40][n];
+  const out: ReactNode[] = [<path key="st" d={`M0,0 L0,${-h}`} stroke={STEM} strokeWidth={2.4} />];
+  for (let i = 0; i < [4, 6, 8][n]; i++) {
+    const a = (i % 2 ? 1 : -1) * (40 + i * 6 + j(r, 6));
+    out.push(<Leaf key={'g' + i} y={-h * (0.2 + (i / 8) * 0.7)} a={a} d={P.ellipse(16, 9)} fill={art.leaf} L={16} />);
+  }
+  const top = bloom || n === 2;
+  const bracts = n === 0 ? 0 : n === 1 ? 5 : 8;
+  for (let i = 0; i < bracts; i++) {
+    const a = (i / bracts) * 360 + j(r, 8);
+    out.push(<Leaf key={'b' + i} y={-h} a={a} d={P.ellipse(n === 2 ? 20 : 14, n === 2 ? 9 : 7)} fill={top ? art.flower! : art.leaf} L={n === 2 ? 20 : 14} vein={top ? '#a01a2b' : undefined} />);
+  }
+  if (bracts) for (let k = 0; k < 5; k++) out.push(<circle key={'c' + k} cx={f(j(r, 3))} cy={f(-h + j(r, 3))} r={1.6} fill="#f4d03f" />);
+  return out;
+};
+
+const citrus: Draw = ({ art, n, r, bloom }) => {
+  const h = [12, 32, 54][n];
+  const out: ReactNode[] = [<path key="t" d={`M0,0 C-1,${-h * 0.5} 1,${-h * 0.8} 0,${-h}`} stroke={WOOD} strokeWidth={3} fill="none" strokeLinecap="round" />];
+  const count = [6, 18, 32][n];
+  const R = [10, 22, 32][n];
+  for (let i = 0; i < count; i++) {
+    const a = r() * Math.PI * 2;
+    const d = Math.sqrt(r()) * R;
+    const x = Math.cos(a) * d, y = -h - R * 0.4 + Math.sin(a) * d * 0.8;
+    out.push(<Leaf key={'l' + i} x={x} y={y + 6} a={j(r, 70)} d={P.ellipse(15, 8)} fill={i % 3 ? art.leaf : darker(art.leaf, 0.85)} L={15} />);
+  }
+  if (bloom && n >= 1) {
+    for (let k = 0; k < n + 2; k++) {
+      const x = j(r, R * 0.7), y = -h - R * 0.3 + j(r, R * 0.5);
+      out.push(<ellipse key={'fr' + k} cx={f(x)} cy={f(y)} rx={5} ry={4} fill={art.flower} />);
+      out.push(<ellipse key={'hl' + k} cx={f(x - 1.5)} cy={f(y - 1.5)} rx={1.4} ry={1} fill="#fff" opacity={0.6} />);
+    }
+  }
+  return out;
+};
+
+const coleus: Draw = ({ art, n, r }) => {
+  const out: ReactNode[] = [];
+  const stems = n === 0 ? [0] : n === 1 ? [-18, 0, 18] : [-30, -12, 8, 26];
+  stems.forEach((sa, si) => {
+    const h = [12, 26, 38][n] * (si % 2 ? 0.85 : 1);
+    const ex = Math.sin(rad(sa)) * h, ey = -Math.cos(rad(sa)) * h;
+    out.push(<path key={'st' + si} d={`M0,0 L${f(ex)},${f(ey)}`} stroke={darker(art.leaf, 0.8)} strokeWidth={1.8} />);
+    const pairs = [2, 3, 3][n];
+    for (let k = 0; k < pairs; k++) {
+      const u = (k + 1) / pairs;
+      const x = ex * u, y = ey * u;
+      const L = [12, 15, 17][n] * (1.1 - u * 0.3);
+      for (const sd of [-1, 1]) {
+        const a = sa + sd * (75 + j(r, 10));
+        out.push(
+          <Leaf key={`${si}-${k}${sd}`} x={x} y={y} a={a} d={P.ellipse(L, L * 0.8)} fill={art.leaf2!} L={L} vein={false}>
+            <path d={P.ellipse(L * 0.8, L * 0.58)} transform={`translate(0,${f(-L * 0.08)})`} fill={art.leaf} />
+            <path d={`M0,${f(-L * 0.1)} L0,${f(-L * 0.75)}`} stroke="#f6c3d9" strokeWidth={0.9} />
+          </Leaf>,
+        );
+      }
+    }
+    out.push(<Leaf key={'top' + si} x={ex} y={ey} a={sa} d={P.ellipse(10, 7)} fill={art.leaf} L={10} vein={false} />);
+  });
+  return out;
+};
+
 const DRAW: Record<ArtSpec['kind'], Draw> = {
   grass, trail, heartTrail, blades, dracaena, aloe, rosette, crassula, kalanchoe, zamioculcas, monstera, ficus, spathiphyllum, anthurium, geranium, decembrist, orchid, hibiscus,
+  cactus, hoya, begonia, fern, cyclamen, poinsettia, citrus, coleus,
 };
 
 // ─────────────── черенок в стакане ───────────────
 function Cutting({ art, roots, r }: { art: ArtSpec; roots: boolean; r: R }) {
-  const leafShape = ['heartTrail', 'anthurium', 'monstera'].includes(art.kind) ? 'heart' : ['rosette', 'crassula', 'kalanchoe', 'geranium'].includes(art.kind) ? 'round' : ['blades', 'aloe', 'dracaena'].includes(art.kind) ? 'blade' : 'ellipse';
+  const leafShape = ['heartTrail', 'anthurium', 'monstera', 'begonia', 'cyclamen'].includes(art.kind) ? 'heart' : ['rosette', 'crassula', 'kalanchoe', 'geranium'].includes(art.kind) ? 'round' : ['blades', 'aloe', 'dracaena', 'cactus'].includes(art.kind) ? 'blade' : 'ellipse';
   const L = leafShape === 'blade' ? 26 : 16;
   const W = leafShape === 'blade' ? 7 : leafShape === 'round' ? 14 : leafShape === 'heart' ? 13 : 9;
   return (
@@ -686,7 +865,7 @@ export function PlantArt({ sp: spId, stage, seed = '', pot = 'terracotta', bigPo
   const base = sp(spId);
   const fm = form ? FORM_BY_ID[form] : undefined;
   const s = fm && fm.sp === spId ? { ...base, art: { ...base.art, ...fm.art } } : base;
-  const vg = fm && fm.sp === spId ? fm.art.variegate : undefined;
+  const vg = fm && fm.sp === spId ? fm.art.variegate ?? base.art.variegate : base.art.variegate;
   const r = rng(spId + seed);
   if (stage <= 1) {
     return (
@@ -707,7 +886,7 @@ export function PlantArt({ sp: spId, stage, seed = '', pot = 'terracotta', bigPo
       <svg x={70} y={142} overflow="visible" className="plant-root">
         <g className="sway">
           <Variegate.Provider value={vg}>
-            <g transform={`scale(${scale})`}>{DRAW[s.art.kind]({ art: s.art, n, r, bloom: !!blooming, uid })}</g>
+            <g transform={`scale(${scale})`}>{DRAW[s.art.kind]({ art: s.art, n, r, bloom: !!blooming && !!s.art.flower, uid })}</g>
           </Variegate.Provider>
         </g>
       </svg>

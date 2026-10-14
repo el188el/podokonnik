@@ -18,13 +18,15 @@ export type Stage = 0 | 1 | 2 | 3 | 4;
 export type ArtKind =
   | 'grass' | 'trail' | 'heartTrail' | 'blades' | 'dracaena' | 'aloe' | 'rosette'
   | 'crassula' | 'kalanchoe' | 'zamioculcas' | 'monstera' | 'ficus'
-  | 'spathiphyllum' | 'anthurium' | 'geranium' | 'decembrist' | 'orchid' | 'hibiscus';
+  | 'spathiphyllum' | 'anthurium' | 'geranium' | 'decembrist' | 'orchid' | 'hibiscus'
+  | 'cactus' | 'hoya' | 'begonia' | 'fern' | 'cyclamen' | 'poinsettia' | 'citrus' | 'coleus';
 
 export interface ArtSpec {
   kind: ArtKind;
   leaf: string;      // основной цвет листа
   leaf2?: string;    // второй цвет: пестролистность, полосы, кайма
   flower?: string;   // цвет цветка (если цветёт)
+  variegate?: string; // светлые мазки на листьях (пестролистные виды)
 }
 
 export interface Bloom {
