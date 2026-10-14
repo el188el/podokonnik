@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { activeEvent, eventEndsAt, eventSeason, tierOf, EVENTS } from './events';
-import { FORM_BY_ID } from './products';
+import { FORM_BY_ID, PRODUCTS } from './products';
 import { ITEM_BY_ID } from './shop';
 
 const at = (y: number, m: number, d: number) => new Date(y, m - 1, d, 12).getTime();
@@ -45,5 +45,20 @@ describe('ивенты', () => {
     const e = EVENTS[0];
     expect(e.tiers).toHaveLength(30);
     for (let i = 1; i < 30; i++) expect(e.tiers[i] - e.tiers[i - 1]).toBeGreaterThan(e.tiers[Math.max(0, i - 1)] - e.tiers[Math.max(0, i - 2)] - 1);
+  });
+});
+
+describe('стимуляторы в пропуске и за звёзды', () => {
+  it('есть в обеих ветках каждого сезона', () => {
+    for (const e of EVENTS) {
+      expect(e.free.filter((r) => r.boost).length).toBeGreaterThanOrEqual(4);
+      expect(e.premium.filter((r) => r.boost).length).toBeGreaterThanOrEqual(5);
+    }
+  });
+
+  it('паки за звёзды: чем больше, тем выгоднее', () => {
+    const packs = PRODUCTS.filter((p) => p.kind === 'boost').sort((a, b) => a.stars - b.stars);
+    expect(packs.length).toBe(3);
+    for (let i = 1; i < packs.length; i++) expect(packs[i].stars / packs[i].count!).toBeLessThan(packs[i - 1].stars / packs[i - 1].count!);
   });
 });

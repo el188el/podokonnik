@@ -74,6 +74,9 @@ export async function grant(paid: Paid) {
   } else if (product.kind === 'place') {
     await db.from('inbox').insert({ player_id: playerId, kind: 'purchase', payload: { product: product.id, slot: product.slot } });
     text = '🪴 Новое место для растения открыто на всех подоконниках!';
+  } else if (product.kind === 'boost') {
+    await db.from('inbox').insert({ player_id: playerId, kind: 'purchase', payload: { product: product.id, count: product.count } });
+    text = `⚡ ${product.count} стимуляторов роста уже в запасе. Пусть растут!`;
   } else if (product.kind === 'form' && product.form) {
     const f = FORM_BY_ID[product.form];
     await db.from('inbox').insert({ player_id: playerId, kind: 'purchase', payload: { product: product.id, form: f.id, sp: f.sp } });

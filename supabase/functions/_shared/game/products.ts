@@ -38,7 +38,7 @@ export const formsOf = (spId: string) => FORMS.filter((f) => f.sp === spId);
 /** Шанс, что обычный черенок окажется редкой формой. */
 export const RARE_DROP = 0.03;
 
-export type ProductKind = 'plus' | 'leaves' | 'form' | 'pass' | 'starter' | 'plus_gift' | 'place';
+export type ProductKind = 'plus' | 'leaves' | 'form' | 'pass' | 'starter' | 'plus_gift' | 'place' | 'boost';
 
 export interface Product {
   id: string;
@@ -51,6 +51,7 @@ export interface Product {
   item?: string;  // предмет магазина в наборе
   once?: boolean; // купить можно только один раз
   slot?: number;  // место на подоконнике (для kind: 'place')
+  count?: number; // сколько стимуляторов (для kind: 'boost')
 }
 
 export const PLUS_DAYS = 30;
@@ -65,12 +66,15 @@ export const PRODUCTS: Product[] = [
   { id: 'leaves_l', kind: 'leaves', stars: 150, leaves: 900, title: '900 листиков', desc: 'Хватит на целую оранжерею.' },
   {
     id: 'pass', kind: 'pass', stars: 149, title: 'Сезонный пропуск',
-    desc: 'Платная ветка наград текущего ивента: эксклюзивный горшок, декор, листики, подкормки и редкая форма.',
+    desc: 'Платная ветка наград текущего ивента: эксклюзивный горшок, декор, листики, подкормки, стимуляторы роста и редкая форма.',
   },
   {
     id: 'starter', kind: 'starter', stars: 49, once: true, leaves: 300, form: 'albo', item: 'pot_khokhloma', title: 'Стартовый пакет',
     desc: 'Один раз и с большой скидкой: редкий черенок «Монстера Альбо», горшок «Хохлома» и 300 листиков.',
   },
+  { id: 'boost_s', kind: 'boost', stars: 25, count: 5, title: '5 стимуляторов', desc: 'Сутки роста вдвое быстрее для пяти растений.' },
+  { id: 'boost_m', kind: 'boost', stars: 59, count: 15, title: '15 стимуляторов', desc: 'Выгоднее на 20% — хватит на весь подоконник на неделю.' },
+  { id: 'boost_l', kind: 'boost', stars: 99, count: 30, title: '30 стимуляторов', desc: 'Выгоднее на 35% — для большой оранжереи.' },
   { id: 'place_9', kind: 'place', stars: 25, slot: 9, once: true, title: 'Место у стекла', desc: 'Четвёртое место у стекла на всех подоконниках.' },
   { id: 'place_10', kind: 'place', stars: 35, slot: 10, once: true, title: 'Место на столике', desc: 'Четвёртое место на столике на всех подоконниках.' },
   {

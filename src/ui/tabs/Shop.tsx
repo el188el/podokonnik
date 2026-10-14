@@ -229,6 +229,18 @@ function StarsShop() {
         </div>
       )}
 
+      <h3>⚡ Стимуляторы роста</h3>
+      <div className="list">
+        {PRODUCTS.filter((p) => p.kind === 'boost').map((p) => (
+          <div key={p.id} className="row-item">
+            <div className="ricon">⚡</div>
+            <div className="rtext"><b>{p.title}</b><span className="muted small">{p.desc}{(g.owned.boost ?? 0) > 0 ? ` В запасе: ${g.owned.boost}.` : ''}</span></div>
+            <Btn small kind="gold" disabled={busy === p.id} onClick={() => buy(p.id)}>{p.stars} ⭐</Btn>
+          </div>
+        ))}
+      </div>
+      <p className="muted small center">Одному растению — раз в неделю, всего 3 в день: запас не сгорает.</p>
+
       <h3>🍃 Листики</h3>
       <div className="list">
         {PRODUCTS.filter((p) => p.kind === 'leaves').map((p) => (

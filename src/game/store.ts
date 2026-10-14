@@ -493,6 +493,10 @@ function applyInbox(items: api.InboxItem[]) {
           g.plusUntil = Math.max(g.plusUntil ?? 0, Number(it.payload.plusUntil) || 0);
           g.owned.pot_gold = 1;
           toast('🌟 «Садовник+» включён! Золотой горшок уже в коллекции');
+        } else if (pr?.kind === 'boost') {
+          const n = Number(it.payload.count) || pr.count || 0;
+          g.owned.boost = (g.owned.boost ?? 0) + n;
+          toast(`⚡ +${n} стимуляторов роста. Спасибо за поддержку!`);
         } else if (pr?.kind === 'place' && pr.slot) {
           if (!(g.places ?? []).includes(pr.slot)) g.places = [...(g.places ?? []), pr.slot];
           toast('🪴 Новое место открыто на всех подоконниках!');
@@ -1383,6 +1387,7 @@ function giveReward(g: GameState, r: PassReward, t: number) {
   if (r.leaves) g.leaves += r.leaves;
   if (r.feed) g.owned.feed = (g.owned.feed ?? 0) + r.feed;
   if (r.pots) g.owned.pot = (g.owned.pot ?? 0) + r.pots;
+  if (r.boost) g.owned.boost = (g.owned.boost ?? 0) + r.boost;
   if (r.item) {
     g.owned[r.item] = 1;
     const it = ITEM_BY_ID[r.item];
@@ -1398,7 +1403,7 @@ function giveReward(g: GameState, r: PassReward, t: number) {
 }
 
 export const rewardText = (r: PassReward) =>
-  r.leaves ? `+${r.leaves} 🍃` : r.pots ? `🪴 ×${r.pots}` : r.feed ? `🧪 ×${r.feed}` : r.item ? `${ITEM_BY_ID[r.item]?.icon ?? '🎁'} ${ITEM_BY_ID[r.item]?.name ?? ''}` : r.form ? `✨ ${FORM_BY_ID[r.form]?.name}` : '';
+  r.leaves ? `+${r.leaves} 🍃` : r.pots ? `🪴 ×${r.pots}` : r.boost ? `⚡ ×${r.boost}` : r.feed ? `🧪 ×${r.feed}` : r.item ? `${ITEM_BY_ID[r.item]?.icon ?? '🎁'} ${ITEM_BY_ID[r.item]?.name ?? ''}` : r.form ? `✨ ${FORM_BY_ID[r.form]?.name}` : '';
 
 export function claimTier(i: number, premium: boolean) {
   mut((g, t) => {

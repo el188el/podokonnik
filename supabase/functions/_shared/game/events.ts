@@ -6,6 +6,7 @@ export interface PassReward {
   leaves?: number;
   feed?: number;
   pots?: number;   // глиняные горшки
+  boost?: number;  // стимуляторы роста
   item?: string;   // id товара магазина (декор, горшок)
   form?: string;   // редкая форма — черенок в запас
 }
@@ -34,7 +35,7 @@ const TIERS = Array.from({ length: PASS_LEVELS }, (_, i) => i).reduce<number[]>(
 /**
  * Награды сезона: на бесплатной ветке — декор сезона на 5, 15 и 25 уровнях,
  * на платной — дизайн горшка на 2-м, декор на 10, 20 и 28-м и редкая форма на 30-м.
- * Между ними — листики, подкормки и горшки.
+ * Между ними — листики, подкормки, горшки и стимуляторы роста.
  */
 function pass(x: { free: string[]; prem: string[]; pot: string; form: string }): Pick<GameEvent, 'tiers' | 'free' | 'premium'> {
   const free: PassReward[] = [];
@@ -47,6 +48,7 @@ function pass(x: { free: string[]; prem: string[]; pot: string; form: string }):
     else if (i === PASS_LEVELS - 1) free.push({ leaves: 300 });
     else if (i % 5 === 1) free.push({ feed: 1 + Math.floor(i / 10) });
     else if (i % 5 === 2) free.push({ pots: 2 });
+    else if (i % 5 === 3) free.push({ boost: 1 });
     else free.push({ leaves: 15 + 5 * i });
 
     const pi = premAt.indexOf(i);
@@ -55,6 +57,7 @@ function pass(x: { free: string[]; prem: string[]; pot: string; form: string }):
     else if (i === PASS_LEVELS - 1) premium.push({ form: x.form });
     else if (i % 4 === 1) premium.push({ feed: 3 });
     else if (i % 4 === 2) premium.push({ pots: 3 });
+    else if (i % 4 === 3) premium.push({ boost: 2 });
     else premium.push({ leaves: 40 + 10 * i });
   }
   return { tiers: TIERS, free, premium };
