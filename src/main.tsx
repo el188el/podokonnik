@@ -14,7 +14,7 @@ async function start() {
   else if (inNative()) (await import('./platform/native')).initNative();
   const pf = initPlatform();
   document.documentElement.dataset.platform = pf.kind;
-  pf.setColors('#bfe8ff', '#DDF3EC');
+  pf.setColors('#F2F6F1', '#F2F6F1');
   await boot();
   sessionStart();
   createRoot(document.getElementById('root')!).render(<App />);
