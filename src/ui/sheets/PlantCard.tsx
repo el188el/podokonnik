@@ -1,12 +1,12 @@
 import { useState } from 'react';
-import { LIGHT_NAME, SHOWOFF_MS, STAGE_NAME, ZONE_NAME } from '../../game/constants';
+import { BOOST_COOLDOWN, LIGHT_NAME, SHOWOFF_MS, STAGE_NAME, ZONE_NAME } from '../../game/constants';
 import { FORM_BY_ID } from '../../game/products';
 import { BREED_COOLDOWN, canBreed, hueOf } from '../../game/breeding';
 import { POTS } from '../../game/shop';
 import { canCut, cramped, ctxFor, cutLeft, fmt, isSad, isThirstySad, lightLevel, need, neighborsOf, nextStageAt, stageProgress } from '../../game/sim';
 import { DIFFICULTY_LABEL, sp } from '../../game/species';
 import {
-  adsLeft, breedPartners, treat, closeSheet, feed, mist, pollinate, watchAd, move, now, openSheet, ownsPot, plantInPot, removePlant, renamePlant, repot, setPot, takeCutting, toast, useStore, water,
+  adsLeft, addDrain, boostBlock, boostPlant, breedPartners, drainTray, freshSoil, treat, closeSheet, feed, mist, pollinate, watchAd, move, now, openSheet, ownsPot, plantInPot, removePlant, renamePlant, repot, setPot, takeCutting, toast, useStore, water,
 } from '../../game/store';
 import { adsAvailable } from '../../net/ads';
 import { ageDays, ageMark, daysText, nextAgeMark } from '../../game/age';
@@ -59,6 +59,7 @@ export function PlantCard({ id }: { id: string }) {
   const potted = p.stage >= 2;
   const mistOn = p.mistUntil && t < p.mistUntil;
   const feedOn = p.feedUntil && t < p.feedUntil;
+  const boostOn = p.boostUntil && t < p.boostUntil;
   const showoff = !!p.from && t - (p.claimedAt ?? p.createdAt) >= SHOWOFF_MS;
   const days = ageDays(p, t);
   const mark = ageMark(p, t);
@@ -138,6 +139,17 @@ export function PlantCard({ id }: { id: string }) {
         );
       })()}
       {!p.problem && <p className="need">💡 {need(p, t, ctx)}</p>}
+      {potted && p.moisture > 1 && (
+        <div className="problem-box over-box">
+          <div className="problem-head"><span className="problem-icon">🌊</span><div><b>Перелив</b><p className="small">Вода стоит в горшке — корни задыхаются. {s.overwater === 'sensitive' ? `${s.name} от этого быстро гниёт.` : 'Если повторять, начнётся гниль и мошки.'}</p></div></div>
+          <div className="actions">
+            <Btn small onClick={() => drainTray(p.id)}>🫗 Слить из поддона</Btn>
+            <Btn small kind="gold" onClick={() => freshSoil(p.id)}>🟫 В сухой грунт {(g.owned.soil ?? 0) > 0 ? `(${g.owned.soil})` : `· ${ITEM_BY_ID.soil.price} 🍃`}</Btn>
+            {!p.drain && <Btn small onClick={() => addDrain(p.id)}>🪨 Дренаж {(g.owned.drain ?? 0) > 0 ? `(${g.owned.drain})` : `· ${ITEM_BY_ID.drain.price} 🍃`}</Btn>}
+          </div>
+          {!(g.owned.meter) && <p className="small muted">📟 Влагомер из магазина не даст залить мокрую землю.</p>}
+        </div>
+      )}
       {potted && (() => {
         const near = neighborsOf(g, p);
         const notes: string[] = [];
@@ -166,10 +178,12 @@ export function PlantCard({ id }: { id: string }) {
             {ctx.dim && p.zone === 'glass' && ' · ☁️ сегодня пасмурно'}
             {ctx.sunny && s.light[1] === 4 && ' · ☀️ солнечный день — растёт быстрее'}
           </div>
-          {(mistOn || feedOn) && (
+          {(mistOn || feedOn || boostOn || p.drain) && (
             <div className="boosts">
               {mistOn && <span>💦 бонус ещё {fmt(p.mistUntil! - t)}</span>}
               {feedOn && <span>🧪 подкормка ещё {fmt(p.feedUntil! - t)}</span>}
+              {boostOn && <span>⚡ стимулятор ещё {fmt(p.boostUntil! - t)}</span>}
+              {p.drain && <span>🪨 с дренажом</span>}
             </div>
           )}
         </div>
@@ -192,6 +206,11 @@ export function PlantCard({ id }: { id: string }) {
         {potted && <Btn onClick={() => doMist()}>💦 Опрыскать</Btn>}
         <Btn onClick={() => move(p.id, p.zone === 'glass' ? 'deep' : 'glass')}>{p.zone === 'glass' ? '↓ В глубину' : '↑ К стеклу'}</Btn>
         {potted && <Btn onClick={() => { if (feed(p.id)) setNote({ text: '🧪 Подкормлено! Сутки растёт в 1,5 раза быстрее.' }); }}>🧪 Подкормить {(g.owned.feed ?? 0) > 0 ? `(${g.owned.feed})` : '· 15 🍃'}</Btn>}
+        {potted && p.stage < 4 && (() => {
+          const why = boostBlock(g, p, t);
+          const label = why === 'cooldown' ? `⚡ через ${fmt(p.boostAt! + BOOST_COOLDOWN - t)}` : why === 'daily' ? '⚡ на сегодня всё' : why === 'level' ? `⚡ с ${ITEM_BY_ID.boost.level} уровня` : `⚡ Стимулятор ${(g.owned.boost ?? 0) > 0 ? `(${g.owned.boost})` : `· ${ITEM_BY_ID.boost.price} 🍃`}`;
+          return <Btn kind={why ? 'soft' : 'gold'} disabled={why === 'cooldown' || why === 'level'} onClick={() => { if (boostPlant(p.id)) setNote({ text: '⚡ Сутки растёт вдвое быстрее. Следующий раз — через неделю.' }); }}>{label}</Btn>;
+        })()}
       </div>
       <p className="muted small center">Сейчас: {ZONE_NAME[p.zone]}. {s.mist === 'love' ? s.mistTip : ''}</p>
 

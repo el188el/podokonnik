@@ -134,6 +134,11 @@ export const ITEMS: ShopItem[] = [
   { id: 'catgrass', cat: 'decor', place: 'table', name: 'Кошачья трава', icon: '🌾', price: 40, desc: 'Эффект: Барсик жуёт её, а не твои растения.' },
   { id: 'humidifier', cat: 'decor', place: 'sill', name: 'Увлажнитель', icon: '💨', price: 180, desc: 'Эффект: клещ заводится в 2,5 раза реже, любители влажности растут на 10% быстрее.', level: 5 },
   // уход
+  { id: 'soil', cat: 'care', name: 'Свежий грунт', icon: '🟫', price: 30, desc: 'Пересадка в сухую землю: спасает от перелива, корневой гнили и мошек.', consumable: true },
+  { id: 'drain', cat: 'care', name: 'Керамзит для дренажа', icon: '🪨', price: 20, desc: 'Насыпается в горшок навсегда: лишняя вода уходит вчетверо быстрее, гниль и мошки — реже.', consumable: true },
+  { id: 'meter', cat: 'care', name: 'Влагомер', icon: '📟', price: 70, desc: 'Показывает влажность каждого горшка и не даёт залить мокрую землю. Покупается навсегда.' },
+  { id: 'boost', cat: 'care', name: 'Стимулятор роста', icon: '⚡', price: 40, desc: 'Сутки растение растёт вдвое быстрее. Не чаще раза в неделю на растение и 3 в день — иначе истощится.', consumable: true, level: 3 },
+  { id: 'boost5', cat: 'care', name: 'Пять стимуляторов', icon: '⚡', price: 160, desc: 'Запас стимуляторов роста — выгоднее на 20%.', consumable: true, gives: 'boost', count: 5, level: 3 },
   { id: 'feed', cat: 'care', name: 'Подкормка', icon: '🧪', price: 15, desc: 'Сутки растение растёт в 1,5 раза быстрее.', consumable: true },
   { id: 'potL', cat: 'care', name: 'Большой горшок (L)', icon: '🪴', price: 25, desc: 'Для пересадки взрослого растения, когда ему тесно.', consumable: true },
   { id: 'neighbor7', cat: 'care', name: 'Соседка на неделю', icon: '👵', price: 60, desc: 'Соседка поливает 7 дней, даже если бесплатный отпуск уже был.', consumable: true },

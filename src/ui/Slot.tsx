@@ -68,6 +68,7 @@ export function Slot({ plant: p, sill, slot }: { plant: Plant; sill: string; slo
   const s = sp(p.sp);
   const bubble = bubbleFor(p, t, flash);
   const round = useStore((st) => st.game.round);
+  const meter = useStore((st) => (st.game.owned.meter ?? 0) > 0);
   const ri = p.stage >= 2 ? roundInfo(useStore.getState().game, t) : null;
   const roundPending = !!ri && !ri.done && !(round?.key === ri.key && round.checked.includes(p.id));
   const sad = isSad(p);
@@ -177,6 +178,8 @@ export function Slot({ plant: p, sill, slot }: { plant: Plant; sill: string; slo
       {p.stage === 0 && !p.rootStart && <div className="finger">👆</div>}
       {roundPending && <div className="round-dot" title="загляни в обходе">👀</div>}
       {p.problem && <div className={'pest pest-' + p.problem.kind} style={{ opacity: 0.45 + 0.55 * p.problem.sev }}>{p.problem.kind === 'gnats' ? <><i /><i /><i /></> : null}</div>}
+      {meter && p.stage >= 2 && <div className={'meter-chip' + (p.moisture > 1 ? ' over' : p.moisture < 0.25 ? ' low' : '')}>💧{Math.round(p.moisture * 100)}%</div>}
+      {p.boostUntil && t < p.boostUntil && <div className="boost-glow" />}
       {age && age.days >= 30 && <div className="age-badge" title={age.title}>{age.icon}</div>}
       <motion.div
         className="art"

@@ -92,6 +92,9 @@ export interface Plant {
   health: number;       // 0…100
   mistUntil?: number;
   feedUntil?: number;   // подкормка
+  drain?: boolean;      // в горшке дренаж из керамзита — лишняя вода уходит быстро
+  boostUntil?: number;  // действует стимулятор роста
+  boostAt?: number;     // когда давали стимулятор (не чаще раза в неделю)
   adultAt?: number;
   repottedAt?: number;
   lastCut?: number;
@@ -251,6 +254,7 @@ export interface GameState {
   caught?: { day: string; n: number }; // пойманные падающие жетоны сезона
   invites?: number[];    // забранные ступени лестницы приглашений
   catPet?: string;       // день, когда гладили Барсика
+  boosts?: { day: string; n: number }; // сколько стимуляторов дали сегодня
   orders?: { list: Order[]; next: number; done: number; hearts: Record<string, number> }; // заказы соседей
   tutorial: number;
 }

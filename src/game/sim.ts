@@ -2,7 +2,7 @@
 // поэтому растения честно живут и растут, даже когда игра закрыта.
 // Функции здесь чистые относительно входа: меняют только переданные объекты.
 
-import { D, H, MIN, QUICK_ROOT_MIN, WINDOWS } from './constants';
+import { D, H, MAX_GROWTH_MULT, MIN, QUICK_ROOT_MIN, WINDOWS } from './constants';
 import { sp } from './species';
 import { isDim, isSunny, weatherAt } from './weather';
 import { PROBLEMS, problemEffect, SHADY, stepProblem, trySpread } from './problems';
@@ -118,11 +118,13 @@ export function growthRate(p: Plant, t: number, ctx: Ctx) {
   else if (ctx.sunny && sp(p.sp).light[1] === 4) r *= 1.15;
   if (p.mistUntil && t < p.mistUntil) r *= 1.5;
   if (p.feedUntil && t < p.feedUntil) r *= 1.5;
+  if (p.boostUntil && t < p.boostUntil) r *= 2;
   if (isWinter(t)) r *= 0.75;
   if (p.health < 30) r *= 0.4;
   r *= problemEffect(p).slow;
   if (ctx.humid && sp(p.sp).mist === 'love') r *= 1.1;
   if (ctx.radio) r *= 1.05;
+  r = Math.min(r, MAX_GROWTH_MULT);
   return r;
 }
 
@@ -167,7 +169,7 @@ function stepPlant(p: Plant, dtH: number, t: number, ctx: Ctx, ev: SimEvent[]) {
   }
 
   const drain = dtH / (s.waterDays * 24 * (winter ? 1.3 : 1));
-  if (p.moisture > 1) p.moisture = Math.max(1, p.moisture - dtH / 12);
+  if (p.moisture > 1) p.moisture = Math.max(1, p.moisture - dtH / (p.drain ? 6 : 24));
   else p.moisture = Math.max(0, p.moisture - drain);
 
   p.dryFor = p.moisture <= 0 ? p.dryFor + dtH : 0;
@@ -177,7 +179,7 @@ function stepPlant(p: Plant, dtH: number, t: number, ctx: Ctx, ev: SimEvent[]) {
   let dmg = 0;
   let lightDmg = 0;
   if (!ctx.neighbor && p.dryFor > s.drought * 24) dmg += 2 * dtH;
-  if (p.moisture > 1) dmg += (s.overwater === 'sensitive' ? 2 : s.overwater === 'normal' ? 0.6 : 0) * dtH;
+  if (p.moisture > 1) dmg += (s.overwater === 'sensitive' ? 2 : s.overwater === 'normal' ? 0.6 : 0) * (p.drain ? 0.5 : 1) * dtH;
   if (p.badLightFor > 20 && p.health > 50) lightDmg = Math.min(dtH, p.health - 50);
   dmg += problemEffect(p).dmg * dtH;
   if (dmg + lightDmg > 0) p.health = Math.max(0, p.health - dmg - lightDmg);
@@ -298,7 +300,7 @@ export function need(p: Plant, t: number, ctx: Ctx): string {
   if (p.stage === 1) return 'Корни есть! Посади в горшок 🪴';
   if (p.problem) return `${PROBLEMS[p.problem.kind].icon} ${PROBLEMS[p.problem.kind].name}: ${PROBLEMS[p.problem.kind].heal}`;
   const bad = badLight(p, t, ctx);
-  if (p.moisture > 1) return 'Перелили 😬 Дай земле просохнуть';
+  if (p.moisture > 1) return 'Перелили 😬 Слей воду из поддона и дай земле просохнуть';
   if (bad === 'hot') return p.zone === 'glass' ? 'Переставь в глубину комнаты: у стекла слишком жарко' : 'Тут жарковато даже в глубине — поставь фитолампу на другое окно';
   if (bad === 'dark') return p.zone === 'deep' ? 'Переставь ближе к стеклу: тут темновато' : 'Темновато даже у стекла — помогла бы фитолампа';
   if (p.moisture <= 0) return 'Полей прямо сейчас, очень хочет пить';

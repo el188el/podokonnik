@@ -20,7 +20,7 @@ import { addMastery, type MasteryKind } from './mastery';
 import { CARE_TASK_REWARD } from './calendar';
 import { BOX_PRICE, rollBox, type BoxPrize } from './box';
 import { SHELVES, shelfDone } from './album';
-import { D, FEED_MS, H, HANG_SLOTS, MAX_CUTTINGS, MIST_MS, NEIGHBOR_COOLDOWN, NEIGHBOR_FREE_DAYS, STAGE_NAME } from './constants';
+import { BOOST_COOLDOWN, BOOST_MS, BOOST_PER_DAY, D, FEED_MS, H, HANG_SLOTS, MAX_CUTTINGS, MIST_MS, NEIGHBOR_COOLDOWN, NEIGHBOR_FREE_DAYS, STAGE_NAME } from './constants';
 import { giftLink, makeCode } from './gifts';
 import { XP, levelPerks, levelReward, unlocksAt, xpToNext, SILL_UNLOCK } from './progression';
 import { QUEST_BONUS, WEEKLY_CHEST, dayKey, bumpQuest, bumpWeekly, rollDay, rollWeek, streakReward, weeklyVisit } from './quests';
@@ -752,6 +752,12 @@ export function water(plantId: string, insist = false): WaterResult | null {
     }
     if (p.moisture > 0.5 && !insist) {
       say(p.id, p.moisture > 1 ? 'Я и так мокрое 😵' : 'Мне уже хватит 💧');
+      haptic('warning');
+      return 'enough';
+    }
+    if (p.moisture > 0.5 && insist && (g.owned.meter ?? 0) > 0) {
+      say(p.id, `📟 ${Math.round(p.moisture * 100)}% — ещё мокро`, 2200);
+      toast('📟 Влагомер: земля ещё влажная. Полей, когда станет меньше 50%');
       haptic('warning');
       return 'enough';
     }
@@ -2046,6 +2052,7 @@ export function treat(plantId: string, cure: string) {
     const info = PROBLEMS[pr.kind];
     // гниль лечится, только если не продолжать заливать
     if (pr.kind === 'rot' && p.moisture > 1) p.moisture = 1;
+    if (cure === 'soil') { p.moisture = 0.6; p.wetFor = 0; }
     p.problem = undefined;
     p.guardUntil = t + GUARD_MS;
     g.stats.cured = (g.stats.cured ?? 0) + 1;
@@ -2070,5 +2077,94 @@ export function petCat() {
     addXp(g, 2);
     haptic('light');
     toast('🐈 Мррр! Барсик доволен. +5 🍃');
+  });
+}
+
+// ─────────────────── перелив ───────────────────
+/** Слить воду из поддона: земле становится чуть легче. Бесплатно. */
+export function drainTray(plantId: string) {
+  mut((g) => {
+    const p = findPlant(g, plantId);
+    if (!p || p.moisture <= 1) return;
+    p.moisture = Math.max(1, p.moisture - 0.25);
+    fx(p.id, 'water');
+    haptic('light');
+    say(p.id, 'Фух, полегче 😮‍💨', 1800);
+  });
+}
+
+/** Пересадить в сухую свежую землю — без проблемы, просто от перелива. */
+export function freshSoil(plantId: string) {
+  mut((g) => {
+    const p = findPlant(g, plantId);
+    if (!p || p.stage < 2) return;
+    if (p.problem && CURES.soil.includes(p.problem.kind)) return void treat(plantId, 'soil');
+    if (!payItem(g, 'soil')) return;
+    p.moisture = 0.6;
+    p.wetFor = 0;
+    p.health = Math.max(0, p.health - 3); // пересадка — небольшой стресс
+    fx(p.id, 'grow');
+    haptic('success');
+    say(p.id, 'Сухо и свежо! 🌱', 2000);
+    toast('🟫 Пересажено в свежий грунт — перелив больше не страшен');
+  });
+}
+
+/** Насыпать керамзит: навсегда в этом горшке. */
+export function addDrain(plantId: string) {
+  mut((g) => {
+    const p = findPlant(g, plantId);
+    if (!p || p.stage < 2 || p.drain) return;
+    if (!payItem(g, 'drain')) return;
+    p.drain = true;
+    haptic('success');
+    toast('🪨 Дренаж готов: лишняя вода будет уходить быстро');
+  });
+}
+
+/** Взять предмет из запаса или купить за листики. */
+function payItem(g: GameState, id: string): boolean {
+  if ((g.owned[id] ?? 0) > 0) { g.owned[id] -= 1; return true; }
+  const price = ITEM_BY_ID[id]?.price ?? 0;
+  if (g.leaves < price) { toast(`Нужно ${price} 🍃`); haptic('warning'); return false; }
+  g.leaves -= price;
+  return true;
+}
+
+// ─────────────────── стимулятор роста ───────────────────
+export type BoostBlock = 'adult' | 'sick' | 'cooldown' | 'daily' | 'level' | null;
+
+/** Почему сейчас нельзя дать стимулятор (или null — можно). */
+export function boostBlock(g: GameState, p: Plant, t: number): BoostBlock {
+  if (g.level < (ITEM_BY_ID.boost.level ?? 0)) return 'level';
+  if (p.stage < 2 || p.stage >= 4) return 'adult';
+  if (p.problem || p.health < 60) return 'sick';
+  if (p.boostAt && t - p.boostAt < BOOST_COOLDOWN) return 'cooldown';
+  if (g.boosts?.day === dayKey(t) && g.boosts.n >= BOOST_PER_DAY) return 'daily';
+  return null;
+}
+
+export function boostPlant(plantId: string) {
+  return mut((g, t) => {
+    const p = findPlant(g, plantId);
+    if (!p) return false;
+    const why = boostBlock(g, p, t);
+    if (why === 'level') { toast(`Стимулятор откроется на ${ITEM_BY_ID.boost.level} уровне`); return false; }
+    if (why === 'adult') { toast(p.stage >= 4 ? 'Взрослому стимулятор не нужен — он уже вырос 🌿' : 'Сначала посади в горшок'); return false; }
+    if (why === 'sick') { toast('Сначала вылечи: больному растению стимулятор только навредит'); return false; }
+    if (why === 'cooldown') { toast(`⚡ Снова можно через ${fmt(p.boostAt! + BOOST_COOLDOWN - t)} — иначе растение истощится`); return false; }
+    if (why === 'daily') { toast(`⚡ Сегодня уже ${BOOST_PER_DAY} стимулятора — хватит. Завтра можно снова`); return false; }
+    if (!payItem(g, 'boost')) return false;
+    const day = dayKey(t);
+    g.boosts = { day, n: (g.boosts?.day === day ? g.boosts.n : 0) + 1 };
+    p.boostAt = t;
+    p.boostUntil = t + BOOST_MS;
+    addXp(g, 3);
+    fx(p.id, 'feed');
+    haptic('success');
+    say(p.id, 'Расту-у-у! ⚡', 2000);
+    toast('⚡ Стимулятор: сутки растёт вдвое быстрее');
+    track('boost', { sp: p.sp });
+    return true;
   });
 }

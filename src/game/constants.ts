@@ -10,6 +10,12 @@ export const SLOTS = 8;
 export const HANG_SLOTS = [6, 7, 8];
 export const MIST_MS = 12 * H;
 export const FEED_MS = 24 * H;
+/** Стимулятор роста: сутки вдвое быстрее, не чаще раза в неделю на растение и 3 в день на всех. */
+export const BOOST_MS = 24 * H;
+export const BOOST_COOLDOWN = 7 * 24 * H;
+export const BOOST_PER_DAY = 3;
+/** Все ускорения вместе (опрыскивание, подкормка, стимулятор…) — не больше чем втрое. */
+export const MAX_GROWTH_MULT = 3;
 /** Самый первый черенок и подарки всегда укореняются за 2 минуты — чтобы сразу было «вау». */
 export const QUICK_ROOT_MIN = 2;
 export const SHOWOFF_MS = 3 * D;

@@ -74,6 +74,7 @@ export const CURES: Record<string, ProblemKind[]> = {
   acaricide: ['mite', 'aphid', 'mealybug'],
   traps: ['gnats'],
   fungicide: ['rot', 'mildew'],
+  soil: ['rot', 'gnats'], // пересадка в свежий сухой грунт: гнилые корни обрезаны, личинки мошек выброшены с землёй
 };
 
 export const cureFor = (k: ProblemKind) => Object.entries(CURES).filter(([, ks]) => ks.includes(k)).map(([id]) => id);
@@ -108,9 +109,9 @@ const heating = (m: number) => m >= 10 || m <= 4;
 function dailyChances(p: Plant, c: ProblemCtx, t: number): Partial<Record<ProblemKind, number>> {
   const s = sp(p.sp);
   const out: Partial<Record<ProblemKind, number>> = {};
-  const wetLimit = s.overwater === 'sensitive' ? 12 : s.overwater === 'normal' ? 36 : 72;
+  const wetLimit = (s.overwater === 'sensitive' ? 12 : s.overwater === 'normal' ? 36 : 72) * (p.drain ? 1.5 : 1);
   if ((p.wetFor ?? 0) > wetLimit) out.rot = 0.3;
-  if (p.moisture > 0.85) out.gnats = p.moisture > 1 ? 0.12 : 0.05;
+  if (p.moisture > 0.85) out.gnats = (p.moisture > 1 ? 0.12 : 0.05) * (p.drain ? 0.5 : 1);
   if (heating(c.month)) {
     let m = 0.025;
     if (s.mist === 'love' && !(p.mistUntil && p.mistUntil > t - 48 * H)) m *= 2; // не опрыскивали 2–3 дня
