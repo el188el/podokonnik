@@ -102,8 +102,7 @@ export function PlantCard({ id }: { id: string }) {
           {p.from && <p className="giftmark">🎁 Подарок от {p.from.name}</p>}
           {potted && (
             <span className="story-links">
-              <button className="icon-btn" onClick={() => openSheet({ kind: 'timelapse', plant: p.id })} aria-label="Таймлапс" title="Таймлапс">🎬</button>
-              <button className="icon-btn" onClick={() => sharePlantStory(p, p.blooming ? 'Зацвело! 🌸' : p.stage === 4 ? 'Совсем взрослое!' : 'Расту!', p.nick || s.name)} aria-label="Фото в сторис" title="Фото в сторис">📲</button>
+              <button className="icon-btn" onClick={() => openSheet({ kind: 'share', plant: p.id })} aria-label="Поделиться" title="Поделиться"><ShareIcon /></button>
             </span>
           )}
           <p className={'age-line' + (mark?.frame ? ' gold' : '')}>
@@ -222,16 +221,23 @@ export function PlantCard({ id }: { id: string }) {
         {p.stage === 0 && !!p.rootStart && adsAvailable() && adsLeft(g) > 0 && (
           <Btn kind="gold" onClick={() => watchAd({ kind: 'root', plant: p.id })}>🎬 Ролик — и корни сразу</Btn>
         )}
-        {potted && <Btn kind={p.moisture < 0.5 ? 'primary' : 'soft'} onClick={() => doWater()}>💧 Полить</Btn>}
-        {potted && <Btn onClick={() => doMist()}>💦 Опрыскать</Btn>}
-        <Btn onClick={() => move(p.id, p.zone === 'glass' ? 'deep' : 'glass')}>{p.zone === 'glass' ? '↓ В глубину' : '↑ К стеклу'}</Btn>
-        {potted && <Btn onClick={() => { if (feed(p.id)) setNote({ text: '🧪 Подкормлено! Сутки растёт в 1,5 раза быстрее.' }); }}>🧪 Подкормить {(g.owned.feed ?? 0) > 0 ? `(${g.owned.feed})` : '· 15 🍃'}</Btn>}
-        {potted && p.stage < 4 && (() => {
-          const why = boostBlock(g, p, t);
-          const label = why === 'cooldown' ? `⚡ через ${fmt(p.boostAt! + BOOST_COOLDOWN - t)}` : why === 'daily' ? '⚡ на сегодня всё' : why === 'level' ? `⚡ с ${ITEM_BY_ID.boost.level} уровня` : `⚡ Стимулятор ${(g.owned.boost ?? 0) > 0 ? `(${g.owned.boost})` : `· ${ITEM_BY_ID.boost.price} 🍃`}`;
-          return <Btn kind={why ? 'soft' : 'gold'} disabled={why === 'cooldown' || why === 'level'} onClick={() => { if (boostPlant(p.id)) setNote({ text: '⚡ Сутки растёт вдвое быстрее. Следующий раз — через неделю.' }); }}>{label}</Btn>;
-        })()}
       </div>
+      {potted && (() => {
+        const why = boostBlock(g, p, t);
+        const boostSub = why === 'cooldown' ? `через ${fmt(p.boostAt! + BOOST_COOLDOWN - t)}` : why === 'daily' ? 'на сегодня всё' : why === 'level' ? `с ${ITEM_BY_ID.boost.level} ур.` : why === 'adult' ? 'уже взрослое' : (g.owned.boost ?? 0) > 0 ? `есть ${g.owned.boost}` : `${ITEM_BY_ID.boost.price} 🍃`;
+        const feedSub = feedOn ? `ещё ${fmt(p.feedUntil! - t)}` : (g.owned.feed ?? 0) > 0 ? `есть ${g.owned.feed}` : '15 🍃';
+        return (
+          <div className="care-grid">
+            <button className={'care' + (p.moisture < 0.5 ? ' hot' : '')} onClick={() => doWater()}><span>💧</span><b>Полить</b><small>{Math.round(p.moisture * 100)}%</small></button>
+            <button className="care" onClick={() => doMist()}><span>💦</span><b>Опрыскать</b><small>{s.mist === 'love' ? 'любит' : s.mist === 'no' ? 'не любит' : 'можно'}</small></button>
+            <button className="care" disabled={!!feedOn} onClick={() => { if (feed(p.id)) setNote({ text: '🧪 Подкормлено! Сутки растёт в 1,5 раза быстрее.' }); }}><span>🧪</span><b>Подкормить</b><small>{feedSub}</small></button>
+            <button className="care" disabled={!!why && why !== 'sick'} onClick={() => { if (boostPlant(p.id)) setNote({ text: '⚡ Сутки растёт вдвое быстрее. Следующий раз — через неделю.' }); }}><span>⚡</span><b>Стимулятор</b><small>{boostSub}</small></button>
+            <button className="care" onClick={() => move(p.id, p.zone === 'glass' ? 'deep' : 'glass')}><span>{p.zone === 'glass' ? '⬇️' : '⬆️'}</span><b>{p.zone === 'glass' ? 'В глубину' : 'К стеклу'}</b><small>сейчас {p.zone === 'glass' ? 'у стекла' : 'в глубине'}</small></button>
+            <button className="care" onClick={() => openSheet({ kind: 'share', plant: p.id })}><span><ShareIcon /></span><b>Поделиться</b><small>фото, видео</small></button>
+          </div>
+        );
+      })()}
+      {!potted && <Btn onClick={() => move(p.id, p.zone === 'glass' ? 'deep' : 'glass')}>{p.zone === 'glass' ? '↓ В глубину' : '↑ К стеклу'}</Btn>}
       <p className="muted small center">Сейчас: {ZONE_NAME[p.zone]}. {s.mist === 'love' ? s.mistTip : ''}</p>
 
       {p.stage === 4 && (
@@ -388,5 +394,15 @@ function HealthBox({ p }: { p: Plant }) {
         </div>
       ))}
     </div>
+  );
+}
+
+/** Значок «поделиться»: квадрат со стрелкой вверх. */
+export function ShareIcon() {
+  return (
+    <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+      <path d="M12 3v12M7.5 7.5 12 3l4.5 4.5" />
+      <path d="M5 12v6.5A2.5 2.5 0 0 0 7.5 21h9a2.5 2.5 0 0 0 2.5-2.5V12" />
+    </svg>
   );
 }

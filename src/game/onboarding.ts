@@ -114,3 +114,24 @@ export function firstStepNow(g: GameState): { i: number; step: FirstStep; ready:
 }
 
 export { newbieLeft, NEWBIE_MULT } from './sim';
+
+// ─────────── ежедневный сундучок: после первой недели — каждый день, по кругу ───────────
+export interface DailyGift { icon: string; title: string; leaves?: number; feed?: number; pots?: number; boost?: number }
+
+export const DAILY: DailyGift[] = [
+  { icon: '🍃', title: '30 листиков', leaves: 30 },
+  { icon: '🧪', title: 'Подкормка', feed: 1 },
+  { icon: '🪴', title: 'Два горшка', pots: 2 },
+  { icon: '🍃', title: '40 листиков', leaves: 40 },
+  { icon: '⚡', title: 'Стимулятор роста', boost: 1 },
+  { icon: '🍃', title: '50 листиков и подкормка', leaves: 50, feed: 1 },
+  { icon: '🎁', title: '80 листиков и стимулятор', leaves: 80, boost: 1 },
+];
+
+/** Какой подарок в сундучке сегодня (после недели подарков новичка). */
+export const dailyToday = (t: number) => DAILY[Math.floor(new Date(dayKey(t) + 'T12:00:00').getTime() / 86400e3) % DAILY.length];
+/** Можно ли открыть сундучок сегодня: в первую неделю — подарки по дням, потом — ежедневный. */
+export function chestReady(g: GameState, t: number): boolean {
+  if (!starterDone(g)) return starterLeft(g, t).length > 0;
+  return g.daily !== dayKey(t);
+}

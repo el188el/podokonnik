@@ -32,7 +32,7 @@ import { replayFriendWaters, type FriendWater } from './social';
 import { SPECIES, sp } from './species';
 import { DEEP_ROW, EXTRA_PLACES, GLASS_ROW, rowSlots, zoneOfSlot } from './layout';
 import { BREED_COOLDOWN, canBreed, crossHue, hueOf } from './breeding';
-import { FIRST_CHEST, FIRST_STEPS, FIRST_YOUNG_H, ROUND_REWARD, STARTER, firstChest, roundInfo, starterLeft } from './onboarding';
+import { FIRST_CHEST, FIRST_STEPS, FIRST_YOUNG_H, ROUND_REWARD, STARTER, dailyToday, firstChest, roundInfo, starterDone, starterLeft } from './onboarding';
 import { childLine } from './lineage';
 import { climateOf } from './climate';
 import { loadCloud, loadLocal, newPlant, newState, pickNewer, saveCloud, saveLocal, switchLocal, upgrade } from './storage';
@@ -88,6 +88,7 @@ export type Sheet =
   | { kind: 'climate' }
   | { kind: 'room' }
   | { kind: 'firststeps' }
+  | { kind: 'share'; plant: string }
   | { kind: 'doctor'; sp?: string }
   | { kind: 'coop' }
   | { kind: 'album' }
@@ -2023,7 +2024,7 @@ export function claimFirstChest() {
     g.owned[FIRST_CHEST.item] = 1;
     track('first_chest');
     haptic('success');
-    toast(`🎁 Сундучок первого часа: +${FIRST_CHEST.leaves} 🍃, подкормка ×${FIRST_CHEST.feed} и белый горшок!`);
+    toast(`⏳ Подарок первого часа: +${FIRST_CHEST.leaves} 🍃, подкормка ×${FIRST_CHEST.feed} и белый горшок!`);
   });
 }
 
@@ -2364,4 +2365,20 @@ export function claimFirstStep(i: number) {
 /** Открытку отправили — для «Первых шагов». */
 export function notePostcard() {
   mut((g) => { g.stats.postcards = (g.stats.postcards ?? 0) + 1; });
+}
+
+// ─────────────────── ежедневный сундучок ───────────────────
+export function claimDaily() {
+  mut((g, t) => {
+    if (!starterDone(g) || g.daily === dayKey(t)) return;
+    const d = dailyToday(t);
+    g.daily = dayKey(t);
+    if (d.leaves) g.leaves += d.leaves;
+    if (d.feed) g.owned.feed = (g.owned.feed ?? 0) + d.feed;
+    if (d.pots) g.owned.pot = (g.owned.pot ?? 0) + d.pots;
+    if (d.boost) g.owned.boost = (g.owned.boost ?? 0) + d.boost;
+    haptic('success');
+    toast(`🎁 Сундучок: ${d.title}! Завтра — новый`);
+    track('daily_chest', {});
+  });
 }

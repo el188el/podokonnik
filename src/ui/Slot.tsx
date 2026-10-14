@@ -1,6 +1,5 @@
 import { motion } from 'framer-motion';
-import { useEffect, useLayoutEffect, useRef, useState, type RefObject } from 'react';
-import { createPortal } from 'react-dom';
+import { useEffect, useRef } from 'react';
 import { STAGE_NAME } from '../game/constants';
 import { badLight, canCut, cramped, ctxFor, fmt, isSad, isLightSad, isThirstySad, nextStageAt, rootsAt } from '../game/sim';
 import { SHOWOFF_MS } from '../game/constants';
@@ -85,6 +84,8 @@ export function Slot({ plant: p, sill, slot }: { plant: Plant; sill: string; slo
   const s = sp(p.sp);
   const bubble = bubbleFor(p, t, flash);
   const round = useStore((st) => st.game.round);
+  // пока открыто окно или всплывашка — растения молчат
+  const covered = useStore((st) => !!st.sheet || st.popups.length > 0);
   const meter = useStore((st) => (st.game.owned.meter ?? 0) > 0);
   const ri = p.stage >= 2 ? roundInfo(useStore.getState().game, t) : null;
   const roundPending = !!ri && !ri.done && !(round?.key === ri.key && round.checked.includes(p.id));
@@ -187,12 +188,13 @@ export function Slot({ plant: p, sill, slot }: { plant: Plant; sill: string; slo
       }}
       onPointerCancel={reset}
     >
-      {bubble && bubble.cls !== 'pop' && (
-        <motion.div key={bubble.text.startsWith('🌱 ') ? 'roots' : bubble.text} className={`bubble ${bubble.cls}`} initial={{ scale: 0.6, opacity: 0 }} animate={{ scale: 1, opacity: 1 }}>
-          {bubble.text}
-        </motion.div>
+      {bubble && !(bubble.cls === 'pop' && covered) && (
+        <div className="bubble-wrap">
+          <motion.div key={bubble.text.startsWith('🌱 ') ? 'roots' : bubble.text} className={`bubble ${bubble.cls}`} initial={{ scale: 0.6, opacity: 0 }} animate={{ scale: 1, opacity: 1 }}>
+            {bubble.text}
+          </motion.div>
+        </div>
       )}
-      {bubble && bubble.cls === 'pop' && <Speech anchor={ref} text={bubble.text} />}
       {p.stage === 0 && !p.rootStart && <div className="finger">👆</div>}
       {roundPending && <div className="round-dot" title="загляни в обходе">👀</div>}
       {p.problem && <div className={'pest pest-' + p.problem.kind} style={{ opacity: 0.45 + 0.55 * p.problem.sev }}>{p.problem.kind === 'gnats' ? <><i /><i /><i /></> : null}</div>}
@@ -233,29 +235,5 @@ export function Slot({ plant: p, sill, slot }: { plant: Plant; sill: string; slo
         {timerFor(p, t) && <span className="timer-chip">{timerFor(p, t)}</span>}
       </div>
     </div>
-  );
-}
-
-/** Реплика растения — облачко поверх всего интерфейса (не обрезается рамкой подоконника). */
-function Speech({ anchor, text }: { anchor: RefObject<HTMLDivElement | null>; text: string }) {
-  const [pos, setPos] = useState<{ x: number; y: number } | null>(null);
-  // пока открыто окно или всплывашка — растения молчат
-  const covered = useStore((s) => !!s.sheet || s.popups.length > 0);
-  useLayoutEffect(() => {
-    const upd = () => {
-      // ровно там, где у растения облачко состояния: по центру ячейки, у её верхнего края
-      const r = anchor.current?.getBoundingClientRect();
-      if (r) setPos({ x: Math.min(window.innerWidth - 74, Math.max(74, r.left + r.width / 2)), y: r.top + 2 });
-    };
-    upd();
-    window.addEventListener('resize', upd);
-    return () => window.removeEventListener('resize', upd);
-  }, [anchor, text]);
-  if (!pos || covered) return null;
-  return createPortal(
-    <motion.div className="speech" style={{ left: pos.x, top: pos.y, x: '-50%', originY: 1 }} initial={{ scale: 0.6, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} key={text}>
-      {text}
-    </motion.div>,
-    document.body,
   );
 }

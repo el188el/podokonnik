@@ -275,6 +275,7 @@ export interface GameState {
   grannyPot?: string;    // день, когда Валентина Петровна выручила горшком
   caught?: { day: string; n: number }; // пойманные падающие жетоны сезона
   firstSteps?: number[];  // забранные награды «Первых шагов»
+  daily?: string;         // день, когда открыт ежедневный сундучок (после первой недели)
   invites?: number[];    // забранные ступени лестницы приглашений
   catPet?: string;       // день, когда гладили Барсика
   boosts?: { day: string; n: number }; // сколько стимуляторов дали сегодня

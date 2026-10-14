@@ -18,7 +18,7 @@ import { zoneOfSlot } from '../../game/layout';
 import { PlantArt } from '../art/PlantArt';
 import { Slot } from '../Slot';
 import { Guide } from '../Guide';
-import { firstChest, firstStepNow, roundInfo, starterDone, starterLeft } from '../../game/onboarding';
+import { chestReady, firstChest, firstStepNow, roundInfo, starterDone, starterLeft } from '../../game/onboarding';
 import { TUTORIAL_DONE } from '../../game/store';
 import { SillScene, timeOfDay } from '../SillScene';
 import { SKY, tempText, weatherAt } from '../../game/weather';
@@ -95,14 +95,15 @@ function OwnSill() {
   const step = g.tutorial >= TUTORIAL_DONE ? firstStepNow(g) : null;
   if (step) tiles.push({ key: 'steps', cls: 'steps' + (step.ready ? ' ready' : ''), text: step.ready ? `🧭 ${step.step.title} — забрать +${step.step.leaves} 🍃` : `🧭 ${step.step.icon} ${step.step.title}`, onClick: () => openSheet({ kind: 'firststeps' }) });
   const chest = firstChest(g, t);
-  if (chest) tiles.push({ key: 'chest', cls: chest.ready ? 'ready' : '', text: `🎁 Сундучок · ${chest.ready ? 'открыть!' : fmt(chest.left)}`, onClick: claimFirstChest, disabled: !chest.ready });
+  if (chest) tiles.push({ key: 'chest', cls: chest.ready ? 'ready' : '', text: `⏳ Подарок первого часа · ${chest.ready ? 'открыть!' : fmt(chest.left)}`, onClick: claimFirstChest, disabled: !chest.ready });
   if (g.tutorial >= TUTORIAL_DONE && (g.orders?.list.length ?? 0) > 0) {
     const can = g.orders!.list.some((o) => canFulfil(g, o).ok);
     tiles.push({ key: 'orders', cls: 'orders' + (can ? ' ready' : ''), text: `📋 Соседи просят: ${g.orders!.list.length}${can ? ' ✓' : ''}`, onClick: () => openSheet({ kind: 'orders' }) });
   }
-  if (g.tutorial >= TUTORIAL_DONE && !starterDone(g)) {
-    const n = starterLeft(g, t).length;
-    tiles.push({ key: 'starter', cls: n ? 'ready' : '', text: `🎁 Подарки новичка · ${n ? `забрать (${n})` : 'завтра'}`, onClick: () => openSheet({ kind: 'starter' }) });
+  if (g.tutorial >= TUTORIAL_DONE) {
+    const ready = chestReady(g, t);
+    const n = starterDone(g) ? 0 : starterLeft(g, t).length;
+    tiles.push({ key: 'starter', cls: ready ? 'ready' : '', text: `🎁 Сундучок · ${ready ? (n > 1 ? `забрать (${n})` : 'забрать!') : 'завтра'}`, onClick: () => openSheet({ kind: 'starter' }) });
   }
   const round = g.tutorial >= TUTORIAL_DONE ? roundInfo(g, t) : null;
   if (round) tiles.push({ key: 'round', cls: 'round' + (round.done ? ' done' : ''), text: `${round.label === 'утренний' ? '🌅' : '🌙'} Обход ${round.done ? '✓' : `${round.checked}/${round.total} · +15 🍃`}` });
@@ -248,16 +249,13 @@ function Toolbar({ sill }: { sill: string }) {
             <small>{k === 'feed' ? `${label} ${g.owned.feed ?? 0}` : label}</small>
           </button>
         ))}
+        {thirsty >= 2 && (
+          <button className="tool water-all-tool" onClick={() => waterAll(sill)} aria-label={`Полить всех, кто хочет пить: ${thirsty}`}>
+            <span>🚿</span>
+            <small>Всем · {thirsty}</small>
+          </button>
+        )}
       </div>
-      {thirsty >= 2 && (
-        <button className="water-all" onClick={() => waterAll(sill)}>💧 Полить всех, кто хочет пить ({thirsty})</button>
-      )}
-      {tool !== 'look' && <p className="tool-hint">
-        {tool === 'water' && '💧 В руке лейка: тап по растению — полить. Тапни лейку ещё раз, чтобы убрать'}
-        {tool === 'mist' && '💦 В руке опрыскиватель. Не все растения это любят! Тапни ещё раз, чтобы убрать'}
-        {tool === 'feed' && '🧪 Тап — подкормить: сутки растёт в 1,5 раза быстрее. Тапни ещё раз, чтобы убрать'}
-        {tool === 'cut' && '✂️ Тап по взрослому растению — взять черенок. Тапни ещё раз, чтобы убрать'}
-      </p>}
     </div>
   );
 }
