@@ -70,6 +70,8 @@ export interface Plant {
   id: string;
   sp: string;
   form?: string;        // редкая форма (Альбо, Неон…)
+  hue?: string;         // цвет цветков после гибридизации
+  pollinatedAt?: number;
   sill: string;
   slot: number;
   zone: Zone;
@@ -111,6 +113,8 @@ export interface Cutting {
   id: string;
   sp: string;
   form?: string;
+  hue?: string;
+  seed?: boolean;      // семечко от гибридизации
   at: number;
   fromPlant?: string;
 }
@@ -118,6 +122,7 @@ export interface Cutting {
 export interface PendingGift {
   sp: string;
   form?: string;
+  hue?: string;
   from: string;
   note: number;
   code: string;
@@ -150,6 +155,7 @@ export interface Stats {
   bought: number;
   questsDone: number;
   nightWater: number;
+  hybrids?: number;
 }
 
 export interface GameState {
@@ -186,6 +192,7 @@ export interface GameState {
   ads?: { day: string; count: number }; // ролики за награду сегодня
   starter?: { claimed: number[] };       // подарки новичка
   round?: { key: string; checked: string[]; done: boolean }; // обход подоконника
+  hues?: Record<string, string[]>;      // собранные цвета по видам
   forms?: string[];     // собранные редкие формы
   tutorial: number;
 }

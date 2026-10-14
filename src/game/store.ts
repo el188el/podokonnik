@@ -15,6 +15,7 @@ import { FORM_BY_ID, FORMS, PRODUCT_BY_ID, RARE_DROP, formsOf } from './products
 import { replayFriendWaters, type FriendWater } from './social';
 import { SPECIES, sp } from './species';
 import { rowSlots, zoneOfSlot } from './layout';
+import { BREED_COOLDOWN, canBreed, crossHue, hueOf } from './breeding';
 import { ROUND_REWARD, STARTER, roundInfo, starterLeft } from './onboarding';
 import { loadCloud, loadLocal, newPlant, newState, pickNewer, saveCloud, saveLocal, upgrade } from './storage';
 import type { EventProgress, GameState, PendingGift, Plant, QuestKind, Twin, Zone } from './types';
@@ -86,6 +87,11 @@ const set = useStore.setState;
 export const now = () => Date.now() + api.serverSkew() + (get().game.offset || 0);
 /** «Садовник+» активен (по сохранению или по данным сервера). */
 export const isPlus = (g: GameState, t = now()) => Math.max(g.plusUntil ?? 0, api.serverPlusUntil()) > t;
+const collectHue = (g: GameState, spId: string, hue?: string) => {
+  if (!hue) return;
+  const list = g.hues?.[spId] ?? [];
+  if (!list.includes(hue)) g.hues = { ...(g.hues ?? {}), [spId]: [...list, hue] };
+};
 const collectForm = (g: GameState, form?: string) => { if (form && !(g.forms ?? []).includes(form)) g.forms = [...(g.forms ?? []), form]; };
 
 // ─────────────────── мелкие помощники ───────────────────
@@ -681,7 +687,7 @@ export function takeCutting(plantId: string) {
       form = options[Math.floor(Math.random() * options.length)].id;
       toast(`✨ Редкость! Черенок оказался формой «${FORM_BY_ID[form].name}»`);
     }
-    const c = { id: makeCode(8), sp: p.sp, at: t, fromPlant: p.id, ...(form ? { form } : {}) };
+    const c = { id: makeCode(8), sp: p.sp, at: t, fromPlant: p.id, ...(form ? { form } : {}), ...(p.hue ? { hue: p.hue } : {}) };
     g.cuttings.push(c);
     g.stats.cuts += 1;
     addXp(g, XP.cut);
@@ -699,7 +705,8 @@ export function plantCutting(cuttingId: string, sill?: string, slot?: number) {
     const place = sill !== undefined && slot !== undefined && !plantAt(g, sill, slot) ? { sill, slot } : anyFreeSlot(g, c.sp, t);
     if (!place) { toast('Все места заняты. Освободи горшок или открой новый подоконник'); return; }
     g.cuttings = g.cuttings.filter((x) => x.id !== cuttingId);
-    g.plants.push(newPlant({ sp: c.sp, form: c.form, sill: place.sill, slot: place.slot, zone: zoneOfSlot(place.slot) }, t));
+    g.plants.push(newPlant({ sp: c.sp, form: c.form, hue: c.hue, sill: place.sill, slot: place.slot, zone: zoneOfSlot(place.slot) }, t));
+    collectHue(g, c.sp, c.hue);
     collectForm(g, c.form);
     g.activeSill = place.sill;
     discover(g, c.sp);
@@ -712,7 +719,7 @@ export function giftCutting(cuttingId: string, from: string, note: number) {
     const c = g.cuttings.find((x) => x.id === cuttingId);
     if (!c) return null;
     g.name = from;
-    const gift: PendingGift = { sp: c.sp, from, note, code: makeCode(), ...(c.form ? { form: c.form } : {}) };
+    const gift: PendingGift = { sp: c.sp, from, note, code: makeCode(), ...(c.form ? { form: c.form } : {}), ...(c.hue ? { hue: c.hue } : {}) };
     g.cuttings = g.cuttings.filter((x) => x.id !== cuttingId);
     g.sent.push({ code: gift.code, sp: c.sp, at: t });
     g.stats.giftsSent += 1;
@@ -761,7 +768,8 @@ export function claimGift(gift: PendingGift): 'ok' | 'dup' | 'full' {
       if (!g.pending.some((x) => x.code === gift.code)) g.pending.push(gift);
       return 'full';
     }
-    const p = newPlant({ sp: gift.sp, form: gift.form, sill: place.sill, slot: place.slot, zone: zoneOfSlot(place.slot), quick: true, from: { name: gift.from, note: gift.note, code: gift.code }, claimedAt: t }, t);
+    collectHue(g, gift.sp, gift.hue);
+    const p = newPlant({ sp: gift.sp, form: gift.form, hue: gift.hue, sill: place.sill, slot: place.slot, zone: zoneOfSlot(place.slot), quick: true, from: { name: gift.from, note: gift.note, code: gift.code }, claimedAt: t }, t);
     collectForm(g, gift.form);
     g.plants.push(p);
     g.received.push(gift.code);
@@ -1217,5 +1225,36 @@ export function checkRound(plantId: string) {
       haptic('success');
       toast(`${ri.label === 'утренний' ? '🌅 Утренний' : '🌙 Вечерний'} обход завершён! +${ROUND_REWARD} 🍃`);
     }
+  });
+}
+
+// ─────────────────── гибридизация ───────────────────
+/** Цветущие растения того же вида, с которыми можно скрестить. */
+export function breedPartners(g: GameState, plantId: string, t = now()) {
+  const p = findPlant(g, plantId);
+  if (!p || !p.blooming || !canBreed(p.sp)) return [];
+  return g.plants.filter((x) => x.id !== p.id && x.sp === p.sp && x.blooming && !(x.pollinatedAt && t - x.pollinatedAt < BREED_COOLDOWN));
+}
+
+/** Опылить: кисточкой переносим пыльцу — получаем семечко с новым цветом. */
+export function pollinate(aId: string, bId: string) {
+  return mut((g, t) => {
+    const a = findPlant(g, aId), b = findPlant(g, bId);
+    if (!a || !b || a.sp !== b.sp || !a.blooming || !b.blooming) return null;
+    if ([a, b].some((x) => x.pollinatedAt && t - x.pollinatedAt < BREED_COOLDOWN)) { toast('Цветы ещё отдыхают после опыления — завтра'); return null; }
+    if (g.cuttings.length >= MAX_CUTTINGS + 5) { toast('Запас переполнен — посади или подари что-нибудь'); return null; }
+    const ha = a.hue ?? hueOf(a.sp)!.id, hb = b.hue ?? hueOf(b.sp)!.id;
+    const hue = crossHue(a.sp, ha, hb, Math.random, g.hues?.[a.sp] ?? []);
+    a.pollinatedAt = t;
+    b.pollinatedAt = t;
+    const isNew = !(g.hues?.[a.sp] ?? []).includes(hue) && hue !== hueOf(a.sp)!.id;
+    g.cuttings.push({ id: makeCode(8), sp: a.sp, hue, seed: true, at: t });
+    g.stats.hybrids = (g.stats.hybrids ?? 0) + 1;
+    addXp(g, 10);
+    track('pollinate', { sp: a.sp, hue, rare: !!hueOf(a.sp, hue)?.rare });
+    haptic('success');
+    const h = hueOf(a.sp, hue)!;
+    toast(`${h.rare ? '🌈 Редкость!' : '🐝'} Семечко: ${sp(a.sp).name.toLowerCase()} ${h.name}${isNew ? ' — новый цвет в коллекции!' : ''}`);
+    return hue;
   });
 }

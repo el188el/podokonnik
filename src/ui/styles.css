@@ -440,3 +440,12 @@ svg.big.sad { filter: sepia(0.6) saturate(0.6); }
 .sday-card.got { opacity: 0.55; }
 .sday-card.locked { opacity: 0.75; }
 .sday-card.big { grid-column: span 3; background: linear-gradient(135deg, #fff, #fff1f8); }
+
+/* ─────────── гибридизация ─────────── */
+.hue-dot { display: inline-block; width: 12px; height: 12px; border-radius: 50%; vertical-align: -1px; box-shadow: inset 0 0 0 1px #0002; }
+.hue-dot.big { width: 22px; height: 22px; margin: 3px; }
+.hue-dot.unknown-hue { background: repeating-linear-gradient(45deg, #e7ece9 0 4px, #f6f8f7 4px 8px); }
+.partners { display: flex; gap: 8px; overflow-x: auto; }
+.partner { border: 2px solid var(--line); background: #fff; border-radius: 14px; padding: 4px 8px; display: flex; flex-direction: column; align-items: center; font-size: 12px; flex: 0 0 auto; }
+.partner:active { border-color: var(--gold); }
+.palette { background: #fff8f0; border-radius: 14px; padding: 8px 10px; margin: 8px 0; }

@@ -7,6 +7,7 @@ import {
 } from '../../game/store';
 import type { WindowSide } from '../../game/types';
 import { formsOf } from '../../game/products';
+import { hueOf, PALETTES } from '../../game/breeding';
 import { PlantArt } from '../art/PlantArt';
 import { Btn, Safe, Sheet } from '../kit/kit';
 import { shareGift } from '../share';
@@ -51,7 +52,7 @@ function Picker({ slot, sill }: { slot: number; sill: string }) {
           <div className="grid">
             {g.cuttings.map((c) => (
               <button key={c.id} className="pick" onClick={() => { plantCutting(c.id, sill, slot); closeSheet(); }}>
-                <PlantArt sp={c.sp} form={c.form} stage={0} />
+                <PlantArt sp={c.sp} form={c.form} hue={c.hue} stage={0} />
                 <b>{sp(c.sp).name}</b>
               </button>
             ))}
@@ -140,9 +141,10 @@ function CuttingSheet({ id }: { id: string }) {
   return (
     <div>
       <div className="postcard">
-        <PlantArt sp={c!.sp} form={c!.form} stage={0} className="mid" />
+        <PlantArt sp={c!.sp} form={c!.form} hue={c!.hue} stage={0} className="mid" />
         <div>
-          <h2>Черенок {s.gen}</h2>
+          <h2>{c!.seed ? 'Семечко' : 'Черенок'} {s.gen}</h2>
+          {c!.hue && <p className="small"><span className="hue-dot" style={{ background: hueOf(c!.sp, c!.hue)?.color }} /> цветы: {hueOf(c!.sp, c!.hue)?.name}{hueOf(c!.sp, c!.hue)?.rare ? ' 🌈 редкость' : ''}</p>}
           <p className="muted small">Поставь в воду у себя или подари другу — он посадит его на свой подоконник.</p>
         </div>
       </div>
@@ -192,6 +194,18 @@ function Herb({ id }: { id: string }) {
             </tbody>
           </table>
           <ul className="facts">{s.facts.map((f) => <li key={f}>{f}</li>)}</ul>
+          {PALETTES[id] && (
+            <div className="palette">
+              <b className="small">🎨 Цвета цветков: {1 + (g.hues?.[id] ?? []).filter((h) => h !== PALETTES[id][0].id).length}/{PALETTES[id].length}</b>
+              <div>
+                {PALETTES[id].map((h, i) => {
+                  const got = i === 0 || (g.hues?.[id] ?? []).includes(h.id);
+                  return <span key={h.id} className={'hue-dot big' + (got ? '' : ' unknown-hue')} style={{ background: got ? h.color : undefined }} title={got ? h.name : '???'} />;
+                })}
+              </div>
+              <p className="muted small">Новые цвета выводятся опылением двух цветущих растений.</p>
+            </div>
+          )}
           {formsOf(id).length > 0 && (
             <div className="forms-row">
               {formsOf(id).map((f) => (

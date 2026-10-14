@@ -4,6 +4,7 @@
 
 import { createContext, useContext, useId, type ReactNode } from 'react';
 import { FORM_BY_ID } from '../../game/products';
+import { hueOf } from '../../game/breeding';
 import { POTS } from '../../game/shop';
 import { sp } from '../../game/species';
 import type { ArtSpec, Stage } from '../../game/types';
@@ -858,13 +859,16 @@ export interface PlantArtProps {
   className?: string;
   noPot?: boolean;
   form?: string;
+  hue?: string;
 }
 
-export function PlantArt({ sp: spId, stage, seed = '', pot = 'terracotta', bigPot, blooming, className, noPot, form }: PlantArtProps) {
+export function PlantArt({ sp: spId, stage, seed = '', pot = 'terracotta', bigPot, blooming, className, noPot, form, hue }: PlantArtProps) {
   const uid = useId().replace(/[^a-zA-Z0-9_-]/g, '');
   const base = sp(spId);
   const fm = form ? FORM_BY_ID[form] : undefined;
-  const s = fm && fm.sp === spId ? { ...base, art: { ...base.art, ...fm.art } } : base;
+  const s0 = fm && fm.sp === spId ? { ...base, art: { ...base.art, ...fm.art } } : base;
+  const hc = hue ? hueOf(spId, hue)?.color : undefined;
+  const s = hc ? { ...s0, art: { ...s0.art, flower: hc } } : s0;
   const vg = fm && fm.sp === spId ? fm.art.variegate ?? base.art.variegate : base.art.variegate;
   const r = rng(spId + seed);
   if (stage <= 1) {

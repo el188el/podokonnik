@@ -1,4 +1,5 @@
 import { SPECIES } from './species';
+import { hueOf } from './breeding';
 import type { GameState } from './types';
 
 export interface Achievement {
@@ -36,6 +37,9 @@ export const ACHIEVEMENTS: Achievement[] = [
   { id: 'streak_7', icon: '🔥', title: 'Неделя заботы', text: 'Заходи 7 дней подряд', reward: 50, done: (s) => s.streak.best >= 7, progress: (s) => n(s.streak.best, 7) },
   { id: 'streak_30', icon: '💎', title: 'Месяц заботы', text: 'Заходи 30 дней подряд', reward: 200, done: (s) => s.streak.best >= 30, progress: (s) => n(s.streak.best, 30) },
   { id: 'night_owl', icon: '🦉', title: 'Ночной садовник', text: 'Полей растение глубокой ночью', reward: 15, done: (s) => s.stats.nightWater > 0 },
+  { id: 'hybrid', icon: '🐝', title: 'Селекционер', text: 'Получи первое семечко от опыления', reward: 30, done: (s) => (s.stats.hybrids ?? 0) > 0 },
+  { id: 'hybrid_rare', icon: '🌈', title: 'Небывалый цвет', text: 'Выведи редкий цвет цветков', reward: 100, done: (s) => Object.entries(s.hues ?? {}).some(([sp, list]) => list.some((h) => hueOf(sp, h)?.rare)) },
+  { id: 'violet_rainbow', icon: '🎨', title: 'Радуга фиалок', text: 'Собери 5 цветов фиалок', reward: 120, done: (s) => (s.hues?.violet ?? []).filter((h) => h !== 'purple').length >= 4, progress: (s) => n((s.hues?.violet ?? []).filter((h) => h !== 'purple').length + 1, 5) },
   { id: 'quests_20', icon: '📋', title: 'Ответственный', text: 'Выполни 20 ежедневных заданий', reward: 60, done: (s) => s.stats.questsDone >= 20, progress: (s) => n(s.stats.questsDone, 20) },
 ];
 

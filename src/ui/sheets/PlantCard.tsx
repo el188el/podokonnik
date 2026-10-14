@@ -1,11 +1,12 @@
 import { useState } from 'react';
 import { LIGHT_NAME, SHOWOFF_MS, STAGE_NAME, ZONE_NAME } from '../../game/constants';
 import { FORM_BY_ID } from '../../game/products';
+import { BREED_COOLDOWN, canBreed, hueOf } from '../../game/breeding';
 import { POTS } from '../../game/shop';
 import { canCut, cramped, ctxFor, cutLeft, fmt, isSad, isThirstySad, lightLevel, need, nextStageAt, stageProgress } from '../../game/sim';
 import { DIFFICULTY_LABEL, sp } from '../../game/species';
 import {
-  adsLeft, closeSheet, feed, mist, watchAd, move, now, openSheet, ownsPot, plantInPot, removePlant, renamePlant, repot, setPot, takeCutting, toast, useStore, water,
+  adsLeft, breedPartners, closeSheet, feed, mist, pollinate, watchAd, move, now, openSheet, ownsPot, plantInPot, removePlant, renamePlant, repot, setPot, takeCutting, toast, useStore, water,
 } from '../../game/store';
 import { adsAvailable } from '../../net/ads';
 import { PlantArt } from '../art/PlantArt';
@@ -64,7 +65,7 @@ export function PlantCard({ id }: { id: string }) {
         </div>
       )}
       <div className="card-head">
-        <PlantArt sp={p.sp} form={p.form} stage={p.stage} seed={p.id} pot={p.pot} bigPot={p.bigPot} blooming={p.blooming} className={'big' + (isSad(p) ? ' sad' : '')} />
+        <PlantArt sp={p.sp} form={p.form} hue={p.hue} stage={p.stage} seed={p.id} pot={p.pot} bigPot={p.bigPot} blooming={p.blooming} className={'big' + (isSad(p) ? ' sad' : '')} />
         <div>
           {editing ? (
             <input
@@ -156,6 +157,32 @@ export function PlantCard({ id }: { id: string }) {
         </div>
       )}
       {p.stage > 0 && p.stage < 4 && <p className="muted small center">✂️ Черенки можно брать у взрослого растения.</p>}
+
+      {canBreed(p.sp) && p.stage >= 2 && (
+        <div className="block breed">
+          <h3>🐝 Гибридизация</h3>
+          <p className="small">
+            Цвет: <span className="hue-dot" style={{ background: hueOf(p.sp, p.hue)?.color }} /> <b>{hueOf(p.sp, p.hue)?.name}</b>
+            {p.hue && hueOf(p.sp, p.hue)?.rare && ' 🌈'}
+          </p>
+          {!p.blooming ? (
+            <p className="muted small">Скрещивать можно, когда растение цветёт. Нужно второе цветущее растение того же вида — получишь семечко с шансом на новый цвет.</p>
+          ) : p.pollinatedAt && t - p.pollinatedAt < BREED_COOLDOWN ? (
+            <p className="muted small">Сегодня уже опыляли. Снова — через {fmt(p.pollinatedAt + BREED_COOLDOWN - t)}.</p>
+          ) : breedPartners(g, p.id, t).length === 0 ? (
+            <p className="muted small">Нужно второе цветущее растение «{s.name}». Подари себе черенок или попроси у друзей!</p>
+          ) : (
+            <div className="partners">
+              {breedPartners(g, p.id, t).map((q) => (
+                <button key={q.id} className="partner" onClick={() => pollinate(p.id, q.id)}>
+                  <PlantArt sp={q.sp} hue={q.hue} stage={q.stage} seed={q.id} blooming noPot className="mini" />
+                  <span>× {q.nick || hueOf(q.sp, q.hue)?.name}</span>
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
 
       {p.from && (
         <div className="block">
