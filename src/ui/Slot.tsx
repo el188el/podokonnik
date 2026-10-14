@@ -4,10 +4,11 @@ import { STAGE_NAME } from '../game/constants';
 import { canCut, cramped, ctxFor, fmt, isSad, isLightSad, isThirstySad, lightBad, nextStageAt, rootsAt } from '../game/sim';
 import { SHOWOFF_MS } from '../game/constants';
 import { sp } from '../game/species';
-import { feed, mist, now, openSheet, plantInPot, say, swap, takeCutting, toast, useStore, water } from '../game/store';
+import { checkRound, feed, mist, now, openSheet, plantInPot, say, swap, takeCutting, toast, useStore, water } from '../game/store';
 import { canCut as canCutNow } from '../game/sim';
 import type { Plant } from '../game/types';
 import { PlantArt } from './art/PlantArt';
+import { roundInfo } from '../game/onboarding';
 
 const lastEnough: Record<string, number> = {};
 
@@ -63,6 +64,9 @@ export function Slot({ plant: p, sill, slot }: { plant: Plant; sill: string; slo
 
   const s = sp(p.sp);
   const bubble = bubbleFor(p, t, flash);
+  const round = useStore((st) => st.game.round);
+  const ri = p.stage >= 2 ? roundInfo(useStore.getState().game, t) : null;
+  const roundPending = !!ri && !ri.done && !(round?.key === ri.key && round.checked.includes(p.id));
   const sad = isSad(p);
   const fresh = fx && Date.now() - fx.at < 1400;
 
@@ -80,6 +84,7 @@ export function Slot({ plant: p, sill, slot }: { plant: Plant; sill: string; slo
   }
 
   function tap() {
+    checkRound(p.id);
     if (p.stage === 1) return plantInPot(p.id);
     if (p.stage === 0 && p.rootStart) return say(p.id, 'Пускаю корни… 🌱', 1600);
     const tool = useStore.getState().tool;
@@ -155,7 +160,7 @@ export function Slot({ plant: p, sill, slot }: { plant: Plant; sill: string; slo
         reset();
         if (lifted) {
           if (target !== slot) swap(p.id, sill, target);
-          else openSheet({ kind: 'card', plant: p.id });
+          else { checkRound(p.id); openSheet({ kind: 'card', plant: p.id }); }
         } else if (pressed) tap();
       }}
       onPointerCancel={reset}
@@ -166,6 +171,7 @@ export function Slot({ plant: p, sill, slot }: { plant: Plant; sill: string; slo
         </motion.div>
       )}
       {p.stage === 0 && !p.rootStart && <div className="finger">👆</div>}
+      {roundPending && <div className="round-dot" title="загляни в обходе">👀</div>}
       <motion.div
         className="art"
         key={p.stage}

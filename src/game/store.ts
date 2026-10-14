@@ -15,6 +15,7 @@ import { FORM_BY_ID, FORMS, PRODUCT_BY_ID, RARE_DROP, formsOf } from './products
 import { replayFriendWaters, type FriendWater } from './social';
 import { SPECIES, sp } from './species';
 import { rowSlots, zoneOfSlot } from './layout';
+import { ROUND_REWARD, STARTER, roundInfo, starterLeft } from './onboarding';
 import { loadCloud, loadLocal, newPlant, newState, pickNewer, saveCloud, saveLocal, upgrade } from './storage';
 import type { EventProgress, GameState, PendingGift, Plant, QuestKind, Twin, Zone } from './types';
 
@@ -43,6 +44,7 @@ export type Sheet =
   | { kind: 'install' }
   | { kind: 'visit'; id: string; name: string }
   | { kind: 'event' }
+  | { kind: 'starter' }
   | { kind: 'twins' }
   | null;
 
@@ -1140,4 +1142,80 @@ export async function watchAd(reward: { kind: 'leaves' } | { kind: 'root'; plant
     }
   });
   return true;
+}
+
+// ─────────────────── обучение с Валентиной Петровной ───────────────────
+export const TUTORIAL_DONE = 99;
+
+export function setTutorial(step: number) {
+  mut((g) => {
+    if (g.tutorial >= TUTORIAL_DONE || step <= g.tutorial) return;
+    g.tutorial = step;
+  });
+}
+
+export function finishTutorial(reward: boolean) {
+  mut((g) => {
+    if (g.tutorial >= TUTORIAL_DONE) return;
+    g.tutorial = TUTORIAL_DONE;
+    track('tutorial_done', { reward });
+    if (reward) {
+      g.leaves += 50;
+      g.owned.pot_white = 1;
+      haptic('success');
+      toast('Подарок на новоселье: +50 🍃 и горшок «Белая керамика» 🤍');
+    }
+  });
+}
+
+// ─────────────────── подарки новичка ───────────────────
+export function claimStarter(i: number) {
+  mut((g, t) => {
+    if (!starterLeft(g, t).includes(i)) return;
+    const r = STARTER[i];
+    g.starter = { claimed: [...(g.starter?.claimed ?? []), i] };
+    if (r.leaves) g.leaves += r.leaves;
+    if (r.feed) g.owned.feed = (g.owned.feed ?? 0) + r.feed;
+    if (r.item) {
+      g.owned[r.item] = 1;
+      if (ITEM_BY_ID[r.item]?.cat === 'decor') {
+        const sill = g.sills.find((s) => s.id === g.activeSill)!;
+        if (!sill.decor.includes(r.item)) sill.decor.push(r.item);
+      }
+    }
+    if (r.cutting) {
+      g.cuttings.push({ id: makeCode(8), sp: r.cutting, at: t, ...(r.form ? { form: r.form } : {}) });
+      discover(g, r.cutting);
+    }
+    track('starter_claim', { day: i + 1 });
+    haptic('success');
+    toast(`🎁 День ${i + 1}: ${r.title}`);
+  });
+}
+
+// ─────────────────── обход подоконника ───────────────────
+/** Заглянули к растению — засчитать в текущий обход. */
+export function checkRound(plantId: string) {
+  const g0 = get().game;
+  const info = roundInfo(g0, now());
+  if (!info || info.done) return;
+  const p0 = findPlant(g0, plantId);
+  if (!p0 || p0.stage < 2) return;
+  if (g0.round?.key === info.key && g0.round.checked.includes(plantId)) return;
+  mut((g, t) => {
+    const ri = roundInfo(g, t);
+    if (!ri) return;
+    if (g.round?.key !== ri.key) g.round = { key: ri.key, checked: [], done: false };
+    g.round.checked.push(plantId);
+    const after = roundInfo(g, t)!;
+    if (after.checked >= after.total) {
+      g.round.done = true;
+      g.leaves += ROUND_REWARD;
+      addXp(g, 5);
+      eventToken(g, 'water', t);
+      track('round_done', { part: ri.label });
+      haptic('success');
+      toast(`${ri.label === 'утренний' ? '🌅 Утренний' : '🌙 Вечерний'} обход завершён! +${ROUND_REWARD} 🍃`);
+    }
+  });
 }

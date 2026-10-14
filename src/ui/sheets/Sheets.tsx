@@ -14,6 +14,7 @@ import { PlantCard } from './PlantCard';
 import { Visit } from './Visit';
 import { EventSheet } from './EventSheet';
 import { TwinsSheet } from './TwinsSheet';
+import { StarterSheet } from './StarterSheet';
 
 export function Sheets() {
   const sheet = useStore((s) => s.sheet);
@@ -30,6 +31,7 @@ export function Sheets() {
       {sheet?.kind === 'visit' && <Visit key={sheet.id} id={sheet.id} name={sheet.name} />}
       {sheet?.kind === 'event' && <EventSheet />}
       {sheet?.kind === 'twins' && <TwinsSheet />}
+      {sheet?.kind === 'starter' && <StarterSheet />}
       </Safe>
     </Sheet>
   );

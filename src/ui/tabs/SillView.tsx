@@ -7,6 +7,9 @@ import { now, openSheet, plantAt, setActiveSill, setTool, showGift, useStore, wa
 import type { GameState } from '../../game/types';
 import { PlantArt } from '../art/PlantArt';
 import { Slot } from '../Slot';
+import { Guide } from '../Guide';
+import { roundInfo, starterDone, starterLeft } from '../../game/onboarding';
+import { TUTORIAL_DONE } from '../../game/store';
 import { SillScene, timeOfDay } from '../SillScene';
 
 
@@ -64,7 +67,22 @@ export function SillView() {
           {evReady ? <span className="eb-ready">Награда!</span> : <span className="eb-go">›</span>}
         </button>
       )}
-      <p className="hint">{hint(g, t)}</p>
+      {g.tutorial < TUTORIAL_DONE ? <Guide /> : <p className="hint">{hint(g, t)}</p>}
+
+      {g.tutorial >= TUTORIAL_DONE && !starterDone(g) && (
+        <button className={'mini-banner starter-banner' + (starterLeft(g, t).length ? ' ready' : '')} onClick={() => openSheet({ kind: 'starter' })}>
+          🎁 Подарки новичка · {starterLeft(g, t).length ? `забрать (${starterLeft(g, t).length})` : 'завтра новый'}
+        </button>
+      )}
+      {(() => {
+        const r = roundInfo(g, t);
+        if (!r || g.tutorial < TUTORIAL_DONE) return null;
+        return (
+          <div className={'mini-banner round-banner' + (r.done ? ' done' : '')}>
+            {r.label === 'утренний' ? '🌅' : '🌙'} {r.done ? `${r.label[0].toUpperCase() + r.label.slice(1)} обход сделан ✓` : `${r.label[0].toUpperCase() + r.label.slice(1)} обход: загляни к каждому растению ${r.checked}/${r.total} · +15 🍃`}
+          </div>
+        );
+      })()}
 
       {g.pending.length > 0 && (
         <button className="pending" onClick={() => showGift({ ...g.pending[0], ok: true })}>

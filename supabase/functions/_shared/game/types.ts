@@ -184,6 +184,8 @@ export interface GameState {
   events?: Record<string, EventProgress>; // прогресс ивентов по сезонам (autumn-2026)
   twins?: Twin[];       // двойники настоящих растений
   ads?: { day: string; count: number }; // ролики за награду сегодня
+  starter?: { claimed: number[] };       // подарки новичка
+  round?: { key: string; checked: string[]; done: boolean }; // обход подоконника
   forms?: string[];     // собранные редкие формы
   tutorial: number;
 }

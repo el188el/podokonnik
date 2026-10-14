@@ -418,3 +418,25 @@ svg.big.sad { filter: sepia(0.6) saturate(0.6); }
 .deco { font-size: 20px; bottom: 2px; }
 .deco-cat { font-size: 28px; }
 .deco-tree { font-size: 26px; }
+
+/* ─────────── обучение, подарки новичка, обход ─────────── */
+.guide { display: flex; gap: 10px; margin: 8px 12px; padding: 10px 12px; background: #fff; border-radius: 18px; box-shadow: 0 2px 0 var(--line); align-items: flex-start; }
+.guide-avatar { font-size: 36px; line-height: 1; background: #fff3e0; border-radius: 50%; width: 52px; height: 52px; display: grid; place-items: center; flex: 0 0 auto; }
+.guide-body { flex: 1; min-width: 0; }
+.guide-body b { font-size: 13px; color: #b0661a; }
+.guide-body p { margin: 2px 0 6px; font-size: 14.5px; line-height: 1.35; }
+.guide-actions { display: flex; gap: 10px; align-items: center; }
+.guide-skip { border: 0; background: none; color: var(--muted); font-size: 12px; text-decoration: underline; }
+.mini-banner { display: block; width: calc(100% - 24px); margin: 6px 12px 0; padding: 8px 12px; border: 0; border-radius: 14px; text-align: left; font-size: 13.5px; font-weight: 600; background: #fff; box-shadow: 0 2px 0 var(--line); }
+.starter-banner.ready { background: linear-gradient(135deg, #fff4d6, #ffe0a3); animation: pulse 2s infinite; }
+.round-banner { background: #eef6ff; color: #1d5f99; }
+.round-banner.done { background: #e5f5ec; color: var(--green); }
+.round-dot { position: absolute; right: 4px; top: 26px; font-size: 14px; background: #fff; border-radius: 10px; padding: 1px 3px; box-shadow: 0 1px 3px #0002; z-index: 4; pointer-events: none; }
+.starter { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin: 12px 0; }
+.sday-card { border: 2px solid var(--line); background: #fff; border-radius: 16px; padding: 8px 4px; display: flex; flex-direction: column; align-items: center; gap: 2px; text-align: center; font-size: 12px; }
+.sday-card .si { font-size: 26px; }
+.sday-card .st { font-weight: 600; font-size: 11.5px; }
+.sday-card.ready { border-color: var(--gold); background: #fff4d6; animation: pulse 1.8s infinite; }
+.sday-card.got { opacity: 0.55; }
+.sday-card.locked { opacity: 0.75; }
+.sday-card.big { grid-column: span 3; background: linear-gradient(135deg, #fff, #fff1f8); }
