@@ -2,7 +2,7 @@
 // и столик в глубине комнаты (нижний ряд, 3 места). Декор — на стекле,
 // на подоконнике, на столе и на стене.
 
-import type { ReactNode } from 'react';
+import { useState, type ReactNode } from 'react';
 import { DEEP_ROW, GLASS_ROW, HANG_ROW } from '../game/layout';
 import { ITEM_BY_ID, placeOf } from '../game/shop';
 import { DecorArt, hasDecorArt } from './art/DecorArt';
@@ -19,12 +19,24 @@ export interface SceneProps {
   /** Места в подвесных кашпо (6–8) — только на своём подоконнике. */
   hangCell?: (slot: number) => ReactNode;
   className?: string;
+  /** Нажали на кота — погладить. */
+  onCat?: () => void;
 }
 
 const icon = (id: string) => ITEM_BY_ID[id]?.icon ?? '';
 const LEDGE_POS = ['4%', '25%', '50%', '75%', '96%']; // промежутки между горшками (по 4 в ряду)
 
-function Deco({ id, left }: { id: string; left: string }) {
+function Deco({ id, left, onCat }: { id: string; left: string; onCat?: () => void }) {
+  const [pet, setPet] = useState(0);
+  if (id === 'cat' && onCat) {
+    return (
+      <button className="deco deco-cat live" style={{ left }} aria-label="Погладить Барсика"
+        onClick={(e) => { e.stopPropagation(); setPet(Date.now()); onCat(); }}>
+        <DecorArt id="cat" scale={0.95} />
+        {pet > 0 && <span className="purr" key={pet}>💕</span>}
+      </button>
+    );
+  }
   return (
     <span className={'deco deco-' + id} style={{ left }}>
       {hasDecorArt(id) ? <DecorArt id={id} scale={0.85} /> : icon(id)}
@@ -32,7 +44,7 @@ function Deco({ id, left }: { id: string; left: string }) {
   );
 }
 
-export function SillScene({ decor, tod, winter, sky, theme, win = 'E', cell, hangCell, className = '' }: SceneProps) {
+export function SillScene({ decor, tod, winter, sky, theme, win = 'E', cell, hangCell, className = '', onCat }: SceneProps) {
   const at = (place: string) => decor.filter((d) => placeOf(d) === place);
   const windowD = at('window');
   const sillD = at('sill').slice(0, 5);
@@ -69,7 +81,7 @@ export function SillScene({ decor, tod, winter, sky, theme, win = 'E', cell, han
           {windowD.includes('suncatcher') && <div className="suncatcher"><DecorArt id="suncatcher" /></div>}
         </div>
         <div className="frame" />
-        {windowD.includes('paper_snow') && <div className="paper-snow">{['❄', '❅', '❆', '❄'].map((x, i) => <span key={i}>{x}</span>)}</div>}
+        {windowD.includes('paper_snow') && <div className="paper-snow">{[0, 1, 2, 3].map((i) => <span key={i}><DecorArt id="snowflake" scale={[1.1, 1.4, 0.8, 1][i]} /></span>)}</div>}
         {windowD.includes('garland') && <div className="garland" />}
         {windowD.includes('tulle') && (
           <>
@@ -95,14 +107,14 @@ export function SillScene({ decor, tod, winter, sky, theme, win = 'E', cell, han
           {GLASS_ROW.map((i) => (
             <div className="cell glass" data-slot={i} data-zone="glass" key={i}>{cell(i)}</div>
           ))}
-          <div className="ledge-decor">{sillD.map((d, i) => <Deco key={d} id={d} left={LEDGE_POS[i]} />)}</div>
+          <div className="ledge-decor">{sillD.map((d, i) => <Deco key={d} id={d} left={LEDGE_POS[i]} onCat={onCat} />)}</div>
         </div>
         <div className="ledge" />
         <div className="row row-deep">
           {DEEP_ROW.map((i) => (
             <div className="cell deep" data-slot={i} data-zone="deep" key={i}>{cell(i)}</div>
           ))}
-          <div className="ledge-decor">{tableD.map((d, i) => <Deco key={d} id={d} left={LEDGE_POS[i]} />)}</div>
+          <div className="ledge-decor">{tableD.map((d, i) => <Deco key={d} id={d} left={LEDGE_POS[i]} onCat={onCat} />)}</div>
         </div>
         <div className="table" />
       </div>

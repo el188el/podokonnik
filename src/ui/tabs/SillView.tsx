@@ -11,7 +11,7 @@ import { FallingTokens } from '../FallingTokens';
 import { useEffect } from 'react';
 import { chatter } from '../../game/mood';
 import { ctxFor } from '../../game/sim';
-import { claimFirstChest, placeOpen, say } from '../../game/store';
+import { claimFirstChest, petCat, placeOpen, say } from '../../game/store';
 import { zoneOfSlot } from '../../game/layout';
 import type { GameState } from '../../game/types';
 import { PlantArt } from '../art/PlantArt';
@@ -209,6 +209,7 @@ function OwnSill() {
         win={sill.window ?? 'E'}
         hangCell={cellAt}
         cell={cellAt}
+        onCat={petCat}
       />
 
       <FallingTokens />

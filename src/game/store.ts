@@ -12,6 +12,7 @@ import { CONTEST_ENTRY_REWARD, CONTEST_VOTE_REWARD, weekKey } from './contest';
 import { platform } from '../platform';
 import { ACHIEVEMENTS, checkAchievements } from './achievements';
 import { freshAgeMarks } from './age';
+import { catText } from './cat';
 import { CURES, GUARD_MS, PROBLEMS } from './problems';
 import { HEARTS_FOR_GIFT, canFulfil, neighborOf, rollOrders } from './orders';
 import { INVITE_LADDER } from './invites';
@@ -304,6 +305,12 @@ function handleEvents(g: GameState, ev: SimEvent[], quiet: boolean) {
     } else if (e.kind === 'wilt') {
       log(g, `${s.name} засохло и сбросило листья 🥀`, g.simAt);
       if (!quiet) { toast(`${s.name} засыхает и сбрасывает листья 🥀 Полей и поставь на свет`); haptic('error'); }
+    } else if (e.kind === 'cat') {
+      if (e.action !== 'grass' || !quiet) {
+        const text = catText({ action: e.action, plant: e.plant }, p);
+        log(g, text, g.simAt);
+        if (!quiet && e.action !== 'grass') { toast(text); if (e.action === 'chew') fx(p.id, 'grow'); }
+      }
     } else if (e.kind === 'problem') {
       const info = PROBLEMS[e.problem];
       log(g, `${s.name}: ${info.name.toLowerCase()}`, g.simAt);
@@ -645,6 +652,8 @@ function awayReport(g: GameState, ev: SimEvent[], before: Map<string, { stage: n
     if (ev.some((e) => e.kind === 'wilt' && e.plant === p.id)) lines.push({ icon: '🥀', text: `${s.name} засохло без воды и сбросило листья` });
     else if (p.moisture <= 0 && p.stage >= 2) lines.push({ icon: '💧', text: `${s.name} очень хочет пить` });
     if (ev.some((e) => e.kind === 'bloom' && e.plant === p.id)) lines.push({ icon: '🌸', text: `${s.name} зацвело` });
+    for (const e of ev) if (e.kind === 'problem' && e.plant === p.id) lines.push({ icon: PROBLEMS[e.problem].icon, text: `${s.name}: ${PROBLEMS[e.problem].name.toLowerCase()}${e.spread ? ' — перебралось от соседа' : ''}` });
+    for (const e of ev) if (e.kind === 'cat' && e.plant === p.id && e.action !== 'grass') lines.push({ icon: '🐈', text: catText({ action: e.action, plant: e.plant }, p).replace(/^🐈 /, '') });
   }
   const watered = new Set(ev.filter((e) => e.kind === 'neighbor').map((e) => e.plant)).size;
   if (watered) lines.unshift({ icon: '👵', text: `Соседка поливала растения (${watered})` });
@@ -2047,5 +2056,19 @@ export function treat(plantId: string, cure: string) {
     toast(`${ITEM_BY_ID[cure]?.icon ?? '💊'} ${info.name} побеждена! Неделю растение под защитой`);
     track('cure', { kind: pr.kind });
     return true;
+  });
+}
+
+// ─────────────────── кот Барсик ───────────────────
+/** Погладить кота: раз в день — немного листиков и хорошее настроение. */
+export function petCat() {
+  mut((g, t) => {
+    const day = dayKey(t);
+    if (g.catPet === day) { toast('🐈 Мрр… Барсик уже доволен. Приходи завтра'); return; }
+    g.catPet = day;
+    g.leaves += 5;
+    addXp(g, 2);
+    haptic('light');
+    toast('🐈 Мррр! Барсик доволен. +5 🍃');
   });
 }

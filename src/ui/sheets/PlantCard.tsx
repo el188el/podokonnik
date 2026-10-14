@@ -54,7 +54,7 @@ export function PlantCard({ id }: { id: string }) {
   const t = now();
   const s = sp(p.sp);
   const ctx = ctxFor(g, p, t);
-  const light = lightLevel(ctx.sill, p.zone, t, ctx.lamp, ctx.dim, ctx.shade);
+  const light = lightLevel(ctx.sill, p.zone, t, ctx.lamp, ctx.dim || ctx.tulle, ctx.shade);
   const next = nextStageAt(p, t, ctx);
   const potted = p.stage >= 2;
   const mistOn = p.mistUntil && t < p.mistUntil;

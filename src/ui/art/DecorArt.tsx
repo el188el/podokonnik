@@ -398,6 +398,32 @@ const ART: Record<string, { w: number; h: number; draw: () => ReactNode }> = {
     <circle cx="16" cy="27" r="4" fill={C.dark} />
     <path d="M16 34 v4" stroke={C.wood2} strokeWidth="2" />
   </>) },
+  catgrass: { w: 34, h: 40, draw: () => (<>
+    {shadow(17, 38, 13)}
+    <path d="M7 26 h20 l-2.5 12 h-15 Z" fill="#e9dcc6" />
+    <rect x="6" y="24" width="22" height="4" rx="2" fill="#d8c7aa" />
+    {[[9, 4, -3], [12, 0, -1], [15, 2, 1], [18, -1, 0], [21, 3, 2], [24, 5, 4], [14, 6, -4], [20, 7, 3]].map(([x, top, lean], i) => (
+      <path key={i} d={`M${x} 25 Q${x + lean / 2} ${(25 + top) / 2} ${x + lean} ${top}`} stroke={i % 2 ? C.green : '#6cbf5f'} strokeWidth="2" fill="none" strokeLinecap="round" />
+    ))}
+  </>) },
+  humidifier: { w: 34, h: 44, draw: () => (<>
+    {shadow(17, 42, 13)}
+    <path d="M6 22 Q6 16 17 16 Q28 16 28 22 L27 40 Q17 43 7 40 Z" fill={C.white} />
+    <path d="M7 34 Q17 37 27 34 L27 40 Q17 43 7 40 Z" fill="#cfe3ea" />
+    <circle cx="17" cy="30" r="2.2" fill="#7fc7e0" />
+    <rect x="14" y="12" width="6" height="5" rx="2" fill="#dfe8ea" />
+    <g className="steam" fill="none" stroke="#ffffffcc" strokeWidth="2.4" strokeLinecap="round">
+      <path d="M17 11 q-3 -3 0 -6 q3 -3 0 -5" />
+    </g>
+  </>) },
+  snowflake: { w: 24, h: 24, draw: () => (<>
+    {[0, 60, 120].map((r) => (
+      <g key={r} transform={`rotate(${r} 12 12)`} stroke="#fff" strokeWidth="1.6" strokeLinecap="round" fill="none">
+        <path d="M12 1 V23" /><path d="M9 4 L12 7 L15 4 M9 20 L12 17 L15 20" />
+      </g>
+    ))}
+    <circle cx="12" cy="12" r="2" fill="#fff" />
+  </>) },
   suncatcher: { w: 26, h: 44, draw: () => (<>
     <path d="M13 0 v10" stroke={C.grey} strokeWidth="1" />
     <circle cx="13" cy="18" r="8" fill="none" stroke={C.gold} strokeWidth="1.6" />

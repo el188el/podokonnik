@@ -7,6 +7,7 @@ import { sp } from './species';
 import { isDim, isSunny, weatherAt } from './weather';
 import { PROBLEMS, problemEffect, SHADY, stepProblem, trySpread } from './problems';
 import { rowSlots, zoneOfSlot } from './layout';
+import { catStep, type CatAction } from './cat';
 import type { GameState, Plant, ProblemKind, Sill, Stage } from './types';
 
 export const STEP_H = 0.25;
@@ -18,7 +19,8 @@ export type SimEvent =
   | { kind: 'wilt'; plant: string }
   | { kind: 'bloom'; plant: string }
   | { kind: 'neighbor'; plant: string }
-  | { kind: 'problem'; plant: string; problem: ProblemKind; spread?: boolean };
+  | { kind: 'problem'; plant: string; problem: ProblemKind; spread?: boolean }
+  | { kind: 'cat'; plant: string; action: CatAction };
 
 // ─────────── сезоны ───────────
 export const month = (t: number) => new Date(t).getMonth() + 1;
@@ -47,7 +49,7 @@ export function lightBad(p: Plant, sill: Sill, t: number, lamp: boolean, dim = f
   return l > s.light[1] ? 'hot' : l < s.light[0] ? 'dark' : null;
 }
 
-export const badLight = (p: Plant, t: number, ctx: Ctx) => lightBad(p, ctx.sill, t, ctx.lamp, ctx.dim, ctx.shade);
+export const badLight = (p: Plant, t: number, ctx: Ctx) => lightBad(p, ctx.sill, t, ctx.lamp, ctx.dim || ctx.tulle, ctx.shade);
 
 export function bestZone(spId: string, sill: Sill, t: number, lamp: boolean, dim = false): Plant['zone'] {
   const s = sp(spId);
@@ -103,6 +105,8 @@ export interface Ctx {
   shade?: boolean; // затеняет большой сосед
   humid?: boolean; // на подоконнике увлажнитель
   repel?: boolean; // рядом взрослая герань — отпугивает вредителей
+  tulle?: boolean; // тюль рассеивает прямое солнце у стекла
+  radio?: boolean; // радио на подоконнике: под музыку растут чуть быстрее
 }
 
 export function growthRate(p: Plant, t: number, ctx: Ctx) {
@@ -118,6 +122,7 @@ export function growthRate(p: Plant, t: number, ctx: Ctx) {
   if (p.health < 30) r *= 0.4;
   r *= problemEffect(p).slow;
   if (ctx.humid && sp(p.sp).mist === 'love') r *= 1.1;
+  if (ctx.radio) r *= 1.05;
   return r;
 }
 
@@ -244,6 +249,8 @@ export function ctxFor(state: GameState, p: Plant, t: number): Ctx {
     shade: !SHADY.includes(p.sp) && near.some((n) => SHADY.includes(n.sp) && n.stage === 4),
     humid: hasDecorOn(state, sill, 'humidifier'),
     repel: near.some((n) => n.sp === 'geranium' && n.stage === 4),
+    tulle: hasDecorOn(state, sill, 'tulle'),
+    radio: hasDecorOn(state, sill, 'radio'),
   };
 }
 
@@ -264,6 +271,12 @@ export function advance(state: GameState, t: number): SimEvent[] {
       const bad = badLight(p, at, ctx);
       const k = stepProblem(p, dt / H, at, { month: m, hot: bad === 'hot', dark: bad === 'dark', humid: !!ctx.humid, repel: !!ctx.repel, step });
       if (k) ev.push({ kind: 'problem', plant: p.id, problem: k });
+    }
+    // проделки кота
+    for (const sill of state.sills ?? []) {
+      if (!hasDecorOn(state, sill, 'cat')) continue;
+      const e = catStep(state.plants.filter((p) => p.sill === sill.id), `${state.createdAt}-${sill.id}`, dt / H, step, hasDecorOn(state, sill, 'catgrass'));
+      if (e) ev.push({ kind: 'cat', plant: e.plant, action: e.action });
     }
     // вредители переползают на соседей
     for (const p of state.plants) {

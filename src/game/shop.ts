@@ -54,9 +54,9 @@ export const ITEMS: ShopItem[] = [
   { id: 'pot_enamel', cat: 'pots', name: 'Эмалированная кружка', icon: '☕', price: 60, desc: 'Та самая, с синим ободком.' },
 
   // декор (ставится на подоконник)
-  { id: 'tulle', cat: 'decor', place: 'window', name: 'Тюль', icon: '🪟', price: 60, desc: 'Белая занавеска в цветочек.' },
-  { id: 'cat', cat: 'decor', place: 'sill', name: 'Кот Барсик', icon: '🐈', price: 120, desc: 'Спит на подоконнике. Растения не трогает. Почти.' },
-  { id: 'radio', cat: 'decor', place: 'sill', name: 'Советское радио', icon: '📻', price: 90, desc: '«Маяк» тихонько играет по утрам.' },
+  { id: 'tulle', cat: 'decor', place: 'window', name: 'Тюль', icon: '🪟', price: 60, desc: 'Белая занавеска в цветочек. Эффект: рассеивает прямое солнце у стекла — нет ожогов, но светолюбивым становится темновато.' },
+  { id: 'cat', cat: 'decor', place: 'sill', name: 'Кот Барсик', icon: '🐈', price: 120, desc: 'Нажми — погладь (раз в день +5 🍃). Но иногда жуёт хлорофитум и папоротник и сидит в горшках. Ядовитые растения обходит стороной.' },
+  { id: 'radio', cat: 'decor', place: 'sill', name: 'Советское радио', icon: '📻', price: 90, desc: '«Маяк» тихонько играет по утрам. Эффект: растения на этом подоконнике растут на 5% быстрее.' },
   { id: 'vase', cat: 'decor', place: 'table', name: 'Хрустальная вазочка', icon: '🏺', price: 70, desc: 'Из серванта, для красоты.' },
   { id: 'books', cat: 'decor', place: 'table', name: 'Стопка книг', icon: '📚', price: 40, desc: 'Справочник цветовода сверху.' },
   { id: 'lamp', cat: 'decor', place: 'sill', name: 'Фитолампа', icon: '💡', price: 150, desc: '+1 к свету на этом подоконнике. Спасение для северных окон и зимы.', level: 3 },
@@ -131,6 +131,7 @@ export const ITEMS: ShopItem[] = [
   { id: 'traps', cat: 'care', name: 'Жёлтые ловушки', icon: '🟨', price: 12, desc: 'Клейкие ловушки от грибных мошек.', consumable: true },
   { id: 'fungicide', cat: 'care', name: 'Фитоспорин', icon: '💊', price: 20, desc: 'От корневой гнили и мучнистой росы.', consumable: true },
   { id: 'acaricide', cat: 'care', name: 'Фитоверм', icon: '🧴', price: 25, desc: 'От паутинного клеща, тли и мучнистого червеца.', consumable: true },
+  { id: 'catgrass', cat: 'decor', place: 'table', name: 'Кошачья трава', icon: '🌾', price: 40, desc: 'Эффект: Барсик жуёт её, а не твои растения.' },
   { id: 'humidifier', cat: 'decor', place: 'sill', name: 'Увлажнитель', icon: '💨', price: 180, desc: 'Эффект: клещ заводится в 2,5 раза реже, любители влажности растут на 10% быстрее.', level: 5 },
   // уход
   { id: 'feed', cat: 'care', name: 'Подкормка', icon: '🧪', price: 15, desc: 'Сутки растение растёт в 1,5 раза быстрее.', consumable: true },

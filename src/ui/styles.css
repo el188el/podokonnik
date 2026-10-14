@@ -708,3 +708,21 @@ svg.big.sad { filter: sepia(0.6) saturate(0.6); }
 .pest-burn { background-image: radial-gradient(#8a4b1e 2px, transparent 3px); background-size: 16px 14px; mask: radial-gradient(ellipse at 50% 35%, #000 25%, transparent 55%); }
 .pest-rot { bottom: 18px; height: 22%; background: linear-gradient(transparent, #3b2a1a66); }
 .pest-leggy { display: none; }
+
+/* ─── живой кот: гуляет по подоконнику, его можно погладить ─── */
+.deco-cat.live { background: none; border: 0; padding: 0; pointer-events: auto; cursor: pointer; animation: cat-stroll 38s ease-in-out infinite; z-index: 4; }
+.deco-cat.live .decor-svg { animation: cat-breathe 3.2s ease-in-out infinite; transform-origin: 50% 100%; }
+.deco-cat.live .purr { position: absolute; left: 50%; top: -6px; font-size: 18px; pointer-events: none; animation: purr 1.1s ease-out forwards; }
+@keyframes cat-stroll {
+  0%, 30% { transform: translateX(-35%); }
+  40% { transform: translateX(-35%) translateX(36px) scaleX(1); }
+  41%, 70% { transform: translateX(-35%) translateX(36px) scaleX(-1); }
+  80% { transform: translateX(-35%) scaleX(-1); }
+  81%, 100% { transform: translateX(-35%); }
+}
+@keyframes cat-breathe { 0%, 100% { transform: scaleY(1); } 50% { transform: scaleY(1.04); } }
+@keyframes purr { from { opacity: 1; transform: translate(-50%, 0) scale(.8); } to { opacity: 0; transform: translate(-50%, -26px) scale(1.3); } }
+@media (prefers-reduced-motion: reduce) { .deco-cat.live, .deco-cat.live .decor-svg { animation: none; } }
+.paper-snow .decor-svg { filter: drop-shadow(0 0 2px #9cc3e6); }
+.decor-svg .steam { animation: steam 2.4s ease-in-out infinite; }
+@keyframes steam { 0% { opacity: 0; transform: translateY(4px); } 40% { opacity: 1; } 100% { opacity: 0; transform: translateY(-4px); } }
