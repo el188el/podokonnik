@@ -1201,3 +1201,12 @@ b, strong { font-weight: 800; }
 .scene .row > .cell:first-child .bubble::after { left: 32px; }
 .scene .row > .cell:nth-child(4) .bubble::after { left: auto; right: 26px; }
 .share-head .mini { width: 44px; height: 62px; flex: none; }
+
+/* облачки поверх всего интерфейса: состояния — ниже мыслей, обе — ниже тостов */
+.float-bubble { position: fixed; z-index: 55; pointer-events: none; }
+.float-bubble.thought { z-index: 57; }
+.float-bubble .bubble { position: relative; top: auto; left: auto; font-size: 10.5px; padding: 4px 8px; border-radius: 12px; max-width: 120px; }
+.float-bubble .bubble.pop { white-space: normal; max-width: 132px; text-align: center; line-height: 1.2; }
+.float-bubble .bubble::after { left: var(--arrow, 50%); margin-left: -5px; }
+.tile { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.scene.has-hang { --hang: clamp(46px, calc(var(--cellh) * 0.5), 78px); }

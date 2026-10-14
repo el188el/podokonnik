@@ -108,7 +108,7 @@ function OwnSill() {
   const round = g.tutorial >= TUTORIAL_DONE ? roundInfo(g, t) : null;
   if (round) tiles.push({ key: 'round', cls: 'round' + (round.done ? ' done' : ''), text: `${round.label === 'утренний' ? '🌅' : '🌙'} Обход ${round.done ? '✓' : `${round.checked}/${round.total} · +15 🍃`}` });
   // сначала то, что можно забрать прямо сейчас (подарки, награды), потом остальное
-  const shown = [...tiles].sort((x, y) => Number(/ready/.test(y.cls)) - Number(/ready/.test(x.cls))).slice(0, ev ? 3 : 4);
+  const shown = [...tiles].sort((x, y) => Number(/ready/.test(y.cls)) - Number(/ready/.test(x.cls))).slice(0, ev ? (window.innerHeight < 760 ? 2 : 3) : 4);
 
   return (
     <div className="sillview fit">
@@ -215,7 +215,7 @@ function SceneFit({ hang, children }: { hang: boolean; children: (style: CSSProp
       const cur = parseFloat(getComputedStyle(scene).getPropertyValue('--cellh')) || 150;
       // всё, кроме двух рядов (рамка, подоконник, столик, кашпо), не зависит от высоты ряда
       const overhead = scene.offsetHeight - 2 * cur;
-      const next = Math.max(78, Math.min(200, Math.floor((el.clientHeight - 8 - overhead) / 2)));
+      const next = Math.max(58, Math.min(200, Math.floor((el.clientHeight - 8 - overhead) / 2)));
       setCellh((c) => (Math.abs(c - next) > 1 ? next : c));
     };
     const ro = new ResizeObserver(fit);

@@ -1,5 +1,6 @@
 import { motion } from 'framer-motion';
-import { useEffect, useRef } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState, type RefObject } from 'react';
+import { createPortal } from 'react-dom';
 import { STAGE_NAME } from '../game/constants';
 import { badLight, canCut, cramped, ctxFor, fmt, isSad, isLightSad, isThirstySad, nextStageAt, rootsAt } from '../game/sim';
 import { SHOWOFF_MS } from '../game/constants';
@@ -188,13 +189,7 @@ export function Slot({ plant: p, sill, slot }: { plant: Plant; sill: string; slo
       }}
       onPointerCancel={reset}
     >
-      {bubble && !(bubble.cls === 'pop' && covered) && (
-        <div className="bubble-wrap">
-          <motion.div key={bubble.text.startsWith('🌱 ') ? 'roots' : bubble.text} className={`bubble ${bubble.cls}`} initial={{ scale: 0.6, opacity: 0 }} animate={{ scale: 1, opacity: 1 }}>
-            {bubble.text}
-          </motion.div>
-        </div>
-      )}
+      {bubble && !covered && <FloatBubble anchor={ref} text={bubble.text} cls={bubble.cls} k={bubble.text.startsWith('🌱 ') ? 'roots' : bubble.text} />}
       {p.stage === 0 && !p.rootStart && <div className="finger">👆</div>}
       {roundPending && <div className="round-dot" title="загляни в обходе">👀</div>}
       {p.problem && <div className={'pest pest-' + p.problem.kind} style={{ opacity: 0.45 + 0.55 * p.problem.sev }}>{p.problem.kind === 'gnats' ? <><i /><i /><i /></> : null}</div>}
@@ -235,5 +230,50 @@ export function Slot({ plant: p, sill, slot }: { plant: Plant; sill: string; slo
         {timerFor(p, t) && <span className="timer-chip">{timerFor(p, t)}</span>}
       </div>
     </div>
+  );
+}
+
+/**
+ * Облачко над растением — в отдельном слое поверх всего интерфейса (рамка окна,
+ * лампа и соседние элементы его не перекрывают). Стоит по центру над горшком,
+ * у краёв подоконника прижимается внутрь. Мысли — выше облачков состояния.
+ */
+function FloatBubble({ anchor, text, cls, k }: { anchor: RefObject<HTMLDivElement | null>; text: string; cls: string; k: string }) {
+  const box = useRef<HTMLDivElement>(null);
+  const [pos, setPos] = useState<{ x: number; y: number; arrow: number } | null>(null);
+  useLayoutEffect(() => {
+    const upd = () => {
+      const slot = anchor.current;
+      const el = box.current;
+      if (!slot || !el) return;
+      if (slot.classList.contains('lift')) { setPos(null); return; }
+      const r = slot.getBoundingClientRect();
+      const scene = slot.closest('.scene')?.getBoundingClientRect() ?? { left: 0, right: window.innerWidth, top: 0, bottom: window.innerHeight };
+      // горшок не виден (подоконник ужат или прокручен) — облачко не показываем
+      const view = slot.closest('.scene-fit')?.getBoundingClientRect() ?? scene;
+      if (r.top < view.top - 4 || r.top + 30 > view.bottom) { setPos(null); return; }
+      const w = el.offsetWidth;
+      const cx = r.left + r.width / 2;
+      const x = Math.max(scene.left + 4, Math.min(scene.right - 4 - w, cx - w / 2));
+      const top = slot.closest('.scene') ? r.top + 2 : r.top - 8;
+      setPos((p) => (p && Math.abs(p.x - x) < 0.5 && Math.abs(p.y - top) < 0.5 ? p : { x, y: top, arrow: Math.max(10, Math.min(w - 10, cx - x)) }));
+    };
+    upd();
+    const ro = new ResizeObserver(upd);
+    if (anchor.current) ro.observe(anchor.current);
+    const scene = anchor.current?.closest('.scene');
+    if (scene) ro.observe(scene);
+    const i = setInterval(upd, 400);
+    window.addEventListener('resize', upd);
+    window.addEventListener('scroll', upd, true);
+    return () => { ro.disconnect(); clearInterval(i); window.removeEventListener('resize', upd); window.removeEventListener('scroll', upd, true); };
+  }, [anchor, text]);
+  return createPortal(
+    <div ref={box} className={'float-bubble' + (cls === 'pop' ? ' thought' : '')} style={{ left: pos?.x ?? -9999, top: pos?.y ?? -9999, visibility: pos ? 'visible' : 'hidden', ['--arrow' as string]: `${pos?.arrow ?? 0}px` }}>
+      <motion.div key={k} className={`bubble ${cls}`} initial={{ scale: 0.6, opacity: 0 }} animate={{ scale: 1, opacity: 1 }}>
+        {text}
+      </motion.div>
+    </div>,
+    document.body,
   );
 }
