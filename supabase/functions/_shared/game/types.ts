@@ -219,4 +219,5 @@ export interface Twin {
   waters: number;
   streak: number;     // поливов вовремя подряд
   notify: boolean;
+  photos?: { id: string; at: number }[]; // снимки настоящего растения (сами фото — на устройстве)
 }

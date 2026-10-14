@@ -1,14 +1,16 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { D } from '../../game/constants';
 import { fmt, plural } from '../../game/sim';
 import { SPECIES, sp } from '../../game/species';
-import { addTwin, closeSheet, now, removeTwin, updateTwin, useStore, waterTwin } from '../../game/store';
+import { addTwin, addTwinPhoto, closeSheet, now, removeTwin, removeTwinPhoto, updateTwin, useStore, waterTwin } from '../../game/store';
+import { photoDue, twinStage } from '../../game/twins';
+import { loadPhoto } from '../../net/photos';
+import { shareBeforeAfter } from '../share';
 import type { Twin } from '../../game/types';
 import { PlantArt } from '../art/PlantArt';
 import { Btn } from '../kit/kit';
 
 const NO_TWINS: Twin[] = [];
-const twinStage = (t: Twin) => (t.waters < 3 ? 2 : t.waters < 10 ? 3 : 4);
 
 /** «Двойник подоконника»: виртуальные копии настоящих растений игрока. */
 export function TwinsSheet() {
@@ -23,6 +25,70 @@ export function TwinsSheet() {
       {twins.map((t) => <TwinCard key={t.id} t={t} />)}
       {adding ? <AddTwin onDone={() => setAdding(false)} /> : <Btn onClick={() => setAdding(true)}>➕ Добавить настоящее растение</Btn>}
       <Btn kind="ghost" onClick={closeSheet}>Закрыть</Btn>
+    </div>
+  );
+}
+
+const dateText = (at: number) => new Date(at).toLocaleDateString('ru-RU', { day: 'numeric', month: 'short' });
+
+/** Снимок из памяти устройства. */
+export function Photo({ id, className }: { id: string; className?: string }) {
+  const [url, setUrl] = useState<string | null>(null);
+  const [missing, setMissing] = useState(false);
+  useEffect(() => {
+    let u: string | null = null;
+    loadPhoto(id).then((b) => { if (b) { u = URL.createObjectURL(b); setUrl(u); } else setMissing(true); });
+    return () => { if (u) URL.revokeObjectURL(u); };
+  }, [id]);
+  if (missing) return <div className={'photo missing ' + (className ?? '')}>📵<small>на другом устройстве</small></div>;
+  return url ? <img className={'photo ' + (className ?? '')} src={url} alt="" /> : <div className={'photo ' + (className ?? '')} />;
+}
+
+function TwinPhotos({ t }: { t: Twin }) {
+  const input = useRef<HTMLInputElement>(null);
+  const [compare, setCompare] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const list = t.photos ?? [];
+  const first = list[0];
+  const last = list[list.length - 1];
+  const canCompare = list.length >= 2;
+  return (
+    <div className="twin-photos">
+      <input ref={input} type="file" accept="image/*" capture="environment" hidden onChange={async (e) => {
+        const f = e.target.files?.[0];
+        e.target.value = '';
+        if (!f) return;
+        setBusy(true);
+        await addTwinPhoto(t.id, f);
+        setBusy(false);
+      }} />
+      {list.length > 0 && (
+        <div className="photo-strip">
+          {list.map((ph) => (
+            <figure key={ph.id}>
+              <Photo id={ph.id} />
+              <figcaption>{dateText(ph.at)}</figcaption>
+            </figure>
+          ))}
+        </div>
+      )}
+      {photoDue(t, now()) && <p className="small due-text">Прошёл месяц — сфотографируй снова и сравни, как подрос 📷</p>}
+      <div className="twin-actions">
+        <Btn small kind={!list.length || photoDue(t, now()) ? 'gold' : 'soft'} disabled={busy} onClick={() => input.current?.click()}>
+          📷 {list.length ? 'Новое фото' : 'Сфотографировать'}
+        </Btn>
+        {canCompare && <Btn small kind="soft" onClick={() => setCompare(!compare)}>{compare ? 'Скрыть' : '↔ Было / стало'}</Btn>}
+      </div>
+      {compare && first && last && (
+        <div className="before-after">
+          <figure><Photo id={first.id} /><figcaption>Было · {dateText(first.at)}</figcaption></figure>
+          <figure><Photo id={last.id} /><figcaption>Стало · {dateText(last.at)}</figcaption></figure>
+          <div className="ba-actions">
+            <Btn small kind="gold" onClick={() => shareBeforeAfter(t, first, last)}>Поделиться 📸</Btn>
+            <Btn small kind="ghost" onClick={() => removeTwinPhoto(t.id, last.id)}>Удалить последнее</Btn>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -58,6 +124,7 @@ function TwinCard({ t }: { t: Twin }) {
           </div>
         )}
       </div>
+      <TwinPhotos t={t} />
     </div>
   );
 }

@@ -5,7 +5,7 @@ import { NOTES } from '../game/constants';
 import { daysText } from '../game/age';
 import { sp } from '../game/species';
 import { setShowoffDone, toast } from '../game/store';
-import type { PendingGift, Plant } from '../game/types';
+import type { PendingGift, Plant, Twin } from '../game/types';
 import { platform } from '../platform';
 import { PlantArt } from './art/PlantArt';
 
@@ -92,5 +92,39 @@ export async function shareAge(p: Plant, days: number) {
   const name = p.nick || s.name;
   const file = await plantPng(p, `${name}: ${daysText(days)} вместе 🌿`).catch(() => null);
   const r = await platform().share({ text: `${daysText(days)} вместе: ${name} растёт у меня на подоконнике 🌿`, url: gameLink(), files: file ? [file] : undefined });
+  report(r);
+}
+
+/** Коллаж «было / стало» из двух снимков настоящего растения. */
+export async function shareBeforeAfter(tw: Twin, a: { id: string; at: number }, b: { id: string; at: number }) {
+  const { loadPhoto } = await import('../net/photos');
+  const [ba, bb] = await Promise.all([loadPhoto(a.id), loadPhoto(b.id)]);
+  if (!ba || !bb) return toast('Фото есть только на том устройстве, где снимали');
+  const [ia, ib] = await Promise.all([createImageBitmap(ba), createImageBitmap(bb)]);
+  const c = document.createElement('canvas');
+  c.width = 1080;
+  c.height = 760;
+  const x = c.getContext('2d')!;
+  x.fillStyle = '#F4FBF6';
+  x.fillRect(0, 0, c.width, c.height);
+  const cover = (img: ImageBitmap, dx: number) => {
+    const w = 500, h = 560;
+    const k = Math.max(w / img.width, h / img.height);
+    const sw = w / k, sh = h / k;
+    x.drawImage(img, (img.width - sw) / 2, (img.height - sh) / 2, sw, sh, dx, 30, w, h);
+  };
+  cover(ia, 30);
+  cover(ib, 550);
+  const day = (at: number) => new Date(at).toLocaleDateString('ru-RU', { day: 'numeric', month: 'long' });
+  x.fillStyle = '#2E4A45';
+  x.textAlign = 'center';
+  x.font = 'bold 34px system-ui, sans-serif';
+  x.fillText(`Было · ${day(a.at)}`, 280, 640);
+  x.fillText(`Стало · ${day(b.at)}`, 800, 640);
+  x.font = 'bold 30px system-ui, sans-serif';
+  x.fillText(`${tw.nick} · Подоконник 🌱`, 540, 715);
+  const file = await new Promise<File | null>((ok) => c.toBlob((bl) => ok(bl && new File([bl], 'bylo-stalo.jpg', { type: 'image/jpeg' })), 'image/jpeg', 0.88));
+  const days = Math.max(1, Math.round((b.at - a.at) / 86400e3));
+  const r = await platform().share({ text: `${tw.nick}: было и стало за ${days} дн. 🌿 Слежу за своими растениями в «Подоконнике»`, url: gameLink(), files: file ? [file] : undefined });
   report(r);
 }

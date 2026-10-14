@@ -315,7 +315,7 @@ svg.big.sad { filter: sepia(0.6) saturate(0.6); }
 @keyframes leaf-fall { 0% { transform: translate(0, 0) rotate(0); opacity: 0; } 10% { opacity: 1; } 100% { transform: translate(40px, 210px) rotate(320deg); opacity: 0.2; } }
 
 /* ─────────── двойники ─────────── */
-.twin { display: flex; gap: 10px; background: var(--soft); border-radius: 18px; padding: 8px 10px; margin: 8px 0; align-items: center; }
+.twin { display: flex; flex-wrap: wrap; gap: 10px; background: var(--soft); border-radius: 18px; padding: 8px 10px; margin: 8px 0; align-items: center; }
 .twin.due { background: #e6f3fc; }
 .twin-art { width: 70px; height: 100px; flex: 0 0 auto; overflow: visible; }
 .twin-body { flex: 1; display: flex; flex-direction: column; gap: 2px; min-width: 0; }
@@ -486,3 +486,16 @@ svg.big.sad { filter: sepia(0.6) saturate(0.6); }
 .city-search { display: flex; gap: 8px; align-items: center; margin-bottom: 8px; }
 .city-search .inp { flex: 1; margin: 0; }
 .city-hit { display: block; width: 100%; text-align: left; background: var(--card, #f4faf6); border: 0; border-radius: 12px; padding: 10px 12px; margin: 0 0 6px; font: inherit; cursor: pointer; }
+
+/* фото настоящих растений */
+.twin-photos { flex-basis: 100%; min-width: 0; }
+.photo-strip { display: flex; gap: 6px; overflow-x: auto; padding-bottom: 4px; }
+.photo-strip figure { margin: 0; flex: none; text-align: center; }
+.photo-strip figcaption { font-size: 10px; color: var(--muted, #7a8a85); }
+.photo { display: block; width: 64px; height: 64px; object-fit: cover; border-radius: 10px; background: #e6efe9; }
+.photo.missing { display: flex; flex-direction: column; align-items: center; justify-content: center; font-size: 18px; }
+.photo.missing small { font-size: 8px; line-height: 1; text-align: center; padding: 0 2px; }
+.before-after { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 8px; }
+.before-after figure { margin: 0; text-align: center; font-size: 12px; font-weight: 600; }
+.before-after .photo { width: 100%; height: auto; aspect-ratio: 4 / 5; }
+.ba-actions { grid-column: 1 / -1; display: flex; gap: 8px; justify-content: center; }

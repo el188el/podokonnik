@@ -3,6 +3,8 @@ import * as api from '../net/api';
 import { ADS_PER_DAY, showRewardedAd } from '../net/ads';
 import { track } from '../net/track';
 import { fetchWeather } from '../net/weather';
+import { compress, deletePhoto, savePhoto } from '../net/photos';
+import { photoReward, pushPhoto } from './twins';
 import type { Place } from './weather';
 import { platform } from '../platform';
 import { ACHIEVEMENTS, checkAchievements } from './achievements';
@@ -1150,7 +1152,40 @@ export function updateTwin(id: string, patch: Partial<Pick<Twin, 'nick' | 'every
 }
 
 export function removeTwin(id: string) {
+  const tw = get().game.twins?.find((x) => x.id === id);
+  for (const ph of tw?.photos ?? []) deletePhoto(ph.id);
   mut((g) => { g.twins = (g.twins ?? []).filter((x) => x.id !== id); });
+}
+
+/** Сфотографировать настоящее растение: снимок ложится на устройство, в игру — отметка. */
+export async function addTwinPhoto(id: string, file: Blob): Promise<boolean> {
+  try {
+    const blob = await compress(file);
+    const photoId = 'ph_' + makeCode(10);
+    await savePhoto(photoId, blob);
+    mut((g, t) => {
+      const tw = g.twins?.find((x) => x.id === id);
+      if (!tw) return;
+      const reward = photoReward(tw, t);
+      const dropped = pushPhoto(tw, photoId, t);
+      if (dropped) deletePhoto(dropped);
+      g.leaves += reward;
+      track('twin_photo', { n: tw.photos!.length });
+      toast(tw.photos!.length === 1 ? `📷 Первое фото! Через месяц сравним, как подрос${reward ? ` · +${reward} 🍃` : ''}` : reward ? `📷 Новое фото — смотри «было/стало»! +${reward} 🍃` : '📷 Фото сохранено');
+    });
+    return true;
+  } catch {
+    toast('Не получилось сохранить фото');
+    return false;
+  }
+}
+
+export function removeTwinPhoto(id: string, photoId: string) {
+  deletePhoto(photoId);
+  mut((g) => {
+    const tw = g.twins?.find((x) => x.id === id);
+    if (tw) tw.photos = (tw.photos ?? []).filter((p) => p.id !== photoId);
+  });
 }
 
 // ─────────────────── тестовая выдача всех привилегий ───────────────────
