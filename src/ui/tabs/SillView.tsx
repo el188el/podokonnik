@@ -10,7 +10,8 @@ import { FallingTokens } from '../FallingTokens';
 import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react';
 import { chatter } from '../../game/mood';
 import { ctxFor } from '../../game/sim';
-import { claimFirstChest, petCat, placeOpen, say } from '../../game/store';
+import { claimFirstChest, moveItem, petCat, placeOpen, say, setArrange, switchItem, SWITCHABLE, toast } from '../../game/store';
+import { ITEM_BY_ID, placeOf } from '../../game/shop';
 import { zoneOfSlot } from '../../game/layout';
 import { PlantArt } from '../art/PlantArt';
 import { Slot } from '../Slot';
@@ -49,6 +50,8 @@ function useChatter(sillId: string) {
 
 function OwnSill() {
   const g = useStore((s) => s.game);
+  const arrange = useStore((s) => s.arrange);
+  useEffect(() => () => setArrange(false), []);
   useChatter(g.activeSill);
   const t = now();
   const sill = g.sills.find((s) => s.id === g.activeSill) ?? g.sills[0];
@@ -114,7 +117,11 @@ function OwnSill() {
         )}
         {neighbor && <button className="chip" onClick={() => openSheet({ kind: 'neighbor' })}>👵 соседка</button>}
         {(g.owned.pot ?? 0) === 0 && <button className="chip alert" onClick={() => openSheet({ kind: 'pots' })} aria-label="Горшки">🪴 0</button>}
+        {decor.some((d) => placeOf(d) === 'sill' || placeOf(d) === 'table') && (
+          <button className={'chip arrange-chip' + (arrange ? ' on' : '')} onClick={() => setArrange(!arrange)}>{arrange ? '✓ Готово' : '🛋 Переставить'}</button>
+        )}
       </div>
+      {arrange && <p className="arrange-hint">Перетаскивай предметы и кота: по подоконнику или на столик</p>}
 
       {g.tutorial < TUTORIAL_DONE ? <Guide /> : (ev || shown.length > 0) && (
         <div className={'info-grid' + (ev ? '' : ' no-event')}>
@@ -145,6 +152,11 @@ function OwnSill() {
             hangCell={cellAt}
             cell={cellAt}
             onCat={petCat}
+            pos={sill.pos}
+            off={sill.off}
+            arrange={arrange}
+            onItem={(id) => itemTap(sill.id, id)}
+            onMove={(id, x, row) => moveItem(sill.id, id, x, row)}
           />
         )}
       </SceneFit>
@@ -229,4 +241,11 @@ function Toolbar({ sill }: { sill: string }) {
       </p>}
     </div>
   );
+}
+
+/** Нажали на предмет: включить или выключить, а остальные — рассказать, что они делают. */
+function itemTap(sillId: string, id: string) {
+  if (SWITCHABLE.includes(id)) return switchItem(sillId, id);
+  const it = ITEM_BY_ID[id];
+  if (it) toast(`${it.icon} ${it.name}: ${it.desc}`);
 }

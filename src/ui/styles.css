@@ -821,3 +821,51 @@ svg.big.sad { filter: sepia(0.6) saturate(0.6); }
 .repot-stage svg { width: 150px; height: 214px; }
 .repot-stage { isolation: isolate; }
 .hold-btn { width: 100%; user-select: none; -webkit-user-select: none; touch-action: none; }
+
+/* ─── живой декор ─── */
+.deco.live { background: none; border: 0; padding: 0; margin: 0; pointer-events: auto; cursor: pointer; font: inherit; -webkit-tap-highlight-color: transparent; }
+.deco.live .deco-in { display: block; animation: poke 0.45s ease-out; transform-origin: 50% 100%; }
+@keyframes poke { 0% { transform: scale(1); } 35% { transform: scale(1.12, 0.92); } 70% { transform: scale(0.96, 1.05); } 100% { transform: scale(1); } }
+.deco.off .decor-svg { filter: saturate(0.6) brightness(0.92); }
+.deco.movable { touch-action: none; cursor: grab; outline: 2px dashed #ffffffcc; outline-offset: 3px; border-radius: 10px; animation: jiggle 1.4s ease-in-out infinite; }
+.deco.dragging, .cat-live.dragging { cursor: grabbing; animation: none; filter: drop-shadow(0 8px 8px #0004); }
+@keyframes jiggle { 0%, 100% { rotate: -1.5deg; } 50% { rotate: 1.5deg; } }
+.deco .notes { position: absolute; left: 50%; bottom: 100%; pointer-events: none; }
+.deco .notes i { position: absolute; font-style: normal; font-size: 13px; color: #7b5cd6; opacity: 0; animation: note 3s ease-out infinite; }
+.deco .notes i:nth-child(2) { animation-delay: 1s; left: 8px; }
+.deco .notes i:nth-child(3) { animation-delay: 2s; left: -8px; }
+@keyframes note { 0% { opacity: 0; transform: translate(0, 0); } 20% { opacity: 1; } 100% { opacity: 0; transform: translate(10px, -26px) rotate(14deg); } }
+.flame { animation: flicker 1.6s ease-in-out infinite; transform-origin: 50% 100%; transform-box: fill-box; }
+@keyframes flicker { 0%, 100% { transform: scale(1); opacity: 1; } 50% { transform: scale(0.92, 1.06); opacity: 0.9; } }
+.garland.off { animation: none; filter: grayscale(1) brightness(1.1); opacity: 0.6; }
+
+/* фитолампа над растениями */
+.growlamp { position: absolute; top: 6px; left: 50%; transform: translateX(-50%); width: 64%; max-width: 300px; background: none; border: 0; padding: 0; z-index: 4; cursor: pointer; -webkit-tap-highlight-color: transparent; }
+.growlamp .decor-svg { width: 100%; height: auto; display: block; filter: drop-shadow(0 2px 2px #0003); }
+.growlamp:disabled { cursor: default; }
+.growlamp.on .decor-svg { filter: drop-shadow(0 0 8px #d18cff) drop-shadow(0 2px 2px #0003); }
+.lamp-glow { position: absolute; inset: 0; pointer-events: none; z-index: 3; background: radial-gradient(ellipse 70% 85% at 50% 4%, #c86bff55, #ff6fd122 48%, transparent 78%); mix-blend-mode: screen; animation: lampbreath 4s ease-in-out infinite; }
+.lamp-glow-deep { position: absolute; left: 0; right: 0; top: calc(var(--hang) + var(--cellh) + var(--ledge)); height: var(--cellh); pointer-events: none; z-index: 1; background: linear-gradient(#b05cff26, #b05cff0a 60%, transparent); }
+.scene.lamp-on .row-glass .plant-svg { filter: drop-shadow(0 0 6px #d68cff66); }
+@keyframes lampbreath { 0%, 100% { opacity: 0.85; } 50% { opacity: 1; } }
+
+/* кот Барсик */
+.cat-live { position: absolute; bottom: -4px; transform: translateX(-50%); background: none; border: 0; padding: 0; pointer-events: auto; z-index: 6; cursor: grab; touch-action: none; -webkit-tap-highlight-color: transparent; }
+.cat-live .cat-flip { display: block; }
+.cat-live.to-left .cat-flip { transform: scaleX(-1); }
+.cat-live .decor-svg { display: block; overflow: visible; filter: drop-shadow(0 2px 1px #0002); }
+.cat-live:not(.walking) .decor-svg { animation: cat-breathe 3.2s ease-in-out infinite; transform-origin: 50% 100%; }
+.cat-live.walking .decor-svg { animation: cat-bob 0.5s ease-in-out infinite; }
+.cat-live .leg { transform-box: fill-box; transform-origin: 50% 0; }
+.cat-live.walking .leg.l1, .cat-live.walking .leg.l4 { animation: leg-a 0.5s ease-in-out infinite; }
+.cat-live.walking .leg.l2, .cat-live.walking .leg.l3 { animation: leg-b 0.5s ease-in-out infinite; }
+.cat-live.walking .tail { animation: tail 1s ease-in-out infinite; transform-box: fill-box; transform-origin: 100% 100%; }
+@keyframes leg-a { 0%, 100% { transform: rotate(22deg); } 50% { transform: rotate(-22deg); } }
+@keyframes leg-b { 0%, 100% { transform: rotate(-22deg); } 50% { transform: rotate(22deg); } }
+@keyframes cat-bob { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-1.5px); } }
+@keyframes tail { 0%, 100% { transform: rotate(0); } 50% { transform: rotate(-12deg); } }
+.cat-live .purr { position: absolute; left: 50%; top: -6px; font-size: 18px; pointer-events: none; animation: purr 1.1s ease-out forwards; }
+.arrange-chip.on { background: #4caf6a; color: #fff; }
+.arrange-hint { flex: none; margin: 6px 16px 0; font-size: 12.5px; text-align: center; color: #3d7d48; }
+.scene.arranging .cell { opacity: 0.85; }
+@media (prefers-reduced-motion: reduce) { .cat-live .decor-svg, .deco.movable, .lamp-glow, .flame { animation: none !important; } }

@@ -14,7 +14,10 @@ const C = {
 const shadow = (cx: number, y: number, rx: number) => <ellipse cx={cx} cy={y} rx={rx} ry={2.2} fill="#0000002a" />;
 
 /** Каждый предмет: размер [ширина, высота] и рисунок. */
-const ART: Record<string, { w: number; h: number; draw: () => ReactNode }> = {
+/** Состояние предмета для рисунка: включён ли, текущее время (для часов). */
+export interface DrawOpts { on: boolean; now: number }
+
+const ART: Record<string, { w: number; h: number; draw: (o: DrawOpts) => ReactNode }> = {
   // ─────────── на подоконнике ───────────
   cat: { w: 58, h: 40, draw: () => (<>
     {shadow(30, 38, 24)}
@@ -27,13 +30,14 @@ const ART: Record<string, { w: number; h: number; draw: () => ReactNode }> = {
     <circle cx="44.5" cy="25.5" r="1.1" fill={C.pink} />
     <path d="M8 35 Q0 34 2 26 Q4 20 8 24" stroke={C.orange} strokeWidth="5" fill="none" strokeLinecap="round" />
   </>) },
-  radio: { w: 46, h: 32, draw: () => (<>
+  radio: { w: 46, h: 32, draw: (o) => (<>
     {shadow(23, 30, 20)}
     <rect x="3" y="8" width="40" height="22" rx="4" fill={C.wood} />
     <rect x="3" y="8" width="40" height="4" rx="2" fill={C.wood2} />
     <rect x="7" y="14" width="20" height="12" rx="2" fill={C.cream} />
     {[0, 1, 2, 3].map((i) => <line key={i} x1="9" x2="25" y1={16.5 + i * 2.6} y2={16.5 + i * 2.6} stroke="#d8c3a2" strokeWidth="1" />)}
     <circle cx="34" cy="17" r="3.4" fill={C.dark} /><circle cx="34" cy="25" r="2.4" fill={C.dark} />
+    <circle cx="40" cy="12" r="1.3" fill={o.on ? '#7be07b' : '#8a8a86'} />
     <line x1="30" y1="8" x2="40" y2="0" stroke={C.grey2} strokeWidth="1.4" />
   </>) },
   lamp: { w: 32, h: 54, draw: () => (<>
@@ -61,12 +65,12 @@ const ART: Record<string, { w: number; h: number; draw: () => ReactNode }> = {
     <path d="M6 30 q2 -3 4 0" stroke="#e9d27a" strokeWidth="1.5" fill="none" />
     <rect x="5" y="10" width="3" height="20" rx="1.5" fill="#ffffff66" />
   </>) },
-  candle: { w: 18, h: 34, draw: () => (<>
+  candle: { w: 18, h: 34, draw: (o) => (<>
     {shadow(9, 32, 7)}
     <ellipse cx="9" cy="30" rx="8" ry="3" fill={C.gold2} />
     <rect x="5" y="12" width="8" height="18" rx="2" fill={C.cream} />
-    <path d="M9 4 Q12 8 9 11 Q6 8 9 4 Z" fill="#ffb347" />
-    <ellipse cx="9" cy="8" rx="9" ry="9" fill="#ffd8661a" />
+    <path d="M9 12 v-2" stroke={C.dark} strokeWidth="1" />
+    {o.on && <g className="flame"><path d="M9 3 Q12.5 7.5 9 11 Q5.5 7.5 9 3 Z" fill="#ffb347" /><path d="M9 6 Q10.5 8.5 9 10.5 Q7.5 8.5 9 6 Z" fill="#fff3b0" /><ellipse cx="9" cy="8" rx="9" ry="9" fill="#ffd86626" /></g>}
   </>) },
   alarm: { w: 28, h: 30, draw: () => (<>
     {shadow(14, 28, 10)}
@@ -90,14 +94,13 @@ const ART: Record<string, { w: number; h: number; draw: () => ReactNode }> = {
     <ellipse cx="19" cy="17" rx="9" ry="10" fill={C.orange} />
     <path d="M19 7 q1 -4 4 -5" stroke={C.green2} strokeWidth="2.4" fill="none" strokeLinecap="round" />
   </>) },
-  lantern: { w: 24, h: 40, draw: () => (<>
+  lantern: { w: 24, h: 40, draw: (o) => (<>
     {shadow(12, 38, 9)}
     <path d="M12 2 v4" stroke={C.dark} strokeWidth="1.6" />
     <rect x="5" y="6" width="14" height="4" rx="1" fill={C.dark} />
     <rect x="5" y="32" width="14" height="5" rx="1" fill={C.dark} />
-    <rect x="6" y="10" width="12" height="22" fill="#ffd78a" />
-    <ellipse cx="12" cy="21" rx="12" ry="14" fill="#ffd8661f" />
-    <path d="M12 16 Q14 20 12 23 Q10 20 12 16 Z" fill={C.orange} />
+    <rect x="6" y="10" width="12" height="22" fill={o.on ? '#ffd78a' : '#e6dcc8'} />
+    {o.on && <g className="flame"><ellipse cx="12" cy="21" rx="12" ry="14" fill="#ffd86626" /><path d="M12 16 Q14 20 12 23 Q10 20 12 16 Z" fill={C.orange} /></g>}
     <path d="M6 10 v22 M18 10 v22" stroke={C.dark} strokeWidth="1.4" />
   </>) },
   tree: { w: 36, h: 50, draw: () => (<>
@@ -224,11 +227,20 @@ const ART: Record<string, { w: number; h: number; draw: () => ReactNode }> = {
   </>) },
 
   // ─────────── на стене ───────────
-  clock: { w: 34, h: 62, draw: () => (<>
+  clock: { w: 34, h: 62, draw: (o) => (<>
     <rect x="4" y="2" width="26" height="56" rx="6" fill={C.wood} />
     <rect x="4" y="2" width="26" height="6" rx="3" fill={C.wood2} />
     <circle cx="17" cy="20" r="10" fill={C.cream} />
-    <path d="M17 20 V13 M17 20 L22 22" stroke={C.dark} strokeWidth="1.5" strokeLinecap="round" />
+    {(() => {
+      const d = new Date(o.now);
+      const m = d.getMinutes() * 6;
+      const h = (d.getHours() % 12) * 30 + d.getMinutes() / 2;
+      return (<>
+        <path d="M17 20 V14.5" stroke={C.dark} strokeWidth="1.8" strokeLinecap="round" transform={`rotate(${h} 17 20)`} />
+        <path d="M17 20 V12" stroke={C.dark} strokeWidth="1.1" strokeLinecap="round" transform={`rotate(${m} 17 20)`} />
+        <circle cx="17" cy="20" r="1.1" fill={C.dark} />
+      </>);
+    })()}
     <rect x="10" y="33" width="14" height="21" rx="3" fill="#7a4e2d" />
     <g className="pendulum"><path d="M17 33 V47" stroke={C.gold} strokeWidth="1.4" /><circle cx="17" cy="48" r="3.5" fill={C.gold} /></g>
   </>) },
@@ -424,6 +436,30 @@ const ART: Record<string, { w: number; h: number; draw: () => ReactNode }> = {
     ))}
     <circle cx="12" cy="12" r="2" fill="#fff" />
   </>) },
+  growlamp: { w: 160, h: 30, draw: (o) => (<>
+    <path d="M30 0 V12 M130 0 V12" stroke="#5d5a66" strokeWidth="1.4" />
+    <rect x="6" y="10" width="148" height="12" rx="6" fill="#3b3742" />
+    <rect x="10" y="20" width="140" height="5" rx="2.5" fill={o.on ? '#d18cff' : '#6c6676'} />
+    {o.on && Array.from({ length: 14 }, (_, i) => <circle key={i} cx={15 + i * 10} cy="22.5" r="1.6" fill={i % 3 === 1 ? '#ff6fa8' : '#f3d4ff'} />)}
+    <rect x="70" y="12" width="20" height="5" rx="2" fill="#57525f" />
+    <circle cx="80" cy="14.5" r="1.4" fill={o.on ? '#9cff9c' : '#999'} />
+  </>) },
+  cat_walk: { w: 70, h: 44, draw: () => (<>
+    {shadow(36, 42, 26)}
+    <g className="leg l1"><rect x="18" y="26" width="5" height="15" rx="2.5" fill="#e07a2e" /></g>
+    <g className="leg l2"><rect x="44" y="26" width="5" height="15" rx="2.5" fill="#e07a2e" /></g>
+    <path d="M10 22 Q4 10 10 4" stroke={C.orange} strokeWidth="5" fill="none" strokeLinecap="round" className="tail" />
+    <ellipse cx="34" cy="24" rx="24" ry="10" fill={C.orange} />
+    <path d="M22 18 q4 -3 8 0 M32 17 q4 -3 8 0" stroke="#d8702a" strokeWidth="2" fill="none" strokeLinecap="round" />
+    <g className="leg l3"><rect x="22" y="27" width="5" height="15" rx="2.5" fill={C.orange} /></g>
+    <g className="leg l4"><rect x="48" y="27" width="5" height="15" rx="2.5" fill={C.orange} /></g>
+    <circle cx="58" cy="15" r="9" fill={C.orange} />
+    <path d="M51 9 l1 -8 l6 5 Z M60 6 l5 -6 l2 8 Z" fill={C.orange} />
+    <path d="M53 7 l.6 -4 l2.6 2.4 Z M61.5 5 l2.4 -3 l.8 3.6 Z" fill={C.pink} />
+    <circle cx="61" cy="14" r="1.4" fill={C.dark} />
+    <path d="M65 17 q1.5 1 3 0" stroke={C.dark} strokeWidth="1" fill="none" />
+    <circle cx="66.5" cy="16" r="1" fill={C.pink} />
+  </>) },
   suncatcher: { w: 26, h: 44, draw: () => (<>
     <path d="M13 0 v10" stroke={C.grey} strokeWidth="1" />
     <circle cx="13" cy="18" r="8" fill="none" stroke={C.gold} strokeWidth="1.6" />
@@ -436,12 +472,13 @@ const ART: Record<string, { w: number; h: number; draw: () => ReactNode }> = {
 export const hasDecorArt = (id: string) => !!ART[id];
 
 /** Нарисованный предмет декора. scale — во сколько раз крупнее «натурального» размера. */
-export function DecorArt({ id, scale = 1, className = '' }: { id: string; scale?: number; className?: string }) {
+export function DecorArt({ id, scale = 1, className = '', on = true }: { id: string; scale?: number; className?: string; on?: boolean }) {
   const a = ART[id];
   if (!a) return null;
+  const opts: DrawOpts = { on, now: Date.now() };
   return (
     <svg className={'decor-svg ' + className} viewBox={`0 0 ${a.w} ${a.h}`} width={a.w * scale} height={a.h * scale} aria-hidden>
-      {a.draw()}
+      {a.draw(opts)}
     </svg>
   );
 }

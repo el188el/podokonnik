@@ -38,7 +38,8 @@ export function lightLevel(sill: Sill, zone: Plant['zone'], t: number, lamp: boo
   let l = w[zone] - (isWinter(t) ? 1 : 0);
   if (dim && zone === 'glass') l = Math.min(l, 3);
   if (shade) l -= 1;
-  l += lamp ? 1 : 0;
+  // фитолампа добавляет свет, но не жжёт, как прямое солнце: не больше «яркого рассеянного»
+  if (lamp && l < 3) l += 1;
   return Math.max(1, Math.min(4, l));
 }
 
@@ -229,7 +230,7 @@ export function canBloom(p: Plant, t: number, ctx: Ctx) {
   return true;
 }
 
-export const hasLamp = (state: GameState, sill: Sill) => sill.decor.includes('lamp') && (state.owned.lamp ?? 0) > 0;
+export const hasLamp = (state: GameState, sill: Sill) => hasDecorOn(state, sill, 'lamp');
 
 /** Соседи по ряду: слева и справа. */
 export function neighborsOf(state: Pick<GameState, 'plants'>, p: Plant): Plant[] {
@@ -240,7 +241,8 @@ export function neighborsOf(state: Pick<GameState, 'plants'>, p: Plant): Plant[]
   return state.plants.filter((x) => x.sill === p.sill && x.id !== p.id && near.includes(x.slot));
 }
 
-export const hasDecorOn = (state: GameState, sill: Sill, id: string) => sill.decor.includes(id) && (state.owned[id] ?? 0) > 0;
+/** Предмет стоит на подоконнике, куплен и не выключен. */
+export const hasDecorOn = (state: GameState, sill: Sill, id: string) => sill.decor.includes(id) && (state.owned[id] ?? 0) > 0 && !sill.off?.includes(id);
 
 export function ctxFor(state: GameState, p: Plant, t: number): Ctx {
   const sill = state.sills.find((s) => s.id === p.sill) ?? state.sills[0];

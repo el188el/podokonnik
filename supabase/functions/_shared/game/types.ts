@@ -123,7 +123,12 @@ export interface Sill {
   name: string;
   window: WindowSide | null;
   decor: string[];      // id расставленного декора
+  pos?: Record<string, DecorPos>; // куда игрок переставил предметы
+  off?: string[];       // выключенные предметы (фитолампа, радио, свеча…)
 }
+
+/** Положение предмета: доля ширины ряда (0…1) и ряд — подоконник или столик. */
+export interface DecorPos { x: number; row?: 'sill' | 'table' }
 
 export interface Cutting {
   id: string;

@@ -108,6 +108,7 @@ interface Store {
   tool: Tool;
   coops: api.CoopView[] | null; // общие подоконники (null — ещё не загружали)
   coopOn: number | null;        // открыт общий подоконник
+  arrange: boolean;             // режим перестановки декора
 }
 
 /** Инструмент в руке: что произойдёт по тапу на растение. */
@@ -126,6 +127,7 @@ export const useStore = create<Store>(() => ({
   tool: 'look',
   coops: null,
   coopOn: null,
+  arrange: false,
 }));
 
 const get = () => useStore.getState();
@@ -2256,3 +2258,39 @@ export async function logoutTelegram() {
   await api.logout();
   location.reload(); // при входе гостем игра сама отложит прогресс аккаунта и достанет гостевой
 }
+
+// ─────────────────── живой декор: включить, переставить ───────────────────
+const SWITCH_TEXT: Record<string, [string, string]> = {
+  lamp: ['💜 Фитолампа включена: +1 к свету', '🌑 Фитолампа выключена'],
+  radio: ['📻 Радио играет — растения растут чуть быстрее', '📻 Радио выключено'],
+  candle: ['🕯️ Свеча зажжена', '🕯️ Свеча задута'],
+  lantern: ['🏮 Фонарик горит', '🏮 Фонарик погас'],
+  humidifier: ['💨 Увлажнитель работает', '💨 Увлажнитель выключен'],
+  garland: ['✨ Гирлянда горит', '✨ Гирлянда выключена'],
+};
+export const SWITCHABLE = Object.keys(SWITCH_TEXT);
+
+/** Включить или выключить предмет (лампа, радио, свеча…). */
+export function switchItem(sillId: string, id: string) {
+  mut((g) => {
+    const sill = g.sills.find((s) => s.id === sillId);
+    if (!sill || !SWITCH_TEXT[id]) return;
+    const off = new Set(sill.off ?? []);
+    if (off.has(id)) off.delete(id); else off.add(id);
+    sill.off = [...off];
+    haptic('select');
+    toast(SWITCH_TEXT[id][off.has(id) ? 1 : 0]);
+  });
+}
+
+/** Переставить предмет: место в ряду (0…1) и ряд. */
+export function moveItem(sillId: string, id: string, x: number, row?: 'sill' | 'table') {
+  mut((g) => {
+    const sill = g.sills.find((s) => s.id === sillId);
+    if (!sill) return;
+    sill.pos = { ...(sill.pos ?? {}), [id]: { x: Math.max(0.02, Math.min(0.98, x)), ...(row ? { row } : {}) } };
+  });
+}
+
+/** Режим перестановки декора. */
+export const setArrange = (on: boolean) => set({ arrange: on });
