@@ -9,6 +9,8 @@ import { dailyTip } from '../_shared/game/tips.ts';
 import type { GameState } from '../_shared/game/types.ts';
 import { send } from '../_shared/tg.ts';
 import { pickReminder } from './remind.ts';
+import { chatNudge, stepChat, type ChatPlant } from '../_shared/game/chatplant.ts';
+import { postCard } from '../_shared/chat.ts';
 
 const GAP = 6 * 3600e3;
 
@@ -70,5 +72,32 @@ Deno.serve(async (req) => {
       console.warn(p.id, e);
     }
   }
-  return new Response(JSON.stringify({ checked: players?.length ?? 0, sent }), { headers: { 'Content-Type': 'application/json' } });
+  const chats = await nudgeChats(now);
+  return new Response(JSON.stringify({ checked: players?.length ?? 0, sent, chats }), { headers: { 'Content-Type': 'application/json' } });
 });
+
+/** Растения в групповых чатах: досчитать состояние и напомнить, если хотят пить (не ночью по Москве). */
+async function nudgeChats(now: number) {
+  const msk = new Date(now + 3 * 3600e3).getUTCHours();
+  const quiet = msk >= 23 || msk < 9;
+  const { data: rows } = await db.from('chat_plants').select('chat_id, state, nudged_at').eq('active', true).limit(500);
+  let n = 0;
+  for (const r of rows ?? []) {
+    const wasWilted = !!(r.state as ChatPlant).wilted;
+    const p = stepChat(r.state as ChatPlant, now);
+    await db.from('chat_plants').update({ state: p }).eq('chat_id', r.chat_id);
+    const text = chatNudge(p);
+    const since = r.nudged_at ? now - Date.parse(r.nudged_at) : Infinity;
+    // хочет пить — не чаще раза в 12 часов; засохло — сразу, затем раз в сутки
+    if (!text || quiet || since < (p.wilted && !wasWilted ? 0 : p.wilted ? 24 : 12) * 3600e3) continue;
+    const m = await postCard(r.chat_id, p, text);
+    if (m) {
+      n++;
+      await db.from('chat_plants').update({ nudged_at: new Date(now).toISOString() }).eq('chat_id', r.chat_id);
+    } else {
+      await db.from('chat_plants').update({ active: false }).eq('chat_id', r.chat_id); // бота убрали из чата
+    }
+    await new Promise((ok) => setTimeout(ok, 40));
+  }
+  return n;
+}

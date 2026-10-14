@@ -8,6 +8,8 @@ import { Market } from './Market';
 import { Contest } from './Contest';
 import { InviteLadder } from './InviteLadder';
 import { shareVacation } from '../share';
+import { CONFIG } from '../../config';
+import { platform } from '../../platform';
 
 function seen(ms: number) {
   const m = Math.floor(ms / 60e3);
@@ -40,6 +42,17 @@ export function Friends() {
         <h1>Друзья</h1>
         {list && <span className="muted">{list.length}</span>}
       </div>
+
+      {CONFIG.tgBot && (
+        <button className="chat-plant-card" onClick={() => platform().openLink(`https://t.me/${CONFIG.tgBot}?startgroup=plant`)}>
+          <span className="cpc-icon">🪴</span>
+          <span className="cpc-text">
+            <b>Растение для группового чата</b>
+            <small>Добавь бота в чат друзей, семьи или коллег — поливайте общее растение вместе. Каждый полив — +3 🍃 тебе в игру</small>
+          </span>
+          <span className="cpc-go">➕</span>
+        </button>
+      )}
 
       {api.online() && api.loggedIn() && (
         <div className="segment">

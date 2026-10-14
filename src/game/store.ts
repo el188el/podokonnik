@@ -475,6 +475,10 @@ function applyInbox(items: api.InboxItem[]) {
       if (it.kind === 'gift_claimed') {
         g.leaves += 10;
         toast(`🎁 ${name} забрал(а) твой черенок ${sp(String(it.payload.sp)).gen}! +10 🍃`);
+      } else if (it.kind === 'chat_water') {
+        const n = Number(it.payload.leaves) || 0;
+        g.leaves += n;
+        toast(`🪴 Ты полил(а) «${String(it.payload.name ?? 'растение чата')}» в чате: +${n} 🍃`);
       } else if (it.kind === 'referral') {
         g.leaves += 50;
         toast(`👯 ${name} пришёл(ла) по твоему приглашению! +50 🍃`);

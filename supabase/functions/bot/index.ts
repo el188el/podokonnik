@@ -6,6 +6,7 @@ import { db } from '../_shared/db.ts';
 import { TG_CHANNEL, appLink, env, secret } from '../_shared/env.ts';
 import { checkPreCheckout, grant, markRefunded } from '../_shared/pay.ts';
 import { send, tg } from '../_shared/tg.ts';
+import { GROUP_HELLO, groupButton, groupLink, groupPlant } from '../_shared/chat.ts';
 
 const WELCOME = `Привет! Это <b>Подоконник</b> 🌱
 
@@ -31,8 +32,9 @@ const TERMS = `<b>Условия покупок</b>
 const ADMIN = Number(env('TG_ADMIN_ID')) || 0;
 
 interface Update {
+  my_chat_member?: { chat: { id: number; type: string; title?: string }; new_chat_member: { status: string } };
   message?: {
-    chat: { id: number; type: string };
+    chat: { id: number; type: string; title?: string };
     from?: { id: number; first_name?: string; username?: string };
     text?: string;
     successful_payment?: {
@@ -96,8 +98,25 @@ async function handle(u: Update) {
     await tg('answerPreCheckoutQuery', err ? { pre_checkout_query_id: q.id, ok: false, error_message: err } : { pre_checkout_query_id: q.id, ok: true });
     return;
   }
+  if (u.my_chat_member) {
+    const c = u.my_chat_member.chat;
+    if (c.type !== 'group' && c.type !== 'supergroup') return;
+    const st = u.my_chat_member.new_chat_member.status;
+    if (st === 'member' || st === 'administrator') {
+      await tg('sendMessage', { chat_id: c.id, text: GROUP_HELLO, reply_markup: { inline_keyboard: [[{ text: '🌱 Завести растение', callback_data: 'cp:new' }]] } });
+    } else if (st === 'left' || st === 'kicked') {
+      await db.from('chat_plants').update({ active: false }).eq('chat_id', c.id);
+    }
+    return;
+  }
   if (u.callback_query) {
-    if (/^(no)?login:/.test(u.callback_query.data ?? '')) await loginAnswer(u.callback_query);
+    const data = u.callback_query.data ?? '';
+    if (data === 'cp:new' && u.callback_query.message) {
+      await tg('answerCallbackQuery', { callback_query_id: u.callback_query.id });
+      const chat = (u.callback_query.message as { chat: { id: number; title?: string } }).chat;
+      await groupPlant(chat.id, chat.title ?? 'чат', '');
+    } else if (data.startsWith('cp:')) await groupButton(u.callback_query);
+    else if (/^(no)?login:/.test(data)) await loginAnswer(u.callback_query);
     else await tg('answerCallbackQuery', { callback_query_id: u.callback_query.id });
     return;
   }
@@ -114,7 +133,16 @@ async function handle(u: Update) {
     await markRefunded(m.refunded_payment.telegram_payment_charge_id);
     return;
   }
-  if (!m?.text || m.chat.type !== 'private') return;
+  if (!m?.text) return;
+  if (m.chat.type === 'group' || m.chat.type === 'supergroup') {
+    // в группе бот слышит только команды: /plant [имя], /start plant (ссылка «добавить в группу»)
+    const [raw, ...rest] = m.text.trim().split(/\s+/);
+    const gcmd = raw.replace(/@\w+$/, '');
+    if (gcmd === '/plant' || (gcmd === '/start' && rest[0] === 'plant')) await groupPlant(m.chat.id, m.chat.title ?? 'чат', gcmd === '/plant' ? rest.join(' ') : '');
+    else if (gcmd === '/start' || gcmd === '/help') await send(m.chat.id, GROUP_HELLO);
+    return;
+  }
+  if (m.chat.type !== 'private') return;
   const [cmd, arg] = m.text.trim().split(/\s+/, 2);
   if (cmd === '/start' && arg?.startsWith('login_')) {
     await loginAsk(m.chat.id, arg.slice(6));
@@ -144,6 +172,9 @@ async function handle(u: Update) {
       `Платформы: ${obj(st.platforms)}`,
       `События за неделю: ${obj(st.top_events)}`,
     ].join('\n'));
+  } else if (cmd === '/plant') {
+    const link = groupLink();
+    await send(m.chat.id, '🪴 Растение для чата: добавь меня в группу друзей, семьи или коллег — и у вас появится общее растение. Поливайте его вместе, а я напомню, когда оно захочет пить 💧', link ? { text: '➕ Добавить в группу', url: link } : undefined);
   } else if (cmd === '/terms') {
     await send(m.chat.id, TERMS);
   } else if (cmd === '/channel') {
