@@ -12,6 +12,7 @@ import { chatter } from '../../game/mood';
 import { ctxFor } from '../../game/sim';
 import { claimFirstChest, moveItem, petCat, placeOpen, say, setArrange, switchItem, SWITCHABLE, toast } from '../../game/store';
 import { ITEM_BY_ID, placeOf } from '../../game/shop';
+import { climateOf, rhWord, tempWord } from '../../game/climate';
 import { zoneOfSlot } from '../../game/layout';
 import { PlantArt } from '../art/PlantArt';
 import { Slot } from '../Slot';
@@ -115,6 +116,16 @@ function OwnSill() {
             {w ? `${SKY[w.sky].icon} ${tempText(w.temp)}` : '🌦'}
           </button>
         )}
+        {(() => {
+          const c = climateOf(g, sill, t);
+          const meter = sill.decor.includes('hygrometer') && (g.owned.hygrometer ?? 0) > 0;
+          const bad = c.draft || c.bugs || c.temp < 16 || c.temp > 29 || c.rh < 30;
+          return (
+            <button className={'chip climate-chip' + (bad ? ' alert' : '')} onClick={() => openSheet({ kind: 'climate' })} aria-label="Климат в комнате">
+              🌡 {meter ? `${Math.round(c.temp)}° · ${c.rh}%` : `${tempWord(c.temp)} · ${rhWord(c.rh)}`}{sill.vent ? ' · 🪟' : ''}
+            </button>
+          );
+        })()}
         {neighbor && <button className="chip" onClick={() => openSheet({ kind: 'neighbor' })}>👵 соседка</button>}
         {(g.owned.pot ?? 0) === 0 && <button className="chip alert" onClick={() => openSheet({ kind: 'pots' })} aria-label="Горшки">🪴 0</button>}
         {decor.some((d) => placeOf(d) === 'sill' || placeOf(d) === 'table') && (
@@ -154,6 +165,9 @@ function OwnSill() {
             onCat={petCat}
             pos={sill.pos}
             off={sill.off}
+            vent={sill.vent}
+            curtains={sill.curtains}
+            draft={climateOf(g, sill, t).draft}
             arrange={arrange}
             onItem={(id) => itemTap(sill.id, id)}
             onMove={(id, x, row) => moveItem(sill.id, id, x, row)}

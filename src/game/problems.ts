@@ -6,6 +6,7 @@
 
 import { H } from './constants';
 import { sp } from './species';
+import { coldLimit } from './climate';
 import type { Plant, ProblemKind } from './types';
 
 export type { ProblemKind };
@@ -55,6 +56,11 @@ export const PROBLEMS: Record<ProblemKind, ProblemInfo> = {
     sign: 'Белый мучнистый налёт на листьях.', cause: 'Прохлада, сырость и вода на листьях.',
     cure: 'fungicide', heal: 'Обработай Фитоспорином, не мочи листья.', dmg: 0.3, slow: 0.7,
   },
+  cold: {
+    kind: 'cold', icon: '🥶', name: 'Переохлаждение', short: 'Холодно!',
+    sign: 'Листья темнеют и обвисают, будто ошпаренные.', cause: 'Сквозняк из форточки или холодное стекло зимой. Тропические растения мёрзнут уже ниже 14°.',
+    heal: 'Закрой форточку, отодвинь от стекла или включи обогреватель — в тепле за сутки отойдёт.', dmg: 0.5, slow: 0.5,
+  },
   burn: {
     kind: 'burn', icon: '🔥', name: 'Солнечный ожог', short: 'Ожог',
     sign: 'Бурые сухие пятна на листьях со стороны окна.', cause: 'Прямое солнце для растения, которое его не любит.',
@@ -97,29 +103,32 @@ export interface ProblemCtx {
   month: number;          // 1–12
   hot: boolean;           // сейчас слишком много света
   dark: boolean;          // слишком мало света
-  humid: boolean;         // увлажнитель на подоконнике
+  rh: number;             // влажность воздуха, %
+  temp: number;           // температура у растения, °C
+  bugs: boolean;          // открыта форточка без москитной сетки
+  fan: boolean;           // вентилятор проветривает
   repel: boolean;         // рядом взрослая герань
   step: number;           // номер шага симуляции
 }
-
-const heating = (m: number) => m >= 10 || m <= 4;
 
 /** Шансы заболеть в сутки при нынешних условиях. */
 function dailyChances(p: Plant, c: ProblemCtx, t: number): Partial<Record<ProblemKind, number>> {
   const s = sp(p.sp);
   const out: Partial<Record<ProblemKind, number>> = {};
-  const wetLimit = (s.overwater === 'sensitive' ? 12 : s.overwater === 'normal' ? 36 : 72) * (p.drain ? 1.5 : 1);
+  const wetLimit = (s.overwater === 'sensitive' ? 12 : s.overwater === 'normal' ? 36 : 72) * (p.drain ? 1.5 : 1) / (c.rh > 70 ? 1.3 : 1);
   if ((p.wetFor ?? 0) > wetLimit) out.rot = 0.3;
-  if (p.moisture > 0.85) out.gnats = (p.moisture > 1 ? 0.12 : 0.05) * (p.drain ? 0.5 : 1);
-  if (heating(c.month)) {
-    let m = 0.025;
+  if (p.moisture > 0.85) out.gnats = (p.moisture > 1 ? 0.12 : 0.05) * (p.drain ? 0.5 : 1) * (c.fan ? 0.6 : 1);
+  // паутинный клещ любит сухой воздух (зимой батареи сушат его до 25–30%)
+  if (c.rh < 40) {
+    let m = c.rh < 30 ? 0.03 : 0.02;
     if (s.mist === 'love' && !(p.mistUntil && p.mistUntil > t - 48 * H)) m *= 2; // не опрыскивали 2–3 дня
-    if (c.humid) m *= 0.4;
     out.mite = m;
   }
   if (c.month >= 4 && c.month <= 9 && APHID_PRONE.includes(p.sp)) out.aphid = 0.03;
+  if (c.bugs) out.aphid = (out.aphid ?? 0.01) * 2.5; // тля и прочие летят в открытую форточку
   if (MEALY_PRONE.includes(p.sp)) out.mealybug = 0.005;
-  if ((c.month >= 11 || c.month <= 3) && MILDEW_PRONE.includes(p.sp)) out.mildew = (p.splashedAt && t - p.splashedAt < 72 * H ? 0.05 : 0.012);
+  const coolDamp = c.rh > 65 && c.temp < 18;
+  if (((c.month >= 11 || c.month <= 3) || coolDamp) && MILDEW_PRONE.includes(p.sp)) out.mildew = (p.splashedAt && t - p.splashedAt < 72 * H ? 0.05 : 0.012) * (coolDamp ? 2 : 1) * (c.fan ? 0.7 : 1);
   if (c.repel) for (const k of ['mite', 'aphid', 'mealybug', 'gnats'] as ProblemKind[]) if (out[k]) out[k]! *= 0.5;
   return out;
 }
@@ -134,6 +143,9 @@ export function stepProblem(p: Plant, dtH: number, t: number, c: ProblemCtx): Pr
   p.hotFor = c.hot ? (p.hotFor ?? 0) + dtH : 0;
   p.darkFor = c.dark ? (p.darkFor ?? 0) + dtH : 0;
   p.goodFor = !c.hot && !c.dark ? (p.goodFor ?? 0) + dtH : 0;
+  const cold = c.temp < coldLimit(p.sp);
+  p.coldFor = cold ? (p.coldFor ?? 0) + dtH : 0;
+  p.warmFor = c.temp >= coldLimit(p.sp) + 2 ? (p.warmFor ?? 0) + dtH : 0;
 
   const cur = p.problem;
   if (cur) {
@@ -141,8 +153,10 @@ export function stepProblem(p: Plant, dtH: number, t: number, c: ProblemCtx): Pr
     // сами проходят: ожог и вытягивание — в хороших условиях, мошки — в сухой земле
     if ((cur.kind === 'burn' || cur.kind === 'leggy') && (p.goodFor ?? 0) >= 48) p.problem = undefined;
     if (cur.kind === 'gnats' && p.moisture < 0.25 && t - cur.at > 48 * H) p.problem = undefined;
+    if (cur.kind === 'cold' && (p.warmFor ?? 0) >= 24) p.problem = undefined;
     return null;
   }
+  if ((p.coldFor ?? 0) > 6) return start(p, 'cold', t);
   if ((p.hotFor ?? 0) > 8) return start(p, 'burn', t);
   if ((p.darkFor ?? 0) > 72) return start(p, 'leggy', t);
   if (p.guardUntil && t < p.guardUntil) return null;

@@ -112,6 +112,8 @@ export interface Plant {
   guardUntil?: number;  // защита после лечения
   wetFor?: number;      // часов подряд с переливом
   hotFor?: number;      // часов подряд на слишком ярком солнце
+  coldFor?: number;     // часов подряд в холоде (сквозняк, холодное стекло)
+  warmFor?: number;     // часов подряд в тепле после холода
   darkFor?: number;     // часов подряд в темноте
   goodFor?: number;     // часов подряд при хорошем свете
   splashedAt?: number;  // когда на листья попала вода (для тех, кому нельзя)
@@ -125,6 +127,8 @@ export interface Sill {
   decor: string[];      // id расставленного декора
   pos?: Record<string, DecorPos>; // куда игрок переставил предметы
   off?: string[];       // выключенные предметы (фитолампа, радио, свеча…)
+  vent?: boolean;       // форточка открыта
+  curtains?: boolean;   // шторы задёрнуты
 }
 
 /** Положение предмета: доля ширины ряда (0…1) и ряд — подоконник или столик. */
@@ -154,7 +158,7 @@ export interface PendingGift {
   line?: Ancestor[];
 }
 
-export type ProblemKind = 'rot' | 'gnats' | 'mite' | 'aphid' | 'mealybug' | 'mildew' | 'burn' | 'leggy';
+export type ProblemKind = 'rot' | 'gnats' | 'mite' | 'aphid' | 'mealybug' | 'mildew' | 'burn' | 'leggy' | 'cold';
 
 export type WeeklyKind = 'water' | 'plant' | 'gift' | 'cut' | 'mist' | 'adult' | 'bloom' | 'friendWater' | 'days' | 'feed';
 

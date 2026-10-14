@@ -970,3 +970,40 @@ b, strong { font-weight: 800; }
 .cpc-text { flex: 1; display: flex; flex-direction: column; gap: 2px; }
 .cpc-text small { color: var(--muted); font-size: 12.5px; line-height: 1.3; }
 .cpc-go { font-size: 20px; }
+
+/* климат */
+.climate-sheet h3 { margin: 16px 0 6px; }
+.clim-readings { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin: 8px 0; }
+.clim-big { display: flex; flex-direction: column; align-items: center; background: var(--soft); border-radius: 18px; padding: 10px 4px; }
+.clim-big span { font-size: 22px; }
+.clim-big b { font-size: 20px; font-weight: 900; }
+.clim-big small { color: var(--muted); font-size: 11.5px; }
+.clim-warn { display: flex; flex-direction: column; gap: 4px; background: #fff4e5; border-radius: 16px; padding: 10px 12px; font-size: 13px; margin: 8px 0; }
+.clim-row { display: flex; align-items: center; gap: 10px; padding: 10px 0; border-bottom: 1px solid var(--line); }
+.clim-row > div { flex: 1; display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.clim-row small { color: var(--muted); font-size: 12px; line-height: 1.3; }
+.clim-ok { color: var(--green); font-weight: 900; font-size: 18px; }
+.switch { width: 50px; height: 30px; border-radius: 15px; border: 0; background: #d8e2db; position: relative; flex: none; transition: background 0.2s; cursor: pointer; }
+.switch i { position: absolute; top: 3px; left: 3px; width: 24px; height: 24px; border-radius: 50%; background: #fff; box-shadow: 0 1px 3px #0003; transition: left 0.2s; }
+.switch.on { background: var(--green); }
+.switch.on i { left: 23px; }
+.climate-chip.alert { background: #fff1e0; }
+
+/* форточка, сквозняк, шторы */
+.vent-sash { position: absolute; left: 10px; top: 10px; width: 28%; height: 34%; z-index: 2; border: 6px solid #fff; border-radius: 8px; background: linear-gradient(135deg, #ffffff55, #bfe6ff33); transform-origin: 0 50%; transform: perspective(260px) rotateY(-38deg); box-shadow: 4px 4px 10px #0002; pointer-events: none; }
+.vent-net { position: absolute; inset: 0; background: repeating-linear-gradient(0deg, #7a7a7a44 0 1px, transparent 1px 4px), repeating-linear-gradient(90deg, #7a7a7a44 0 1px, transparent 1px 4px); border-radius: 3px; }
+.draft { position: absolute; left: 10%; top: 18%; width: 60%; height: 50%; z-index: 3; pointer-events: none; }
+.draft i { position: absolute; left: 0; height: 2px; width: 40px; border-radius: 2px; background: linear-gradient(90deg, transparent, #ffffffcc, transparent); animation: draft 2.2s linear infinite; }
+.draft i:nth-child(1) { top: 10%; }
+.draft i:nth-child(2) { top: 40%; animation-delay: 0.7s; }
+.draft i:nth-child(3) { top: 70%; animation-delay: 1.4s; }
+@keyframes draft { 0% { transform: translateX(0); opacity: 0; } 20% { opacity: 1; } 100% { transform: translateX(220px); opacity: 0; } }
+.drape { position: absolute; top: 0; bottom: 0; width: 13%; z-index: 3; pointer-events: none; transition: width 0.6s ease; background: repeating-linear-gradient(90deg, #4f7f6c 0 8px, #5d917c 8px 14px, #47735f 14px 20px); box-shadow: inset 0 -8px 12px #0002; }
+.drape.left { left: 0; border-radius: 0 0 14px 0; }
+.drape.right { right: 0; border-radius: 0 0 0 14px; }
+.drape.closed { width: 51%; }
+.drape.sway { animation: sway-drape 3s ease-in-out infinite; transform-origin: 50% 0; }
+@keyframes sway-drape { 0%, 100% { transform: skewX(0); } 50% { transform: skewX(2.5deg); } }
+.decor-svg .heat { animation: steam 2s ease-in-out infinite; }
+.linkish-row { display: block; width: 100%; border: 0; background: none; padding: 0; text-align: left; font: inherit; color: inherit; cursor: pointer; }
+.scene .drape, .scene .vent-sash, .scene .draft { z-index: 1; }

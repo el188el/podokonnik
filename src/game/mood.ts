@@ -46,7 +46,10 @@ export function chatter(p: Plant, t: number, ctx: Ctx, w: Weather | null, r: num
   const bad = badLight(p, t, ctx);
   if (bad === 'dark') lines.push('Скучаю по солнышку 🌥', 'Темновато тут…');
   if (bad === 'hot') lines.push('Жарко! Отодвинь от стекла 🥵', 'Я сейчас сгорю ☀️');
-  if (p.problem) lines.push({ rot: 'Корни болят… 😣', gnats: 'Тут мошки летают 🦟', mite: 'Кто-то кусает листья 🕷', aphid: 'Меня облепила тля! 🐛', mealybug: 'Что это за вата на мне? 😖', mildew: 'Я вся в налёте 😷', burn: 'Обгорела на солнце 🥵', leggy: 'Мне бы света побольше… 🌥' }[p.problem.kind]);
+  if (p.problem) lines.push({ rot: 'Корни болят… 😣', gnats: 'Тут мошки летают 🦟', mite: 'Кто-то кусает листья 🕷', aphid: 'Меня облепила тля! 🐛', mealybug: 'Что это за вата на мне? 😖', mildew: 'Я вся в налёте 😷', burn: 'Обгорела на солнце 🥵', leggy: 'Мне бы света побольше… 🌥', cold: 'Брр, холодно! Закрой форточку 🥶' }[p.problem.kind]);
+  if ((ctx.temp ?? 22) < 15) lines.push('Брр, зябко… 🥶', 'Мне бы погреться');
+  if ((ctx.temp ?? 22) > 30) lines.push('Душно… 🥵', 'Жарковато в комнате');
+  if ((ctx.rh ?? 45) < 30 && s.mist === 'love') lines.push('Воздух сухой, как в пустыне 🏜', 'Опрыскай меня, а?');
   if (lines.length) return pick(lines, r);
 
   if (w && w.sky === 'rain') lines.push('Дождик за окном 🌧 А мне и тут хорошо', 'Слышишь, как стучит дождь?');

@@ -8,6 +8,7 @@ import { sp } from './species.ts';
 import { isDim, isSunny, weatherAt } from './weather.ts';
 import { PROBLEMS, problemEffect, SHADY, stepProblem, trySpread } from './problems.ts';
 import { rowSlots, zoneOfSlot } from './layout.ts';
+import { climateDrying, climateGrowth, climateOf, coldLimit, zoneTemp } from './climate.ts';
 import { catStep, type CatAction } from './cat.ts';
 import type { GameState, Plant, ProblemKind, Sill, Stage } from './types.ts';
 
@@ -38,6 +39,7 @@ export function lightLevel(sill: Sill, zone: Plant['zone'], t: number, lamp: boo
   const w = WINDOWS[sill.window ?? 'E'];
   let l = w[zone] - (isWinter(t) ? 1 : 0);
   if (dim && zone === 'glass') l = Math.min(l, 3);
+  if (sill.curtains) l -= zone === 'glass' ? 2 : 1; // задёрнутые шторы
   if (shade) l -= 1;
   // фитолампа добавляет свет, но не жжёт, как прямое солнце: не больше «яркого рассеянного»
   if (lamp && l < 3) l += 1;
@@ -105,7 +107,12 @@ export interface Ctx {
   dim?: boolean;   // пасмурно за окном
   sunny?: boolean; // ясный день
   shade?: boolean; // затеняет большой сосед
-  humid?: boolean; // на подоконнике увлажнитель
+  humid?: boolean; // на подоконнике работает увлажнитель
+  temp?: number;   // температура воздуха у растения, °C
+  rh?: number;     // влажность воздуха, %
+  draft?: boolean; // сквозняк из форточки
+  bugs?: boolean;  // в открытую форточку летят насекомые
+  fan?: boolean;   // работает вентилятор
   repel?: boolean; // рядом взрослая герань — отпугивает вредителей
   tulle?: boolean; // тюль рассеивает прямое солнце у стекла
   radio?: boolean; // радио на подоконнике: под музыку растут чуть быстрее
@@ -124,7 +131,7 @@ export function growthRate(p: Plant, t: number, ctx: Ctx) {
   if (isWinter(t)) r *= 0.75;
   if (p.health < 30) r *= 0.4;
   r *= problemEffect(p).slow;
-  if (ctx.humid && sp(p.sp).mist === 'love') r *= 1.1;
+  r *= climateGrowth(ctx.temp ?? 22, ctx.rh ?? 45, sp(p.sp).mist === 'love');
   if (ctx.radio) r *= 1.05;
   r = Math.min(r, MAX_GROWTH_MULT);
   return r;
@@ -170,7 +177,7 @@ function stepPlant(p: Plant, dtH: number, t: number, ctx: Ctx, ev: SimEvent[]) {
     ev.push({ kind: 'neighbor', plant: p.id });
   }
 
-  const drain = dtH / (s.waterDays * 24 * (winter ? 1.3 : 1));
+  const drain = (dtH / (s.waterDays * 24 * (winter ? 1.3 : 1))) * climateDrying(ctx.temp ?? 22, ctx.rh ?? 45);
   if (p.moisture > 1) p.moisture = Math.max(1, p.moisture - dtH / (p.drain ? 6 : 24));
   else p.moisture = Math.max(0, p.moisture - drain);
 
@@ -184,6 +191,9 @@ function stepPlant(p: Plant, dtH: number, t: number, ctx: Ctx, ev: SimEvent[]) {
   if (p.moisture > 1) dmg += (s.overwater === 'sensitive' ? 2 : s.overwater === 'normal' ? 0.6 : 0) * (p.drain ? 0.5 : 1) * dtH;
   if (p.badLightFor > 20 && p.health > 50) lightDmg = Math.min(dtH, p.health - 50);
   dmg += problemEffect(p).dmg * dtH;
+  // холод: тропическим ниже 14°, остальным ниже 8° — листья подмерзают
+  const cold = coldLimit(p.sp) - (ctx.temp ?? 22);
+  if (cold > 0) dmg += Math.min(3, cold * 0.25) * dtH;
   if (dmg + lightDmg > 0) p.health = Math.max(0, p.health - dmg - lightDmg);
   else p.health = Math.min(100, p.health + 3 * dtH);
   p.lowestHealth = Math.min(p.lowestHealth, p.health);
@@ -253,6 +263,10 @@ export function ctxFor(state: GameState, p: Plant, t: number): Ctx {
     sill, lamp: hasLamp(state, sill), neighbor: !!state.neighbor && t < state.neighbor.until, dim: isDim(w), sunny: isSunny(w),
     shade: !SHADY.includes(p.sp) && near.some((n) => SHADY.includes(n.sp) && n.stage === 4),
     humid: hasDecorOn(state, sill, 'humidifier'),
+    ...(() => {
+      const c = climateOf(state, sill, t);
+      return { temp: zoneTemp(c, p.zone), rh: c.rh, draft: c.draft && p.zone === 'glass', bugs: c.bugs, fan: hasDecorOn(state, sill, 'fan') };
+    })(),
     repel: near.some((n) => n.sp === 'geranium' && n.stage === 4),
     tulle: hasDecorOn(state, sill, 'tulle'),
     radio: hasDecorOn(state, sill, 'radio'),
@@ -274,7 +288,7 @@ export function advance(state: GameState, t: number): SimEvent[] {
       const ctx = ctxFor(state, p, at);
       stepPlant(p, dt / H, at, ctx, ev);
       const bad = badLight(p, at, ctx);
-      const k = stepProblem(p, dt / H, at, { month: m, hot: bad === 'hot', dark: bad === 'dark', humid: !!ctx.humid, repel: !!ctx.repel, step });
+      const k = stepProblem(p, dt / H, at, { month: m, hot: bad === 'hot', dark: bad === 'dark', rh: ctx.rh ?? 45, temp: ctx.temp ?? 22, bugs: !!ctx.bugs, fan: !!ctx.fan, repel: !!ctx.repel, step });
       if (k) ev.push({ kind: 'problem', plant: p.id, problem: k });
     }
     // проделки кота

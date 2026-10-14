@@ -34,6 +34,7 @@ import { DEEP_ROW, EXTRA_PLACES, GLASS_ROW, rowSlots, zoneOfSlot } from './layou
 import { BREED_COOLDOWN, canBreed, crossHue, hueOf } from './breeding';
 import { FIRST_CHEST, FIRST_YOUNG_H, ROUND_REWARD, STARTER, firstChest, roundInfo, starterLeft } from './onboarding';
 import { childLine } from './lineage';
+import { climateOf } from './climate';
 import { loadCloud, loadLocal, newPlant, newState, pickNewer, saveCloud, saveLocal, switchLocal, upgrade } from './storage';
 import type { Cutting, EventProgress, GameState, PendingGift, Plant, QuestKind, Twin, WeeklyKind, Zone } from './types';
 
@@ -84,6 +85,7 @@ export type Sheet =
   | { kind: 'postcard' }
   | { kind: 'repot'; plant: string }
   | { kind: 'timelapse'; plant: string }
+  | { kind: 'climate' }
   | { kind: 'doctor'; sp?: string }
   | { kind: 'coop' }
   | { kind: 'album' }
@@ -2272,7 +2274,9 @@ const SWITCH_TEXT: Record<string, [string, string]> = {
   radio: ['📻 Радио играет — растения растут чуть быстрее', '📻 Радио выключено'],
   candle: ['🕯️ Свеча зажжена', '🕯️ Свеча задута'],
   lantern: ['🏮 Фонарик горит', '🏮 Фонарик погас'],
-  humidifier: ['💨 Увлажнитель работает', '💨 Увлажнитель выключен'],
+  humidifier: ['💨 Увлажнитель работает: +22% к влажности', '💨 Увлажнитель выключен'],
+  heater: ['♨️ Обогреватель греет: +4°', '♨️ Обогреватель выключен'],
+  fan: ['🌀 Вентилятор крутится: прохладнее и свежее', '🌀 Вентилятор выключен'],
   garland: ['✨ Гирлянда горит', '✨ Гирлянда выключена'],
 };
 export const SWITCHABLE = Object.keys(SWITCH_TEXT);
@@ -2301,3 +2305,25 @@ export function moveItem(sillId: string, id: string, x: number, row?: 'sill' | '
 
 /** Режим перестановки декора. */
 export const setArrange = (on: boolean) => set({ arrange: on });
+
+// ─────────────────── климат: форточка и шторы ───────────────────
+export function toggleVent(sillId: string) {
+  mut((g, t) => {
+    const sill = g.sills.find((s) => s.id === sillId);
+    if (!sill) return;
+    sill.vent = !sill.vent;
+    haptic('select');
+    const c = climateOf(g, sill, t);
+    toast(sill.vent ? `🪟 Форточка открыта: на улице ${c.out > 0 ? '+' : ''}${c.out}°${c.draft ? ' — у стекла сквозняк!' : ''}${c.bugs ? ' Без сетки налетят насекомые' : ''}` : '🪟 Форточка закрыта');
+  });
+}
+
+export function toggleCurtains(sillId: string) {
+  mut((g) => {
+    const sill = g.sills.find((s) => s.id === sillId);
+    if (!sill || !(g.owned.curtains ?? 0) || !sill.decor.includes('curtains')) return;
+    sill.curtains = !sill.curtains;
+    haptic('select');
+    toast(sill.curtains ? '🎐 Шторы задёрнуты: света у стекла меньше' : '🎐 Шторы раздвинуты');
+  });
+}

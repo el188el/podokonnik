@@ -33,6 +33,10 @@ export interface SceneProps {
   onMove?: (id: string, x: number, row?: 'sill' | 'table') => void;
   /** Нажали на кота — погладить. */
   onCat?: () => void;
+  /** Форточка открыта, шторы задёрнуты, на улице холодно (сквозняк). */
+  vent?: boolean;
+  curtains?: boolean;
+  draft?: boolean;
 }
 
 const icon = (id: string) => ITEM_BY_ID[id]?.icon ?? '';
@@ -143,7 +147,7 @@ function LiveCat({ x0, arrange, onCat, onMove }: { x0: number; arrange?: boolean
   );
 }
 
-export function SillScene({ decor, tod, winter, sky, theme, win = 'E', cell, hangCell, className = '', style, pos = {}, off = [], arrange, onItem, onMove, onCat }: SceneProps) {
+export function SillScene({ decor, tod, winter, sky, theme, win = 'E', cell, hangCell, className = '', style, pos = {}, off = [], arrange, onItem, onMove, onCat, vent, curtains, draft }: SceneProps) {
   const at = (place: string) => decor.filter((d) => placeOf(d) === place);
   const windowD = at('window');
   const ledgeItems = decor.filter((d) => (placeOf(d) === 'sill' || placeOf(d) === 'table') && d !== 'cat');
@@ -194,6 +198,18 @@ export function SillScene({ decor, tod, winter, sky, theme, win = 'E', cell, han
           <>
             <div className="tulle left" />
             <div className="tulle right" />
+          </>
+        )}
+        {vent && (
+          <div className="vent-sash" aria-hidden>
+            {windowD.includes('net') && <div className="vent-net" />}
+          </div>
+        )}
+        {vent && draft && <div className="draft" aria-hidden><i /><i /><i /></div>}
+        {windowD.includes('curtains') && (
+          <>
+            <div className={'drape left' + (curtains ? ' closed' : '') + (vent ? ' sway' : '')} />
+            <div className={'drape right' + (curtains ? ' closed' : '') + (vent ? ' sway' : '')} />
           </>
         )}
         {lampOn && <div className="lamp-glow" />}

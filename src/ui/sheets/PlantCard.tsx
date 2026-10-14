@@ -19,6 +19,7 @@ import { Bar, Btn } from '../kit/kit';
 import { shareShowoff, shareThanks } from '../share';
 import { sharePlantStory } from '../story';
 import { genName, isHeirloom } from '../../game/lineage';
+import { coldLimit, rhWord, tempWord } from '../../game/climate';
 import type { Ancestor } from '../../game/types';
 
 export function PlantCard({ id }: { id: string }) {
@@ -164,7 +165,7 @@ export function PlantCard({ id }: { id: string }) {
         const notes: string[] = [];
         if (ctx.shade) notes.push('🌳 Большой сосед затеняет — света меньше');
         if (ctx.repel) notes.push('🌸 Рядом взрослая герань — вредители заводятся реже');
-        if (ctx.humid) notes.push('💨 Увлажнитель рядом — клещу неуютно');
+        if (ctx.humid) notes.push('💨 Увлажнитель работает — воздух влажнее, клещу неуютно');
         if (s.mist === 'love' && near.some((n) => sp(n.sp).mist === 'no')) notes.push(`⚠️ Опрыскивая, заденешь соседа: ${near.filter((n) => sp(n.sp).mist === 'no').map((n) => sp(n.sp).acc).join(', ')}`);
         const sick = near.filter((n) => n.problem && PROBLEMS[n.problem.kind].pest);
         if (sick.length) notes.push(`🐛 У соседа вредители — могут перебраться сюда`);
@@ -187,6 +188,12 @@ export function PlantCard({ id }: { id: string }) {
             {ctx.dim && p.zone === 'glass' && ' · ☁️ сегодня пасмурно'}
             {ctx.sunny && s.light[1] === 4 && ' · ☀️ солнечный день — растёт быстрее'}
           </div>
+          <button className="light-line linkish-row" onClick={() => openSheet({ kind: 'climate' })}>
+            🌡 Воздух: <b>{tempWord(ctx.temp ?? 22)}, {rhWord(ctx.rh ?? 45)}</b>
+            {(ctx.temp ?? 22) < coldLimit(p.sp) ? ' · 🥶 ему холодно' : ''}
+            {s.mist === 'love' && (ctx.rh ?? 45) < 35 ? ' · любит влажный воздух' : ''}
+            {ctx.draft ? ' · сквозняк!' : ''} ›
+          </button>
           {(mistOn || feedOn || boostOn || p.drain) && (
             <div className="boosts">
               {mistOn && <span>💦 бонус ещё {fmt(p.mistUntil! - t)}</span>}

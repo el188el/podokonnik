@@ -436,6 +436,22 @@ const ART: Record<string, { w: number; h: number; draw: (o: DrawOpts) => ReactNo
     ))}
     <circle cx="12" cy="12" r="2" fill="#fff" />
   </>) },
+  heater: { w: 44, h: 46, draw: (o) => (<>
+    {shadow(22, 44, 18)}
+    {[0, 1, 2, 3, 4].map((i) => <rect key={i} x={5 + i * 7} y="8" width="6" height="32" rx="3" fill={o.on ? '#f1f1ec' : '#e2e2dc'} stroke="#c9c9c2" strokeWidth="0.8" />)}
+    <rect x="3" y="38" width="38" height="3" rx="1.5" fill="#9a9a96" />
+    <path d="M8 41 v4 M36 41 v4" stroke="#6f6f6b" strokeWidth="2" strokeLinecap="round" />
+    <rect x="16" y="4" width="12" height="5" rx="2" fill="#bfbfb8" />
+    <circle cx="25" cy="6.5" r="1.3" fill={o.on ? '#ff6b4a' : '#888'} />
+    {o.on && <g className="heat"><path d="M12 4 q-3 -3 0 -6 M22 3 q-3 -3 0 -6 M32 4 q-3 -3 0 -6" stroke="#ff9a6a88" strokeWidth="1.6" fill="none" strokeLinecap="round" /></g>}
+  </>) },
+  hygrometer: { w: 26, h: 30, draw: () => (<>
+    {shadow(13, 28, 10)}
+    <rect x="2" y="3" width="22" height="24" rx="4" fill="#fdfdfa" stroke="#cfd6d2" strokeWidth="1" />
+    <rect x="5" y="6" width="16" height="11" rx="2" fill="#cfe9df" />
+    <text x="13" y="14.6" textAnchor="middle" fontSize="7" fontWeight="700" fill="#1f3832" fontFamily="system-ui, sans-serif">°C</text>
+    <circle cx="9" cy="22" r="2" fill="#4aa3df" /><circle cx="17" cy="22" r="2" fill="#f08a3c" />
+  </>) },
   growlamp: { w: 160, h: 30, draw: (o) => (<>
     <path d="M30 0 V12 M130 0 V12" stroke="#5d5a66" strokeWidth="1.4" />
     <rect x="6" y="10" width="148" height="12" rx="6" fill="#3b3742" />
