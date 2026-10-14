@@ -23,7 +23,7 @@ import { giftLink, makeCode } from './gifts';
 import { XP, levelPerks, levelReward, unlocksAt, xpToNext, SILL_UNLOCK } from './progression';
 import { QUEST_BONUS, WEEKLY_CHEST, dayKey, bumpQuest, bumpWeekly, rollDay, rollWeek, streakReward, weeklyVisit } from './quests';
 import { ITEM_BY_ID, ITEMS, placeOf, potIdOf } from './shop';
-import { advance, badLight, bestZone, canCut, cramped, ctxFor, hasLamp, stageMarks, type SimEvent } from './sim';
+import { advance, badLight, bestZone, canCut, cramped, ctxFor, fmt, hasLamp, stageMarks, type SimEvent } from './sim';
 import { activeEvent, EVENT_TOKENS, eventSeason, tierOf, type GameEvent, type PassReward } from './events';
 import { FORM_BY_ID, FORMS, PRODUCT_BY_ID, RARE_DROP, formsOf } from './products';
 import { replayFriendWaters, type FriendWater } from './social';
@@ -107,7 +107,7 @@ export const useStore = create<Store>(() => ({
   toasts: [],
   flash: {},
   fx: {},
-  tool: 'water',
+  tool: 'look',
   coops: null,
   coopOn: null,
 }));
@@ -874,11 +874,16 @@ export function feed(plantId: string): boolean {
   return mut((g, t) => {
     const p = findPlant(g, plantId);
     if (!p || p.stage < 2) return false;
+    if (p.feedUntil && t < p.feedUntil) {
+      toast(`🧪 Подкормка ещё действует ${fmt(p.feedUntil - t)}. Перекорм обжигает корни — подожди`);
+      say(p.id, 'Я сытое 🙂', 1800);
+      return false;
+    }
     if ((g.owned.feed ?? 0) <= 0) {
       if (g.leaves < ITEM_BY_ID.feed.price) { toast('Не хватает листиков на подкормку 🍃'); return false; }
       g.leaves -= ITEM_BY_ID.feed.price;
     } else g.owned.feed -= 1;
-    p.feedUntil = Math.max(t, p.feedUntil ?? 0) + FEED_MS;
+    p.feedUntil = t + FEED_MS;
     addXp(g, XP.feed);
     quest(g, 'feed');
     fx(p.id, 'feed');

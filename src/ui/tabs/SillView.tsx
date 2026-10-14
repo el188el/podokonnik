@@ -233,11 +233,11 @@ function OwnSill() {
 }
 
 const TOOLS: [Tool, string, string][] = [
+  ['look', '👆', 'Осмотр'],
   ['water', '💧', 'Лейка'],
   ['mist', '💦', 'Опрыскать'],
   ['feed', '🧪', 'Подкормка'],
   ['cut', '✂️', 'Черенок'],
-  ['look', '🔍', 'Осмотр'],
 ];
 
 function Toolbar({ sill }: { sill: string }) {
@@ -250,7 +250,7 @@ function Toolbar({ sill }: { sill: string }) {
     <div className="toolbar">
       <div className="tools">
         {TOOLS.map(([k, icon, label]) => (
-          <button key={k} className={'tool' + (tool === k ? ' on' : '')} onClick={() => setTool(k)} aria-pressed={tool === k}>
+          <button key={k} className={'tool' + (tool === k ? ' on' : '')} onClick={() => setTool(tool === k && k !== 'look' ? 'look' : k)} aria-pressed={tool === k}>
             <span>{icon}</span>
             <small>{k === 'feed' ? `${label} ${g.owned.feed ?? 0}` : label}</small>
           </button>
@@ -260,11 +260,11 @@ function Toolbar({ sill }: { sill: string }) {
         <button className="water-all" onClick={() => waterAll(sill)}>💧 Полить всех, кто хочет пить ({thirsty})</button>
       )}
       <p className="tool-hint">
-        {tool === 'water' && 'Тап — полить. Долгий тап — карточка, потяни — переставить'}
-        {tool === 'mist' && 'Тап — опрыскать. Не все растения это любят!'}
-        {tool === 'feed' && 'Тап — подкормить: сутки растёт в 1,5 раза быстрее'}
-        {tool === 'cut' && 'Тап по взрослому растению — взять черенок'}
-        {tool === 'look' && 'Тап — открыть карточку растения'}
+        {tool === 'water' && '💧 В руке лейка: тап по растению — полить. Тапни лейку ещё раз, чтобы убрать'}
+        {tool === 'mist' && '💦 В руке опрыскиватель. Не все растения это любят! Тапни ещё раз, чтобы убрать'}
+        {tool === 'feed' && '🧪 Тап — подкормить: сутки растёт в 1,5 раза быстрее. Тапни ещё раз, чтобы убрать'}
+        {tool === 'cut' && '✂️ Тап по взрослому растению — взять черенок. Тапни ещё раз, чтобы убрать'}
+        {tool === 'look' && 'Тап по растению — карточка. Возьми лейку или другой инструмент, чтобы ухаживать быстро'}
       </p>
     </div>
   );

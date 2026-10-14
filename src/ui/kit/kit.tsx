@@ -1,6 +1,17 @@
 import { AnimatePresence, motion } from 'framer-motion';
-import { Component, useEffect, type ReactNode } from 'react';
+import { Component, useEffect, type MouseEvent, type PointerEvent, type ReactNode } from 'react';
 import { platform } from '../../platform';
+
+// Окно открывается по отпусканию пальца, а следом браузер шлёт «клик» —
+// он попадал в фон только что открытого окна и сразу закрывал его.
+// Поэтому закрываем, только если и нажали, и отпустили именно на фоне.
+let downOnBackdrop = false;
+const backdropDown = (e: PointerEvent) => { downOnBackdrop = e.target === e.currentTarget; };
+function guardedClose(e: MouseEvent, onClose: () => void) {
+  if (e.target !== e.currentTarget || !downOnBackdrop) return;
+  downOnBackdrop = false;
+  onClose();
+}
 
 export function Sheet({ open, onClose, children, wide }: { open: boolean; onClose: () => void; children: ReactNode; wide?: boolean }) {
   useEffect(() => {
@@ -11,7 +22,7 @@ export function Sheet({ open, onClose, children, wide }: { open: boolean; onClos
   return (
     <AnimatePresence>
       {open && (
-        <motion.div className="backdrop" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={onClose}>
+        <motion.div className="backdrop" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onPointerDown={backdropDown} onClick={(e) => guardedClose(e, onClose)}>
           <motion.div
             className={'sheet' + (wide ? ' wide' : '')}
             initial={{ y: '100%' }}
@@ -42,7 +53,7 @@ export function Modal({ open, onClose, children }: { open: boolean; onClose: () 
   return (
     <AnimatePresence>
       {open && (
-        <motion.div className="backdrop center" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={onClose}>
+        <motion.div className="backdrop center" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onPointerDown={backdropDown} onClick={(e) => guardedClose(e, onClose)}>
           <motion.div
             className="modal"
             initial={{ scale: 0.8, opacity: 0 }}
