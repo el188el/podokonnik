@@ -4,7 +4,9 @@
 import { verifyInitData, signSession, verifySession } from '../_shared/crypto.ts';
 import { db } from '../_shared/db.ts';
 import { BOT_TOKEN, appLink, secret } from '../_shared/env.ts';
+import { publicView, thirstyCount, VISIT_DAY_LIMIT, VISIT_HOST_LIMIT, VISIT_REWARD, type FriendWater } from '../_shared/game/social.ts';
 import { sp as species } from '../_shared/game/species.ts';
+import type { GameState } from '../_shared/game/types.ts';
 import { CORS, fail, json } from '../_shared/http.ts';
 import { escHtml, send } from '../_shared/tg.ts';
 
@@ -80,7 +82,11 @@ async function auth(b: Body) {
     }
   }
 
-  if (isNew && start.startsWith('r')) await linkReferrer(playerId, start.slice(1), name);
+  // r<id> — приглашение, v<id> — «полей, я в отпуске»: в обоих случаях становимся друзьями
+  if (/^[rv]/.test(start) && UUID.test(start.slice(1))) {
+    if (isNew) await linkReferrer(playerId, start.slice(1), name);
+    await befriend(playerId, start.slice(1), name);
+  }
 
   return json({
     token: await signSession(playerId, await secret('session')),
@@ -138,6 +144,7 @@ async function giftClaim(playerId: string, b: Body) {
     await db.from('inbox').insert({ player_id: r.sender, kind: 'gift_claimed', payload: { sp: r.sp, name } });
     // подарок от друга привёл нового игрока — это тоже приглашение
     if (me && !me.referrer && Date.now() - Date.parse(me.created_at) < 86400e3) await linkReferrer(playerId, r.sender, name);
+    await befriend(playerId, r.sender, name, true);
     const { data: snd } = await db.from('players').select('tg_id').eq('id', r.sender).single();
     if (snd?.tg_id) await send(snd.tg_id, `🎁 <b>${escHtml(name)}</b> забрал(а) твой черенок: ${species(r.sp).name.toLowerCase()} уже в стакане с водой! +10 🍃`, { text: '🪴 Открыть подоконник', url: appLink() });
   }
@@ -158,6 +165,109 @@ async function settings(playerId: string, b: Body) {
   return json({ ok: true });
 }
 
+
+// ─────────────────── друзья ───────────────────
+async function befriend(me: string, other: string, myName: string, quiet = false) {
+  if (!UUID.test(other) || other === me) return false;
+  const { data: exists } = await db.from('players').select('id').eq('id', other).maybeSingle();
+  if (!exists) return false;
+  const { data: fresh } = await db.rpc('add_friend', { p_a: me, p_b: other });
+  if (fresh && !quiet) await db.from('inbox').insert({ player_id: other, kind: 'friend_added', payload: { name: myName } });
+  return !!fresh;
+}
+
+async function areFriends(a: string, b: string) {
+  const { data } = await db.from('friends').select('a').eq('a', a).eq('b', b).maybeSingle();
+  return !!data;
+}
+
+async function pendingWaters(host: string): Promise<FriendWater[]> {
+  const { data } = await db.from('inbox').select('payload').eq('player_id', host).eq('kind', 'friend_water').is('delivered_at', null).limit(100);
+  return (data ?? []).map((r) => ({ plantId: String(r.payload.plantId), at: Number(r.payload.at) || Date.now() }));
+}
+
+async function hostView(host: string) {
+  const save = await loadSave(host);
+  if (!save?.state || !Array.isArray((save.state as GameState).plants)) return null;
+  return publicView(save.state as GameState, Date.now(), await pendingWaters(host));
+}
+
+async function friendsList(playerId: string) {
+  const { data: rows } = await db.from('friends').select('b, created_at').eq('a', playerId).order('created_at', { ascending: false }).limit(60);
+  const ids = (rows ?? []).map((r) => r.b);
+  if (!ids.length) return json({ friends: [] });
+  const { data: players } = await db.from('players').select('id, name, level, last_seen, saves(state)').in('id', ids);
+  const pending = new Map<string, FriendWater[]>();
+  const { data: waters } = await db.from('inbox').select('player_id, payload').in('player_id', ids).eq('kind', 'friend_water').is('delivered_at', null);
+  for (const w of waters ?? []) {
+    const list = pending.get(w.player_id) ?? [];
+    list.push({ plantId: String(w.payload.plantId), at: Number(w.payload.at) || Date.now() });
+    pending.set(w.player_id, list);
+  }
+  const now = Date.now();
+  const friends = (players ?? []).map((p) => {
+    const save = Array.isArray(p.saves) ? p.saves[0] : p.saves;
+    let thirsty = 0, plants = 0;
+    try {
+      if (save?.state) {
+        const v = publicView(save.state as GameState, now, pending.get(p.id) ?? []);
+        thirsty = thirstyCount(v);
+        plants = v.plants.length;
+      }
+    } catch (e) { console.warn('view', p.id, e); }
+    return { id: p.id, name: p.name || 'Садовник', level: p.level, lastSeen: Date.parse(p.last_seen), thirsty, plants };
+  });
+  friends.sort((a, b) => b.thirsty - a.thirsty || b.lastSeen - a.lastSeen);
+  return json({ friends, serverTime: now });
+}
+
+async function friendAdd(playerId: string, b: Body) {
+  const other = str(b.id, 40);
+  const { data: me } = await db.from('players').select('name').eq('id', playerId).single();
+  const fresh = await befriend(playerId, other, me?.name ?? '');
+  return json({ ok: true, fresh });
+}
+
+async function visitsLeft(visitor: string, host: string) {
+  const { data } = await db.from('visits').select('host, waters').eq('visitor', visitor).eq('day', new Date().toISOString().slice(0, 10));
+  const total = (data ?? []).reduce((n, r) => n + r.waters, 0);
+  const here = (data ?? []).find((r) => r.host === host)?.waters ?? 0;
+  return Math.max(0, Math.min(VISIT_HOST_LIMIT - here, VISIT_DAY_LIMIT - total));
+}
+
+async function visit(playerId: string, b: Body) {
+  const host = str(b.id, 40);
+  if (!UUID.test(host)) return fail('bad_id');
+  if (host !== playerId && !(await areFriends(playerId, host))) return fail('not_friends', 403);
+  const view = await hostView(host);
+  if (!view) return json({ view: null, watersLeft: 0 });
+  return json({ view, watersLeft: host === playerId ? 0 : await visitsLeft(playerId, host), serverTime: Date.now() });
+}
+
+async function visitWater(playerId: string, b: Body) {
+  const host = str(b.id, 40);
+  const plantId = str(b.plantId, 32);
+  if (!UUID.test(host) || host === playerId || !plantId) return fail('bad_args');
+  if (!(await areFriends(playerId, host))) return fail('not_friends', 403);
+  const view = await hostView(host);
+  const plant = view?.plants.find((p) => p.id === plantId);
+  if (!view || !plant) return fail('no_plant', 404);
+  if (!plant.thirsty || view.neighbor) return json({ status: 'not_needed' });
+  const { data: ok } = await db.rpc('count_visit_water', { p_visitor: playerId, p_host: host, p_host_limit: VISIT_HOST_LIMIT, p_day_limit: VISIT_DAY_LIMIT });
+  if (!ok) return json({ status: 'limit' });
+  const { data: me } = await db.from('players').select('name').eq('id', playerId).single();
+  const name = me?.name || 'Друг';
+  await db.from('inbox').insert([
+    { player_id: host, kind: 'friend_water', payload: { plantId, at: Date.now(), name, sp: plant.sp } },
+    { player_id: playerId, kind: 'water_reward', payload: { reward: VISIT_REWARD, host: view.name } },
+  ]);
+  const { data: h } = await db.from('players').select('tg_id, notify').eq('id', host).single();
+  if (h?.tg_id && h.notify) {
+    await send(h.tg_id, `💧 <b>${escHtml(name)}</b> полил(а) твой ${escHtml(species(plant.sp).name.toLowerCase())}. Спасибо скажешь? 🌿`, { text: '🪴 Открыть подоконник', url: appLink() });
+  }
+  return json({ status: 'ok', watersLeft: await visitsLeft(playerId, host) });
+}
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: CORS });
   const route = new URL(req.url).pathname.replace(/^.*\/api/, '') || '/';
@@ -176,6 +286,10 @@ Deno.serve(async (req) => {
       case '/gift/claim': return await giftClaim(playerId, body);
       case '/inbox/ack': return await inboxAck(playerId, body);
       case '/settings': return await settings(playerId, body);
+      case '/friends': return await friendsList(playerId);
+      case '/friends/add': return await friendAdd(playerId, body);
+      case '/visit': return await visit(playerId, body);
+      case '/visit/water': return await visitWater(playerId, body);
       default: return fail('not_found', 404);
     }
   } catch (e) {

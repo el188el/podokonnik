@@ -1,6 +1,7 @@
 // Какое напоминание отправить игроку — чистая функция, её легко тестировать.
 
-import { advance, canCut } from '../_shared/game/sim.ts';
+import { canCut } from '../_shared/game/sim.ts';
+import { replayFriendWaters, type FriendWater } from '../_shared/game/social.ts';
 import { sp } from '../_shared/game/species.ts';
 import type { GameState } from '../_shared/game/types.ts';
 
@@ -22,14 +23,14 @@ export function isQuiet(hour: number, from: number, to: number) {
   return from > to ? hour >= from || hour < to : hour >= from && hour < to;
 }
 
-export function pickReminder(state: GameState, now: number, tzOffsetMin: number, lastSeen: number): Reminder | null {
+export function pickReminder(state: GameState, now: number, tzOffsetMin: number, lastSeen: number, waters: FriendWater[] = []): Reminder | null {
   const quietFrom = state.settings?.quietFrom ?? 23;
   const quietTo = state.settings?.quietTo ?? 9;
   if (isQuiet(localHour(now, tzOffsetMin), quietFrom, quietTo)) return null;
   if (!Array.isArray(state.plants) || !state.plants.length) return null;
 
   const g = structuredClone(state);
-  advance(g, now);
+  replayFriendWaters(g, waters, now);
   const neighbor = !!g.neighbor && now < g.neighbor.until;
   const potted = g.plants.filter((p) => p.stage >= 2);
 

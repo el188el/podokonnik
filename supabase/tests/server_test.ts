@@ -68,3 +68,10 @@ Deno.test('напоминание: ночью молчим, соседка по�
   const r = pickReminder(s2, day, 180, day - 86400e3);
   assert(!r || !r.text.includes('пить'));
 });
+
+Deno.test('напоминание: друг полил — бот не пишет «хочет пить»', () => {
+  const day = Date.UTC(2026, 5, 1, 10);
+  const s = newStateForTest(day - 5 * 86400e3);
+  const r = pickReminder(s, day, 180, day - 2 * 86400e3, [{ plantId: 'p1', at: day - 3600e3 }]);
+  assert(!r || !r.text.includes('пить'), r?.text);
+});

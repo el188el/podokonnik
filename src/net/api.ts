@@ -2,6 +2,7 @@
 // рабочей без сети: всё, что не дошло, просто ждёт следующей попытки.
 
 import { CONFIG } from '../config';
+import type { PublicView } from '../game/social';
 import type { GameState, PendingGift } from '../game/types';
 import { platform } from '../platform';
 
@@ -128,3 +129,30 @@ export async function giftClaim(g: PendingGift): Promise<'ok' | 'mine' | 'own' |
 
 export const inboxAck = (ids: number[]) => (ids.length ? call('/inbox/ack', { ids }).catch(() => null) : null);
 export const sendSettings = (s: { notify?: boolean }) => call('/settings', s).catch(() => null);
+
+// ─────────────────── друзья ───────────────────
+export interface Friend {
+  id: string;
+  name: string;
+  level: number;
+  lastSeen: number;
+  thirsty: number;
+  plants: number;
+}
+
+export const loggedIn = () => !!net.token;
+
+export async function friends(): Promise<Friend[]> {
+  const r = await call<{ friends: Friend[] }>('/friends', {});
+  return r.friends;
+}
+
+export const friendAdd = (id: string) => call<{ ok: boolean; fresh: boolean }>('/friends/add', { id }).catch(() => null);
+
+export async function visit(id: string): Promise<{ view: PublicView | null; watersLeft: number }> {
+  return call('/visit', { id });
+}
+
+export async function visitWater(id: string, plantId: string): Promise<{ status: 'ok' | 'limit' | 'not_needed'; watersLeft?: number }> {
+  return call('/visit/water', { id, plantId });
+}

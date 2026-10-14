@@ -7,7 +7,6 @@ import { now, openSheet, setName, setSetting, toggleDecor, useStore } from '../.
 import { platform } from '../../platform';
 import { online, sendSettings } from '../../net/api';
 import { Bar, Btn, Leaves } from '../kit/kit';
-import { shareInvite } from '../share';
 
 export function Profile() {
   const g = useStore((s) => s.game);
@@ -39,11 +38,6 @@ export function Profile() {
         <Bar value={g.xp / xpToNext(g.level)} label={`${g.xp}/${xpToNext(g.level)} опыта`} />
       </section>
 
-      <section className="panel invite">
-        <h3>👯 Позови друзей</h3>
-        <p className="muted small">Подоконник веселее вместе: дарите друг другу черенки, а скоро можно будет ходить в гости и поливать растения друзей.</p>
-        <Btn kind="gold" onClick={shareInvite}>Пригласить друга</Btn>
-      </section>
 
       <section className="panel">
         <h3>👵 Соседка польёт</h3>

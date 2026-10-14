@@ -10,11 +10,12 @@ import { PlantArt } from '../art/PlantArt';
 import { Btn, Sheet } from '../kit/kit';
 import { shareGift } from '../share';
 import { PlantCard } from './PlantCard';
+import { Visit } from './Visit';
 
 export function Sheets() {
   const sheet = useStore((s) => s.sheet);
   return (
-    <Sheet open={!!sheet} onClose={closeSheet}>
+    <Sheet open={!!sheet} onClose={closeSheet} wide={sheet?.kind === 'visit'}>
       {sheet?.kind === 'card' && <PlantCard id={sheet.plant} />}
       {sheet?.kind === 'picker' && <Picker slot={sheet.slot} sill={sheet.sill} />}
       {sheet?.kind === 'window' && <WindowPick sill={sheet.sill} then={sheet.then} slot={sheet.slot} />}
@@ -22,6 +23,7 @@ export function Sheets() {
       {sheet?.kind === 'herb' && <Herb id={sheet.sp} />}
       {sheet?.kind === 'neighbor' && <Neighbor />}
       {sheet?.kind === 'install' && <Install />}
+      {sheet?.kind === 'visit' && <Visit key={sheet.id} id={sheet.id} name={sheet.name} />}
     </Sheet>
   );
 }

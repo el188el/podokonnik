@@ -39,12 +39,19 @@ Deno.serve(async (req) => {
     return new Response('db error', { status: 500 });
   }
 
+  const ids = (players ?? []).map((p) => p.id);
+  const waters = new Map<string, { plantId: string; at: number }[]>();
+  if (ids.length) {
+    const { data: rows } = await db.from('inbox').select('player_id, payload').in('player_id', ids).eq('kind', 'friend_water').is('delivered_at', null);
+    for (const r of rows ?? []) waters.set(r.player_id, [...(waters.get(r.player_id) ?? []), { plantId: String(r.payload.plantId), at: Number(r.payload.at) }]);
+  }
+
   let sent = 0;
   for (const p of players ?? []) {
     const save = Array.isArray(p.saves) ? p.saves[0] : p.saves;
     if (!save?.state) continue;
     try {
-      const r = pickReminder(save.state as GameState, now, p.tz_offset, Date.parse(p.last_seen));
+      const r = pickReminder(save.state as GameState, now, p.tz_offset, Date.parse(p.last_seen), waters.get(p.id) ?? []);
       if (!r) continue;
       const ok = await send(p.tg_id, r.text, { text: r.button, url: appLink() });
       if (ok) {

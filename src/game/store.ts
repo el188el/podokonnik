@@ -8,6 +8,7 @@ import { XP, levelReward, unlocksAt, xpToNext, SILL_UNLOCK } from './progression
 import { QUEST_BONUS, bumpQuest, rollDay, streakReward } from './quests';
 import { ITEM_BY_ID, potIdOf } from './shop';
 import { advance, bestZone, canCut, cramped, ctxFor, hasLamp, lightBad, type SimEvent } from './sim';
+import { replayFriendWaters, type FriendWater } from './social';
 import { SPECIES, sp } from './species';
 import { loadCloud, loadLocal, newPlant, newState, pickNewer, saveCloud, saveLocal, upgrade } from './storage';
 import type { GameState, PendingGift, Plant, QuestKind, Zone } from './types';
@@ -35,9 +36,10 @@ export type Sheet =
   | { kind: 'herb'; sp: string }
   | { kind: 'neighbor' }
   | { kind: 'install' }
+  | { kind: 'visit'; id: string; name: string }
   | null;
 
-export type Tab = 'sill' | 'shop' | 'herbarium' | 'quests' | 'profile';
+export type Tab = 'sill' | 'shop' | 'friends' | 'herbarium' | 'quests' | 'profile';
 
 interface Toast { id: number; text: string }
 
@@ -244,6 +246,19 @@ function adoptServer(save: api.ServerSave, message?: string) {
   if (message) toast(message);
 }
 
+/** Поливы друзей, пришедшие при входе, уже учтены в симуляции в свои моменты времени. */
+const replayed = new Set<number>();
+
+function friendWaters(g: GameState, items: api.InboxItem[]): FriendWater[] {
+  const seen = new Set(g.inboxSeen ?? []);
+  return items
+    .filter((i) => i.kind === 'friend_water' && !seen.has(i.id))
+    .map((i) => {
+      replayed.add(i.id);
+      return { plantId: String(i.payload.plantId), at: Number(i.payload.at) || Date.now(), name: String(i.payload.name ?? 'Друг') };
+    });
+}
+
 function applyInbox(items: api.InboxItem[]) {
   if (!items.length) return;
   const ids = items.map((i) => i.id);
@@ -262,6 +277,20 @@ function applyInbox(items: api.InboxItem[]) {
       } else if (it.kind === 'welcome') {
         g.leaves += 30;
         toast('🎉 Тебя пригласил друг — держи +30 🍃 на первые черенки');
+      } else if (it.kind === 'friend_added') {
+        toast(`👋 ${name} теперь твой друг — загляните друг к другу в гости`);
+      } else if (it.kind === 'friend_water') {
+        const p = g.plants.find((x) => x.id === String(it.payload.plantId));
+        if (!replayed.has(it.id) && p && p.stage >= 2 && p.moisture < 1) {
+          p.moisture = 1;
+          p.dryFor = 0;
+          fx(p.id, 'water');
+        }
+        toast(`💧 ${name} полил(а) твой ${sp(String(it.payload.sp ?? p?.sp)).name.toLowerCase()}`);
+      } else if (it.kind === 'water_reward') {
+        const r = Number(it.payload.reward) || 0;
+        g.leaves += r;
+        toast(`Спасибо от ${String(it.payload.host ?? 'друга')}: +${r} 🍃`);
       }
     }
     g.inboxSeen = [...seen].slice(-100);
@@ -307,14 +336,22 @@ export async function boot() {
   const t = Date.now() + api.serverSkew() + (g.offset || 0);
   const before = new Map(g.plants.map((p) => [p.id, { stage: p.stage, health: p.health }]));
   const away = t - (g.lastSeen || t);
-  const ev = advance(g, t);
+  const waters = server ? friendWaters(g, server.inbox) : [];
+  const ev = replayFriendWaters(g, waters, t);
   handleEvents(g, ev, true);
 
   const fresh = rollDay(g, t);
   set({ game: g, ready: true });
 
   if (local.migrated) popup({ kind: 'migrated' });
-  if (away > H && g.plants.length) popup({ kind: 'away', report: awayReport(g, ev, before, away) });
+  if (away > H && g.plants.length) {
+    const report = awayReport(g, ev, before, away);
+    for (const w of waters) {
+      const p = g.plants.find((x) => x.id === w.plantId);
+      if (p) report.lines.unshift({ icon: '💧', text: `${w.name} полил(а) ${sp(p.sp).acc} — спасибо другу!` });
+    }
+    popup({ kind: 'away', report });
+  }
   if (fresh && g.streak.claimedDay !== g.streak.day && g.plants.length) popup({ kind: 'streak', count: g.streak.count, reward: streakReward(g.streak.count) });
   after(g);
   scheduleSave();

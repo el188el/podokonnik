@@ -36,6 +36,15 @@ export const inviteLink = () => {
   return tgAppLink('r' + id) || `${CONFIG.siteUrl}?start=r${id}`;
 };
 
+/** «Полей, я в отпуске»: друг по ссылке сразу попадает ко мне в гости. */
+export async function shareVacation(name: string) {
+  const id = playerId();
+  if (!id) return;
+  const url = tgAppLink('v' + id) || `${CONFIG.siteUrl}?start=v${id}`;
+  const r = await platform().share({ text: `${name ? name + ' уезжает' : 'Я уезжаю'} 🧳 Польёшь мои растения? Загляни на мой подоконник:`, url });
+  report(r);
+}
+
 export async function shareInvite() {
   const r = await platform().share({ text: 'Я выращиваю растения на подоконнике 🌿 Заходи — дадут бонус на первые черенки!', url: inviteLink() });
   report(r);

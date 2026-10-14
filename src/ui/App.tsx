@@ -3,10 +3,12 @@ import { useEffect } from 'react';
 import { D, H, MIN } from '../game/constants';
 import { decodeGift, legacyGift } from '../game/gifts';
 import { xpToNext } from '../game/progression';
-import { debug, setTab, showGift, useStore, type Tab } from '../game/store';
+import { debug, openSheet, setTab, showGift, useStore, type Tab } from '../game/store';
+import { playerId } from '../net/api';
 import { platform } from '../platform';
 import { Popups } from './Popups';
 import { Sheets } from './sheets/Sheets';
+import { Friends } from './tabs/Friends';
 import { Herbarium } from './tabs/Herbarium';
 import { Profile } from './tabs/Profile';
 import { Quests } from './tabs/Quests';
@@ -16,9 +18,9 @@ import { SillView } from './tabs/SillView';
 const TABS: [Tab, string, string][] = [
   ['sill', '🪴', 'Подоконник'],
   ['shop', '🛒', 'Магазин'],
-  ['herbarium', '📖', 'Гербарий'],
+  ['friends', '👯', 'Друзья'],
   ['quests', '🎯', 'Задания'],
-  ['profile', '👤', 'Профиль'],
+  ['herbarium', '📖', 'Гербарий'],
 ];
 
 const isDebug = new URLSearchParams(location.search).has('debug');
@@ -39,6 +41,8 @@ export function App() {
       if (q.has('debug')) keep.set('debug', '1');
       history.replaceState(null, '', location.pathname + (keep.toString() ? '?' + keep : '') + location.hash);
     } else if (g.pending.length) showGift({ ...g.pending[0], ok: true });
+    const start = platform().startParam ?? q.get('start') ?? '';
+    if (/^v[0-9a-f-]{36}$/.test(start) && start.slice(1) !== playerId()) openSheet({ kind: 'visit', id: start.slice(1), name: 'друга' });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -53,6 +57,7 @@ export function App() {
         <div className="money">
           {g.streak.count > 0 && <span className="streak">🔥{g.streak.count}</span>}
           <span className="leaves">{g.leaves} 🍃</span>
+          <button className="me" onClick={() => setTab('profile')} aria-label="Профиль">👤</button>
         </div>
       </header>
 
@@ -62,6 +67,7 @@ export function App() {
         {tab === 'herbarium' && <Herbarium />}
         {tab === 'quests' && <Quests />}
         {tab === 'profile' && <Profile />}
+        {tab === 'friends' && <Friends />}
       </main>
 
       {isDebug && (
