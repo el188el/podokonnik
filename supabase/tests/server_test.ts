@@ -101,3 +101,13 @@ Deno.test('напоминание о настоящем растении важ�
   s.twins[0].lastWater = day - 86400e3;
   assert(!pickReminder(s, day, 180, day - 2 * 86400e3)?.text.includes('Моня'));
 });
+
+Deno.test('совместный подоконник: общая логика работает на сервере', async () => {
+  const { newCoop, coopAct, cleanAction } = await import('../functions/_shared/game/coop.ts');
+  const t = Date.now();
+  const c = newCoop('Наш', 'E', t);
+  const plant = cleanAction({ kind: 'plant', slot: 2, cutting: { sp: 'violet' } })!;
+  assertEquals(coopAct(c, plant, 'Аня', t, 'x1').ok, true);
+  assertEquals(coopAct(c, { kind: 'water', plant: 'x1' }, 'Миша', t + 1000), { ok: true, effect: 'rooting' });
+  assertEquals(c.log[0].who, 'Миша');
+});

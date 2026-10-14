@@ -513,3 +513,16 @@ svg.big.sad { filter: sepia(0.6) saturate(0.6); }
 .cause-head { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
 .tag { font-size: 11px; color: var(--muted, #7a8a85); white-space: nowrap; }
 .tag.hi { color: var(--green); font-weight: 700; }
+
+/* общий подоконник */
+.sill-switch { padding: 10px 12px 0; flex-wrap: nowrap; overflow-x: auto; }
+.sill-switch + .sillview .sillbar { padding-top: 6px; }
+.coop-chip.on { background: #ffe1ea; border-color: #f29bb4; }
+.coop-head { display: flex; align-items: center; gap: 8px; padding: 8px 12px 6px; }
+.coop .hint, .coop .panel { margin-left: 12px; margin-right: 12px; }
+.coop-head > div { flex: 1; display: flex; flex-direction: column; min-width: 0; }
+.coop-head > div b { font-size: 17px; }
+.coop-menu, .coop-card { margin: 6px 0; }
+.coop-card .actions { display: flex; flex-wrap: wrap; gap: 6px; }
+.coop-log > div { padding: 3px 0; border-bottom: 1px solid #0000000a; }
+.slot.picked .art { outline: 3px solid #fff; outline-offset: 2px; border-radius: 20px; }

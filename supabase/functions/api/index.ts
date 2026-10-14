@@ -14,6 +14,8 @@ import { activeEvent } from '../_shared/game/events.ts';
 import { FORM_BY_ID } from '../_shared/game/products.ts';
 import { hueOf } from '../_shared/game/breeding.ts';
 import { escHtml, send } from '../_shared/tg.ts';
+import { COOP_MAX_MEMBERS, COOP_MAX_PER_PLAYER, cleanAction, coopAct, coopAdvance, newCoop, type CoopState } from '../_shared/game/coop.ts';
+import type { WindowSide } from '../_shared/game/types.ts';
 
 const MAX_STATE = 300_000;
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
@@ -413,6 +415,113 @@ async function swapCancel(playerId: string, b: Body) {
   return json({ status: 'ok' });
 }
 
+// ─────────────────── совместный подоконник ───────────────────
+const randomCode = (n: number) => {
+  const abc = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789';
+  const r = crypto.getRandomValues(new Uint8Array(n));
+  return Array.from(r, (x) => abc[x % abc.length]).join('');
+};
+
+async function playerName(id: string) {
+  const { data } = await db.from('players').select('name').eq('id', id).single();
+  return (data?.name as string) || 'Садовник';
+}
+
+async function isMember(sill: number, playerId: string) {
+  const { data } = await db.from('coop_members').select('sill_id').eq('sill_id', sill).eq('player_id', playerId).maybeSingle();
+  return !!data;
+}
+
+/** Подоконник для клиента: состояние, досчитанное до текущего момента, и участники. */
+async function coopView(row: { id: number; code: string; state: CoopState; version: number }) {
+  const state = row.state;
+  coopAdvance(state, Date.now());
+  const { data: ms } = await db.from('coop_members').select('player_id, players(name)').eq('sill_id', row.id).order('joined_at');
+  const members = (ms ?? []).map((m) => {
+    const pl = (Array.isArray(m.players) ? m.players[0] : m.players) as { name?: string } | null;
+    return { id: m.player_id as string, name: pl?.name || 'Садовник' };
+  });
+  return { id: row.id, code: row.code, version: row.version, state, members };
+}
+
+async function coopList(playerId: string) {
+  const { data: mine } = await db.from('coop_members').select('sill_id').eq('player_id', playerId);
+  const ids = (mine ?? []).map((m) => m.sill_id);
+  if (!ids.length) return json({ coops: [] });
+  const { data: rows } = await db.from('coop_sills').select('id, code, state, version').in('id', ids).order('id');
+  return json({ coops: await Promise.all((rows ?? []).map((r) => coopView(r as never))) });
+}
+
+async function coopCreate(playerId: string, b: Body) {
+  const { count } = await db.from('coop_members').select('sill_id', { count: 'exact', head: true }).eq('player_id', playerId);
+  if ((count ?? 0) >= COOP_MAX_PER_PLAYER) return fail('too_many', 429);
+  const side = (['N', 'E', 'S', 'W'].includes(str(b.window, 1)) ? str(b.window, 1) : 'E') as WindowSide;
+  const state = newCoop(str(b.name, 24), side, Date.now());
+  for (let i = 0; i < 3; i++) {
+    const { data, error } = await db.from('coop_sills').insert({ code: randomCode(10), state, created_by: playerId }).select('id, code, state, version').single();
+    if (error) continue;
+    await db.from('coop_members').insert({ sill_id: data.id, player_id: playerId });
+    return json({ coop: await coopView(data as never) });
+  }
+  return fail('db', 500);
+}
+
+async function coopJoin(playerId: string, b: Body) {
+  const code = str(b.code, 16);
+  if (!/^[A-Za-z0-9]{10}$/.test(code)) return json({ status: 'gone' });
+  const { data: found } = await db.from('coop_sills').select('id').eq('code', code).maybeSingle();
+  if (!found) return json({ status: 'gone' });
+  const already = await isMember(found.id, playerId);
+  if (!already) {
+    const { count } = await db.from('coop_members').select('sill_id', { count: 'exact', head: true }).eq('player_id', playerId);
+    if ((count ?? 0) >= COOP_MAX_PER_PLAYER) return json({ status: 'too_many' });
+    const { data: sid } = await db.rpc('join_coop', { p_code: code, p_player: playerId, p_max: COOP_MAX_MEMBERS });
+    if (sid === null || sid === undefined) return json({ status: 'gone' });
+    if (sid === 0) return json({ status: 'full' });
+  }
+  const { data: row } = await db.from('coop_sills').select('id, code, state, version').eq('id', found.id).single();
+  const view = await coopView(row as never);
+  if (already) return json({ status: 'ok', coop: view });
+  const me = await playerName(playerId);
+  const others = view.members.filter((m) => m.id !== playerId);
+  if (others.length) {
+    await db.from('inbox').insert(others.map((m) => ({ player_id: m.id, kind: 'coop_join', payload: { name: me, sill: view.state.name } })));
+    for (const o of others) await befriend(playerId, o.id, me, true).catch(() => false);
+    const { data: tg } = await db.from('players').select('tg_id, notify').in('id', others.map((m) => m.id));
+    for (const p of tg ?? []) {
+      if (p.tg_id && p.notify) await send(p.tg_id, `💞 <b>${escHtml(me)}</b> теперь вместе с тобой ухаживает за подоконником «${escHtml(view.state.name)}»!`, { text: '🪴 Открыть подоконник', url: appLink() });
+    }
+  }
+  return json({ status: 'ok', coop: view });
+}
+
+async function coopActRoute(playerId: string, b: Body) {
+  const id = Number(b.id);
+  const action = cleanAction(b.action);
+  if (!Number.isFinite(id) || !action) return fail('bad_args');
+  if (!(await isMember(id, playerId))) return fail('not_member', 403);
+  const who = await playerName(playerId);
+  for (let i = 0; i < 4; i++) {
+    const { data: row } = await db.from('coop_sills').select('id, code, state, version').eq('id', id).maybeSingle();
+    if (!row) return json({ result: { ok: false, reason: 'gone' } });
+    const state = row.state as CoopState;
+    const result = coopAct(state, action, who, Date.now(), randomCode(8));
+    if (!result.ok) return json({ result, coop: await coopView({ ...row, state } as never) });
+    const { data: upd } = await db.from('coop_sills')
+      .update({ state, version: row.version + 1, updated_at: new Date().toISOString() })
+      .eq('id', id).eq('version', row.version).select('id');
+    if (upd?.length) return json({ result, coop: await coopView({ ...row, state, version: row.version + 1 } as never) });
+  }
+  return fail('busy', 409);
+}
+
+async function coopLeave(playerId: string, b: Body) {
+  const id = Number(b.id);
+  if (!Number.isFinite(id)) return fail('bad_args');
+  await db.rpc('leave_coop', { p_sill: id, p_player: playerId });
+  return json({ status: 'ok' });
+}
+
 // ─────────────────── оплата ───────────────────
 async function payInvoice(playerId: string, b: Body) {
   const product = PRODUCT_BY_ID[str(b.product, 40)];
@@ -452,6 +561,11 @@ Deno.serve(async (req) => {
       case '/swaps/create': return await swapCreate(playerId, body);
       case '/swaps/take': return await swapTake(playerId, body);
       case '/swaps/cancel': return await swapCancel(playerId, body);
+      case '/coop': return await coopList(playerId);
+      case '/coop/create': return await coopCreate(playerId, body);
+      case '/coop/join': return await coopJoin(playerId, body);
+      case '/coop/act': return await coopActRoute(playerId, body);
+      case '/coop/leave': return await coopLeave(playerId, body);
       default: return fail('not_found', 404);
     }
   } catch (e) {

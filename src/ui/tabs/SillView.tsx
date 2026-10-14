@@ -3,7 +3,9 @@ import { WINDOWS } from '../../game/constants';
 import { activeEvent, eventSeason, tierOf } from '../../game/events';
 import { isWinter, seasonName, fmt } from '../../game/sim';
 import { sp } from '../../game/species';
-import { now, openSheet, plantAt, setActiveSill, setTool, showGift, useStore, waterAll, type Tool } from '../../game/store';
+import { now, openSheet, plantAt, setActiveSill, setTool, showCoop, showGift, useStore, waterAll, type Tool } from '../../game/store';
+import { loggedIn } from '../../net/api';
+import { CoopSill } from './CoopSill';
 import type { GameState } from '../../game/types';
 import { PlantArt } from '../art/PlantArt';
 import { Slot } from '../Slot';
@@ -38,7 +40,39 @@ function hint(g: GameState, t: number): string {
 }
 
 
+/** Переключатель: свои подоконники и общие. */
+function SillSwitch() {
+  const g = useStore((s) => s.game);
+  const coops = useStore((s) => s.coops) ?? [];
+  const coopOn = useStore((s) => s.coopOn);
+  const canCoop = loggedIn() && g.tutorial >= TUTORIAL_DONE;
+  if (g.sills.length < 2 && !coops.length && !canCoop) return null;
+  return (
+    <div className="chips sill-switch">
+      {g.sills.map((s) => (
+        <button key={s.id} className={'chip' + (!coopOn && s.id === g.activeSill ? ' on' : '')} onClick={() => { showCoop(null); setActiveSill(s.id); }}>
+          {s.name}
+        </button>
+      ))}
+      {coops.map((c) => (
+        <button key={c.id} className={'chip coop-chip' + (coopOn === c.id ? ' on' : '')} onClick={() => showCoop(c.id)}>💞 {c.state.name}</button>
+      ))}
+      {canCoop && coops.length < 2 && <button className="chip" onClick={() => openSheet({ kind: 'coop' })}>💞 +{coops.length ? '' : ' Общий'}</button>}
+    </div>
+  );
+}
+
 export function SillView() {
+  const coop = useStore((s) => s.coops?.find((c) => c.id === s.coopOn));
+  return (
+    <>
+      <SillSwitch />
+      {coop ? <CoopSill coop={coop} /> : <OwnSill />}
+    </>
+  );
+}
+
+function OwnSill() {
   const g = useStore((s) => s.game);
   const t = now();
   const sill = g.sills.find((s) => s.id === g.activeSill) ?? g.sills[0];
@@ -55,15 +89,6 @@ export function SillView() {
   return (
     <div className="sillview">
       <div className="sillbar">
-        {g.sills.length > 1 && (
-          <div className="chips">
-            {g.sills.map((s) => (
-              <button key={s.id} className={'chip' + (s.id === sill.id ? ' on' : '')} onClick={() => setActiveSill(s.id)}>
-                {s.name}
-              </button>
-            ))}
-          </div>
-        )}
         <button className="chip win" onClick={() => openSheet({ kind: 'window', sill: sill.id })}>
           🪟 {sill.window ? WINDOWS[sill.window].short : 'Окно?'}
         </button>

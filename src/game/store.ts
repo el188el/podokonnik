@@ -6,6 +6,7 @@ import { fetchWeather } from '../net/weather';
 import { compress, deletePhoto, savePhoto } from '../net/photos';
 import { photoReward, pushPhoto } from './twins';
 import type { Place } from './weather';
+import type { CoopAction, CoopResult } from './coop';
 import { platform } from '../platform';
 import { ACHIEVEMENTS, checkAchievements } from './achievements';
 import { freshAgeMarks } from './age';
@@ -55,6 +56,7 @@ export type Sheet =
   | { kind: 'twins' }
   | { kind: 'weather' }
   | { kind: 'doctor'; sp?: string }
+  | { kind: 'coop' }
   | null;
 
 export type Tab = 'sill' | 'shop' | 'friends' | 'herbarium' | 'quests' | 'profile';
@@ -71,6 +73,8 @@ interface Store {
   flash: Record<string, { text: string; until: number }>;
   fx: Record<string, { kind: 'water' | 'mist' | 'grow' | 'feed'; at: number }>;
   tool: Tool;
+  coops: api.CoopView[] | null; // общие подоконники (null — ещё не загружали)
+  coopOn: number | null;        // открыт общий подоконник
 }
 
 /** Инструмент в руке: что произойдёт по тапу на растение. */
@@ -87,6 +91,8 @@ export const useStore = create<Store>(() => ({
   flash: {},
   fx: {},
   tool: 'water',
+  coops: null,
+  coopOn: null,
 }));
 
 const get = () => useStore.getState();
@@ -370,6 +376,9 @@ function applyInbox(items: api.InboxItem[]) {
           discover(g, spId);
           toast(it.kind === 'swap_return' ? `Черенок ${sp(spId).gen} вернулся с барахолки` : `🔄 ${String(it.payload.from ?? 'Садовник')}: черенок ${sp(spId).gen} пришёл по обмену!`);
         }
+      } else if (it.kind === 'coop_join') {
+        toast(`💞 ${name} присоединил(ась) к подоконнику «${String(it.payload.sill ?? '')}»`);
+        setTimeout(loadCoops, 300);
       } else if (it.kind === 'tester') {
         grantTester(g, now());
       } else if (it.kind === 'water_reward') {
@@ -476,6 +485,7 @@ export async function boot() {
     if (server.force !== undefined || api.knownVersion() === 0) pushNow(false, server.force);
     applyInbox(server.inbox);
     syncPlus();
+    loadCoops();
   }
 }
 
@@ -1424,3 +1434,116 @@ export async function cancelSwap(id: number) {
     toast('Не получилось снять объявление');
   }
 }
+
+// ─────────────────── совместный подоконник ───────────────────
+const putCoop = (c: api.CoopView) => set((s) => ({ coops: [...(s.coops ?? []).filter((x) => x.id !== c.id), c].sort((a, b) => a.id - b.id) }));
+
+export async function loadCoops() {
+  if (!api.loggedIn()) return;
+  try {
+    const { coops } = await api.coopList();
+    set((s) => ({ coops, coopOn: coops.some((c) => c.id === s.coopOn) ? s.coopOn : null }));
+  } catch { /* нет сети */ }
+}
+
+export const showCoop = (id: number | null) => set({ coopOn: id, sheet: null });
+
+export async function createCoop(name: string, window: string) {
+  try {
+    const { coop } = await api.coopCreate(name, window);
+    putCoop(coop);
+    showCoop(coop.id);
+    track('coop_create');
+    toast('💞 Общий подоконник готов! Пригласи того, с кем будете ухаживать');
+    return true;
+  } catch (e) {
+    toast(String(e).includes('too_many') ? 'Можно состоять максимум в двух общих подоконниках' : 'Не получилось создать. Проверь интернет');
+    return false;
+  }
+}
+
+export async function joinCoop(code: string) {
+  if (!api.loggedIn()) { toast('Общий подоконник работает, когда есть интернет'); return false; }
+  try {
+    const r = await api.coopJoin(code);
+    if (r.status === 'ok' && r.coop) {
+      putCoop(r.coop);
+      setTab('sill');
+      showCoop(r.coop.id);
+      track('coop_join');
+      toast(`💞 Ты теперь ухаживаешь за «${r.coop.state.name}» вместе с ${r.coop.members.filter((m) => m.id !== api.playerId()).map((m) => m.name).join(', ') || 'друзьями'}`);
+      return true;
+    }
+    toast(r.status === 'full' ? 'На этом подоконнике уже 4 садовника' : r.status === 'too_many' ? 'Можно состоять максимум в двух общих подоконниках' : 'Приглашение не найдено — попроси ссылку ещё раз');
+  } catch {
+    toast('Не получилось присоединиться. Проверь интернет');
+  }
+  return false;
+}
+
+export async function leaveCoop(id: number) {
+  try {
+    await api.coopLeave(id);
+    set((s) => ({ coops: (s.coops ?? []).filter((c) => c.id !== id), coopOn: s.coopOn === id ? null : s.coopOn }));
+  } catch { toast('Не получилось. Проверь интернет'); }
+}
+
+const COOP_FAIL: Record<string, string> = {
+  gone: 'Этого растения уже нет — кто-то успел раньше',
+  enough: 'Земля ещё влажная. Тапни ещё раз, если всё равно хочешь полить',
+  busy: 'Место уже занято',
+  no_mist: 'Это растение не опрыскивают',
+  not_ready: 'Пока рано',
+  bad: 'Так нельзя',
+};
+
+/** Действие на общем подоконнике. cuttingId — какой черенок из запаса посадить. */
+export async function coopDo(id: number, action: CoopAction, cuttingId?: string): Promise<CoopResult | null> {
+  if (action.kind === 'cut' && get().game.cuttings.length >= MAX_CUTTINGS) {
+    toast('В стаканах на кухне уже 10 черенков — подари или посади их');
+    return null;
+  }
+  try {
+    const r = await api.coopAct(id, action);
+    if (r.coop) putCoop(r.coop);
+    const res = r.result;
+    if (!res.ok) {
+      if (!(res.reason === 'enough' && action.kind === 'water' && action.insist)) toast(COOP_FAIL[res.reason] ?? 'Не получилось');
+      return res;
+    }
+    mut((g, t) => {
+      if (res.effect === 'watered') {
+        g.stats.waters += 1;
+        addXp(g, XP.water);
+        quest(g, 'water');
+        eventToken(g, 'water', t);
+        haptic('light');
+      } else if (res.effect === 'misted') {
+        addXp(g, XP.mist);
+        quest(g, 'mist');
+        haptic('light');
+      } else if (res.effect === 'potted') {
+        g.stats.planted += 1;
+        addXp(g, XP.plant);
+        quest(g, 'plant');
+        haptic('success');
+      } else if (res.effect === 'planted' && cuttingId) {
+        g.cuttings = g.cuttings.filter((c) => c.id !== cuttingId);
+      } else if (res.effect === 'cut' && res.cutting) {
+        g.cuttings.push({ id: makeCode(8), at: t, ...res.cutting });
+        g.stats.cuts += 1;
+        addXp(g, XP.cut);
+        quest(g, 'cut');
+        if (res.cutting.form) toast(`✨ Редкость! Черенок оказался формой «${FORM_BY_ID[res.cutting.form]?.name}»`);
+        else toast('✂️ Черенок у тебя в запасе');
+        haptic('success');
+      }
+    });
+    return res;
+  } catch {
+    toast('Нет связи с общим подоконником. Попробуй ещё раз');
+    return null;
+  }
+}
+
+export const coopInviteCode = (c: api.CoopView) => 'c' + c.code;

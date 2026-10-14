@@ -209,3 +209,19 @@ export const swaps = () => call<{ market: SwapOffer[]; mine: MySwap[] }>('/swaps
 export const swapCreate = (c: CuttingRef & { wants: string[]; note?: string }) => call<{ id: number }>('/swaps/create', c);
 export const swapTake = (id: number, give: CuttingRef) => call<{ status: 'ok' | 'gone' }>('/swaps/take', { id, give });
 export const swapCancel = (id: number) => call<{ status: 'ok' | 'gone' }>('/swaps/cancel', { id });
+
+// ─────────────────── совместный подоконник ───────────────────
+export interface CoopView {
+  id: number;
+  code: string;
+  version: number;
+  state: import('../game/coop').CoopState;
+  members: { id: string; name: string }[];
+}
+
+export const coopList = () => call<{ coops: CoopView[] }>('/coop', {});
+export const coopCreate = (name: string, window: string) => call<{ coop: CoopView }>('/coop/create', { name, window });
+export const coopJoin = (code: string) => call<{ status: 'ok' | 'gone' | 'full' | 'too_many'; coop?: CoopView }>('/coop/join', { code });
+export const coopAct = (id: number, action: import('../game/coop').CoopAction) =>
+  call<{ result: import('../game/coop').CoopResult; coop?: CoopView }>('/coop/act', { id, action });
+export const coopLeave = (id: number) => call<{ status: string }>('/coop/leave', { id });

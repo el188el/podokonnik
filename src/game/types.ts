@@ -102,6 +102,7 @@ export interface Plant {
   claimedAt?: number;
   showoffDone?: boolean;
   ageSeen?: number;     // последняя отпразднованная отметка возраста (дней)
+  waterBy?: { name: string; at: number }; // кто полил последним (общий подоконник)
 }
 
 export interface Sill {

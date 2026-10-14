@@ -3,7 +3,7 @@
 // Запуск: npm run sync:shared   (CI проверяет, что копия не устарела)
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 
-const FILES = ['types', 'constants', 'species', 'sim', 'social', 'products', 'events', 'breeding', 'weather'];
+const FILES = ['types', 'constants', 'species', 'sim', 'social', 'products', 'events', 'breeding', 'weather', 'layout', 'coop'];
 const out = 'supabase/functions/_shared/game';
 mkdirSync(out, { recursive: true });
 const check = process.argv.includes('--check');
