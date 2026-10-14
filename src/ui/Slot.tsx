@@ -1,7 +1,7 @@
 import { motion } from 'framer-motion';
 import { useEffect, useRef } from 'react';
 import { STAGE_NAME } from '../game/constants';
-import { canCut, cramped, ctxFor, fmt, isSad, isLightSad, isThirstySad, lightBad, nextStageAt, rootsAt } from '../game/sim';
+import { badLight, canCut, cramped, ctxFor, fmt, isSad, isLightSad, isThirstySad, nextStageAt, rootsAt } from '../game/sim';
 import { SHOWOFF_MS } from '../game/constants';
 import { sp } from '../game/species';
 import { checkRound, feed, mist, now, openSheet, plantInPot, say, swap, takeCutting, toast, useStore, water } from '../game/store';
@@ -25,7 +25,7 @@ function bubbleFor(p: Plant, t: number, flash?: { text: string; until: number })
   if (p.stage === 1) return { text: 'Посади меня 🪴', cls: 'ready' };
   if (p.moisture > 1) return { text: 'Перелили 😵', cls: '' };
   if (p.moisture < 0.25) return { text: isThirstySad(p) ? 'Мне грустно… 💧' : 'Хочу пить', cls: isThirstySad(p) ? 'sad' : '' };
-  const bad = lightBad(p, ctx.sill, t, ctx.lamp);
+  const bad = badLight(p, t, ctx);
   if (bad === 'hot') return { text: isLightSad(p) ? 'Жарко на солнце 🥵' : 'Жарковато', cls: '' };
   if (bad === 'dark') return { text: isLightSad(p) ? 'Темновато… 🌥' : 'Темновато', cls: '' };
   if (cramped(p, t)) return { text: 'Тесно в горшке 🪴', cls: '' };

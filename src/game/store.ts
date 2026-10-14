@@ -2,6 +2,8 @@ import { create } from 'zustand';
 import * as api from '../net/api';
 import { ADS_PER_DAY, showRewardedAd } from '../net/ads';
 import { track } from '../net/track';
+import { fetchWeather } from '../net/weather';
+import type { Place } from './weather';
 import { platform } from '../platform';
 import { ACHIEVEMENTS, checkAchievements } from './achievements';
 import { freshAgeMarks } from './age';
@@ -10,7 +12,7 @@ import { giftLink, makeCode } from './gifts';
 import { XP, levelReward, unlocksAt, xpToNext, SILL_UNLOCK } from './progression';
 import { QUEST_BONUS, bumpQuest, rollDay, streakReward } from './quests';
 import { ITEM_BY_ID, ITEMS, potIdOf } from './shop';
-import { advance, bestZone, canCut, cramped, ctxFor, hasLamp, lightBad, type SimEvent } from './sim';
+import { advance, badLight, bestZone, canCut, cramped, ctxFor, hasLamp, type SimEvent } from './sim';
 import { activeEvent, EVENT_TOKENS, eventSeason, tierOf, type GameEvent, type PassReward } from './events';
 import { FORM_BY_ID, FORMS, PRODUCT_BY_ID, RARE_DROP, formsOf } from './products';
 import { replayFriendWaters, type FriendWater } from './social';
@@ -49,6 +51,7 @@ export type Sheet =
   | { kind: 'event' }
   | { kind: 'starter' }
   | { kind: 'twins' }
+  | { kind: 'weather' }
   | null;
 
 export type Tab = 'sill' | 'shop' | 'friends' | 'herbarium' | 'quests' | 'profile';
@@ -504,6 +507,34 @@ export function tick() {
   after(g);
   set({ game: g });
   if (ev.length) scheduleSave();
+  refreshWeather();
+}
+
+// ─────────────────── погода за окном ───────────────────
+let weatherTry = 0;
+
+/** Обновить погоду раз в 30 минут (после ошибки — не чаще раза в 5 минут). */
+export async function refreshWeather(force = false) {
+  const g = get().game;
+  const place = g.settings.place;
+  if (!place || !navigator.onLine) return;
+  const t = now();
+  if (!force && ((g.weather && t - g.weather.at < 30 * 60e3) || Date.now() - weatherTry < 5 * 60e3)) return;
+  weatherTry = Date.now();
+  try {
+    const w = await fetchWeather(place, t);
+    if (get().game.settings.place !== place) return;
+    mut((g) => { g.weather = w; });
+  } catch { /* нет сети — попробуем позже */ }
+}
+
+export function setPlace(place: Place | null) {
+  mut((g) => {
+    g.settings.place = place;
+    delete g.weather;
+  });
+  track('weather', { on: !!place });
+  if (place) return refreshWeather(true);
 }
 
 // ─────────────────── действия игрока ───────────────────
@@ -514,7 +545,7 @@ export function chooseWindow(sillId: string, side: 'N' | 'E' | 'S' | 'W') {
     const first = !sill.window;
     sill.window = side;
     if (!first) {
-      const bad = g.plants.filter((p) => p.sill === sillId && lightBad(p, sill, t, hasLamp(g, sill))).length;
+      const bad = g.plants.filter((p) => p.sill === sillId && badLight(p, t, ctxFor(g, p, t))).length;
       toast(bad ? 'Проверь растения с пузырями: им теперь не тот свет' : 'Всем растениям свет подходит 🌿');
     }
   });
@@ -597,7 +628,7 @@ export function plantInPot(plantId: string) {
 /** Сообщить про свет после перестановки и засчитать задание «переставь к свету». */
 function lightAfterMove(g: GameState, p: Plant, wasBad: boolean, t: number, quiet = false) {
   const ctx = ctxFor(g, p, t);
-  const bad = lightBad(p, ctx.sill, t, ctx.lamp);
+  const bad = badLight(p, t, ctx);
   if (!bad) p.badLightFor = 0;
   if (wasBad && !bad) quest(g, 'fixLight');
   if (quiet) return;
@@ -605,7 +636,7 @@ function lightAfterMove(g: GameState, p: Plant, wasBad: boolean, t: number, quie
   else toast(bad === 'hot' ? `${sp(p.sp).name}: тут жарко на солнце 🥵` : bad === 'dark' ? `${sp(p.sp).name}: тут темновато 🌥` : `${sp(p.sp).name}: ${p.zone === 'glass' ? 'у стекла ☀️' : 'в глубине 🛋'} — тут хорошо`);
 }
 
-const isBad = (g: GameState, p: Plant, t: number) => { const c = ctxFor(g, p, t); return !!lightBad(p, c.sill, t, c.lamp); };
+const isBad = (g: GameState, p: Plant, t: number) => { const c = ctxFor(g, p, t); return !!badLight(p, t, c); };
 
 /** Переставить в другой ряд: на свободное место, а если его нет — поменяться с соседом. */
 export function move(plantId: string, zone: Zone) {

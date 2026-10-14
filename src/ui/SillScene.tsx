@@ -5,11 +5,13 @@
 import type { ReactNode } from 'react';
 import { ROW } from '../game/layout';
 import { ITEM_BY_ID, placeOf } from '../game/shop';
+import type { Sky } from '../game/weather';
 
 export interface SceneProps {
   decor: string[];
   tod: 'day' | 'eve' | 'dawn' | 'night';
   winter?: boolean;
+  sky?: Sky;            // настоящая погода за окном
   theme?: 'autumn' | 'winter' | 'spring';
   win?: string;
   cell: (slot: number) => ReactNode;
@@ -19,16 +21,17 @@ export interface SceneProps {
 const icon = (id: string) => ITEM_BY_ID[id]?.icon ?? '';
 const LEDGE_POS = ['4%', '35%', '65%', '96%']; // промежутки между горшками
 
-export function SillScene({ decor, tod, winter, theme, win = 'E', cell, className = '' }: SceneProps) {
+export function SillScene({ decor, tod, winter, sky, theme, win = 'E', cell, className = '' }: SceneProps) {
   const at = (place: string) => decor.filter((d) => placeOf(d) === place);
   const windowD = at('window');
   const sillD = at('sill').slice(0, 4);
   const tableD = at('table').slice(0, 4);
   const wallD = at('wall');
-  const snow = winter || theme === 'winter';
+  const snow = sky === 'snow' || (!sky && (winter || theme === 'winter'));
+  const rain = sky === 'rain' || sky === 'storm';
 
   return (
-    <div className={`scene tod-${tod}${winter ? ' winter' : ''} ${className}`} data-win={win}>
+    <div className={`scene tod-${tod}${winter ? ' winter' : ''}${sky ? ' sky-' + sky : ''} ${className}`} data-win={win}>
       {/* ─── окно ─── */}
       <div className="window">
         <div className="sky">
@@ -36,6 +39,8 @@ export function SillScene({ decor, tod, winter, theme, win = 'E', cell, classNam
           <div className="cloud c1" />
           <div className="cloud c2" />
           {snow && <div className="snow" />}
+          {rain && <div className="rain" />}
+          {sky === 'fog' && <div className="fog" />}
           {theme === 'autumn' && <div className="fall">{['🍂', '🍁', '🍂', '🍁', '🍂'].map((x, i) => <span key={i} style={{ left: `${8 + i * 19}%`, animationDelay: `${i * 1.7}s` }}>{x}</span>)}</div>}
           {theme === 'spring' && <div className="fall petals">{['🌸', '🌸', '🌸', '🌸'].map((x, i) => <span key={i} style={{ left: `${12 + i * 22}%`, animationDelay: `${i * 2.1}s` }}>{x}</span>)}</div>}
           {windowD.includes('feeder') && <div className="feeder"><span className="feeder-box">🏠</span><span className="tit">🐦</span></div>}

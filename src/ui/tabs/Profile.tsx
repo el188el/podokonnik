@@ -94,6 +94,7 @@ export function Profile() {
             <input type="checkbox" checked={g.settings.notify !== false} onChange={(e) => { setSetting('notify', e.target.checked); sendSettings({ notify: e.target.checked }); }} /> Напоминания от бота
           </label>
         )}
+        {pf.kind !== 'discord' && <Btn onClick={() => openSheet({ kind: 'weather' })}>🌦 Погода за окном: {g.settings.place ? g.settings.place.city : 'выключена'}</Btn>}
         {pf.kind === 'web' && <Btn onClick={() => openSheet({ kind: 'install' })}>📲 Добавить на главный экран</Btn>}
         <p className="muted small">
           {online() ? 'Прогресс сохраняется на сервере и доступен на всех устройствах.' : pf.kind === 'telegram' ? 'Прогресс сохраняется в облаке Telegram и доступен на всех устройствах.' : 'Прогресс сохраняется в этом браузере.'}

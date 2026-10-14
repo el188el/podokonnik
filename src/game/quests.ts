@@ -1,6 +1,6 @@
 // Ежедневные задания и серия заходов: короткая причина вернуться завтра.
 
-import { cramped, lightBad, ctxFor } from './sim';
+import { badLight, cramped, ctxFor } from './sim';
 import { sp } from './species';
 import type { GameState, QuestKind, QuestState } from './types';
 
@@ -50,7 +50,7 @@ function candidates(s: GameState, t: number): { kind: QuestKind; target: number;
     out.push({ kind: 'gift', target: 1, reward: 30 });
   }
   if (s.cuttings.length || s.plants.some((p) => p.stage <= 1)) out.push({ kind: 'plant', target: 1, reward: 15 });
-  if (potted.some((p) => lightBad(p, ctxFor(s, p, t).sill, t, ctxFor(s, p, t).lamp))) out.push({ kind: 'fixLight', target: 1, reward: 15 });
+  if (potted.some((p) => badLight(p, t, ctxFor(s, p, t)))) out.push({ kind: 'fixLight', target: 1, reward: 15 });
   if (potted.some((p) => cramped(p, t))) out.push({ kind: 'repot', target: 1, reward: 20 });
   if (potted.length && s.leaves >= 15) out.push({ kind: 'feed', target: 1, reward: 12 });
   if (s.leaves >= 20) out.push({ kind: 'buy', target: 1, reward: 10 });

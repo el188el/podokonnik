@@ -65,6 +65,8 @@ export interface Species {
   free: string;         // как получить бесплатно / укоренить
 }
 
+import type { Place, Weather } from './weather';
+
 export interface Plant {
   id: string;
   sp: string;
@@ -184,7 +186,8 @@ export interface GameState {
   streak: { day: string; count: number; best: number; claimedDay: string };
   quests: { day: string; list: QuestState[]; bonusClaimed: boolean };
   log: { at: number; text: string }[];
-  settings: { sound: boolean; haptics: boolean; quietFrom: number; quietTo: number; notify?: boolean };
+  settings: { sound: boolean; haptics: boolean; quietFrom: number; quietTo: number; notify?: boolean; place?: Place | null };
+  weather?: Weather;    // последняя сводка погоды за окном
   inboxSeen?: number[]; // обработанные награды с сервера
   plusUntil?: number;   // «Садовник+» активен до
   events?: Record<string, EventProgress>; // прогресс ивентов по сезонам (autumn-2026)

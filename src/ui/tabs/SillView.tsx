@@ -11,6 +11,8 @@ import { Guide } from '../Guide';
 import { roundInfo, starterDone, starterLeft } from '../../game/onboarding';
 import { TUTORIAL_DONE } from '../../game/store';
 import { SillScene, timeOfDay } from '../SillScene';
+import { SKY, isDim, isSunny, tempText, weatherAt } from '../../game/weather';
+import { platform } from '../../platform';
 
 
 function hint(g: GameState, t: number): string {
@@ -25,6 +27,13 @@ function hint(g: GameState, t: number): string {
   const thirsty = here.filter((x) => x.stage >= 2 && x.moisture < 0.25).length;
   if (thirsty) return `Хотят пить: ${thirsty} 💧`;
   if (g.neighbor && t < g.neighbor.until) return `👵 Соседка поливает ещё ${fmt(g.neighbor.until - t)}`;
+  const w = weatherAt(g, t);
+  if (w && g.settings.place) {
+    const head = `${SKY[w.sky].icon} ${g.settings.place.city}: ${SKY[w.sky].name}, ${tempText(w.temp)}.`;
+    if (isDim(w)) return `${head} У стекла сегодня мягкий свет`;
+    if (isSunny(w)) return `${head} Светолюбивые растут быстрее ☀️`;
+    return head;
+  }
   return `${seasonName(t)[0].toUpperCase() + seasonName(t).slice(1)} за окном. Растениям хорошо 🌿`;
 }
 
@@ -40,6 +49,7 @@ export function SillView() {
   const ev = activeEvent(t);
   const evp = ev ? g.events?.[eventSeason(ev, t)] : undefined;
   const evReady = ev && evp ? ev.tiers.some((n, i) => evp.tokens >= n && (!evp.free.includes(i) || (evp.premium && !evp.prem.includes(i)))) : false;
+  const w = weatherAt(g, t);
   const twinsDue = (g.twins ?? []).filter((x) => !x.lastWater || t >= x.lastWater + x.every * 86400e3).length;
 
   return (
@@ -57,6 +67,11 @@ export function SillView() {
         <button className="chip win" onClick={() => openSheet({ kind: 'window', sill: sill.id })}>
           🪟 {sill.window ? WINDOWS[sill.window].short : 'Окно?'}
         </button>
+        {platform().kind !== 'discord' && (
+          <button className="chip" onClick={() => openSheet({ kind: 'weather' })} aria-label="Погода за окном">
+            {w ? `${SKY[w.sky].icon} ${tempText(w.temp)}` : '🌦'}
+          </button>
+        )}
         {neighbor && <button className="chip" onClick={() => openSheet({ kind: 'neighbor' })}>👵 соседка</button>}
         <button className={'chip' + (twinsDue ? ' alert' : '')} onClick={() => openSheet({ kind: 'twins' })}>🏠 Настоящие{twinsDue ? ` 💧${twinsDue}` : ''}</button>
       </div>
@@ -94,6 +109,7 @@ export function SillView() {
         decor={decor}
         tod={tod}
         winter={winter}
+        sky={w?.sky}
         theme={ev?.theme}
         win={sill.window ?? 'E'}
         cell={(i) => {

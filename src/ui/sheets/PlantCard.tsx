@@ -49,7 +49,7 @@ export function PlantCard({ id }: { id: string }) {
   const t = now();
   const s = sp(p.sp);
   const ctx = ctxFor(g, p, t);
-  const light = lightLevel(ctx.sill, p.zone, t, ctx.lamp);
+  const light = lightLevel(ctx.sill, p.zone, t, ctx.lamp, ctx.dim);
   const next = nextStageAt(p, t, ctx);
   const potted = p.stage >= 2;
   const mistOn = p.mistUntil && t < p.mistUntil;
@@ -119,6 +119,8 @@ export function PlantCard({ id }: { id: string }) {
           <div className="light-line">
             ☀️ Свет: <b>{LIGHT_NAME[light]}</b> · нужно {LIGHT_NAME[s.light[0]]}
             {s.light[1] !== s.light[0] && ` — ${LIGHT_NAME[s.light[1]]}`}
+            {ctx.dim && p.zone === 'glass' && ' · ☁️ сегодня пасмурно'}
+            {ctx.sunny && s.light[1] === 4 && ' · ☀️ солнечный день — растёт быстрее'}
           </div>
           {(mistOn || feedOn) && (
             <div className="boosts">
