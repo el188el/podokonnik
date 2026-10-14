@@ -1318,6 +1318,23 @@ function eventToken(g: GameState, kind: keyof typeof EVENT_TOKENS, t: number) {
   if (tierOf(e, st.tokens) > before) toast(`${e.token} Новый уровень пропуска «${e.title}» — забери награду!`);
 }
 
+/** Сколько падающих жетонов можно поймать за день. */
+export const CATCH_DAY_LIMIT = 25;
+export const catchesLeft = (g: GameState, t = now()) => (g.caught?.day === dayKey(t) ? Math.max(0, CATCH_DAY_LIMIT - g.caught.n) : CATCH_DAY_LIMIT);
+
+/** Поймать падающий жетон сезона: +1 жетон и +1 опыт. */
+export function catchToken(): boolean {
+  return mut((g, t) => {
+    if (!activeEvent(t) || catchesLeft(g, t) <= 0) return false;
+    const day = dayKey(t);
+    g.caught = g.caught?.day === day ? { day, n: g.caught.n + 1 } : { day, n: 1 };
+    eventToken(g, 'catch', t);
+    addXp(g, 1);
+    haptic('light');
+    return true;
+  });
+}
+
 export function addEventTokens(kind: keyof typeof EVENT_TOKENS) {
   mut((g, t) => eventToken(g, kind, t));
 }
@@ -1325,6 +1342,7 @@ export function addEventTokens(kind: keyof typeof EVENT_TOKENS) {
 function giveReward(g: GameState, r: PassReward, t: number) {
   if (r.leaves) g.leaves += r.leaves;
   if (r.feed) g.owned.feed = (g.owned.feed ?? 0) + r.feed;
+  if (r.pots) g.owned.pot = (g.owned.pot ?? 0) + r.pots;
   if (r.item) {
     g.owned[r.item] = 1;
     const it = ITEM_BY_ID[r.item];
@@ -1340,7 +1358,7 @@ function giveReward(g: GameState, r: PassReward, t: number) {
 }
 
 export const rewardText = (r: PassReward) =>
-  r.leaves ? `+${r.leaves} 🍃` : r.feed ? `🧪 ×${r.feed}` : r.item ? `${ITEM_BY_ID[r.item]?.icon ?? '🎁'} ${ITEM_BY_ID[r.item]?.name ?? ''}` : r.form ? `✨ ${FORM_BY_ID[r.form]?.name}` : '';
+  r.leaves ? `+${r.leaves} 🍃` : r.pots ? `🪴 ×${r.pots}` : r.feed ? `🧪 ×${r.feed}` : r.item ? `${ITEM_BY_ID[r.item]?.icon ?? '🎁'} ${ITEM_BY_ID[r.item]?.name ?? ''}` : r.form ? `✨ ${FORM_BY_ID[r.form]?.name}` : '';
 
 export function claimTier(i: number, premium: boolean) {
   mut((g, t) => {

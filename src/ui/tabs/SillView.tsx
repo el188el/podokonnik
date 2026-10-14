@@ -6,6 +6,7 @@ import { sp } from '../../game/species';
 import { now, openSheet, plantAt, setActiveSill, setTool, showCoop, showGift, useStore, waterAll, type Tool } from '../../game/store';
 import { loggedIn } from '../../net/api';
 import { CoopSill } from './CoopSill';
+import { FallingTokens } from '../FallingTokens';
 import { useEffect } from 'react';
 import { chatter } from '../../game/mood';
 import { ctxFor } from '../../game/sim';
@@ -204,6 +205,7 @@ function OwnSill() {
         cell={cellAt}
       />
 
+      <FallingTokens />
       <Toolbar sill={sill.id} />
 
 

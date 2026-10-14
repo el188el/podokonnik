@@ -269,6 +269,75 @@ const ART: Record<string, { w: number; h: number; draw: () => ReactNode }> = {
     ))}
   </>) },
 
+  mittens: { w: 34, h: 26, draw: () => (<>
+    {shadow(17, 24, 14)}
+    <path d="M3 22 V10 q0 -6 6 -6 q6 0 6 6 V22 Z" fill="#d9483b" /><path d="M3 10 q-3 -1 -2 3" stroke="#d9483b" strokeWidth="3" fill="none" />
+    <path d="M18 22 V12 q0 -6 6 -6 q6 0 6 6 V22 Z" fill="#3f6fb5" /><path d="M30 12 q3 -1 2 3" stroke="#3f6fb5" strokeWidth="3" fill="none" />
+    <path d="M3 18 h12 M18 18 h12" stroke={C.white} strokeWidth="2" />
+    {[6, 9, 12].map((x) => <circle key={x} cx={x} cy="12" r=".9" fill={C.white} />)}{[21, 24, 27].map((x) => <circle key={x} cx={x} cy="13" r=".9" fill={C.white} />)}
+  </>) },
+  cocoa: { w: 30, h: 26, draw: () => (<>
+    {shadow(14, 24, 12)}
+    <path d="M5 8 h18 v10 q0 6 -9 6 q-9 0 -9 -6 Z" fill="#b5352b" />
+    <path d="M23 11 q6 0 5 4 q-1 3 -5 2" stroke="#b5352b" strokeWidth="2.2" fill="none" />
+    <ellipse cx="14" cy="8" rx="9" ry="2.2" fill="#7a4e2d" />
+    {[[10, 6], [15, 5], [18, 7]].map(([x, y], i) => <rect key={i} x={x} y={y} width="3.4" height="3" rx="1" fill={i === 1 ? C.pink : C.white} />)}
+    <path d="M8 14 h12" stroke={C.white} strokeWidth="1.4" strokeDasharray="2 2" />
+  </>) },
+  seedlings: { w: 40, h: 30, draw: () => (<>
+    {shadow(20, 28, 17)}
+    {[4, 15, 26].map((x, i) => (
+      <g key={x}>
+        <path d={`M${x} 18 h10 l-1 10 h-8 Z`} fill={i === 1 ? '#f2f2ea' : '#e9d9b8'} />
+        <path d={`M${x + 5} 18 v-8`} stroke={C.green} strokeWidth="1.4" />
+        <ellipse cx={x + 2.6} cy="10" rx="3" ry="1.6" fill={C.green} transform={`rotate(-25 ${x + 2.6} 10)`} />
+        <ellipse cx={x + 7.4} cy="9" rx="3" ry="1.6" fill="#7cbf6a" transform={`rotate(25 ${x + 7.4} 9)`} />
+      </g>
+    ))}
+  </>) },
+  strawberry: { w: 38, h: 26, draw: () => (<>
+    {shadow(19, 24, 16)}
+    <path d="M3 12 h32 l-4 12 h-24 Z" fill="#c9a26b" />
+    <path d="M6 16 h26 M5 20 h28" stroke="#a8814d" strokeWidth="1" />
+    {[[9, 10], [15, 8], [21, 10], [27, 8], [13, 12], [24, 12]].map(([x, y], i) => (
+      <g key={i}><path d={`M${x - 3} ${y} q3 -3 6 0 q0 4 -3 6 q-3 -2 -3 -6 Z`} fill="#e5354f" /><path d={`M${x - 2} ${y - 1} l2 -2 l2 2`} stroke={C.green} strokeWidth="1.2" fill="none" /></g>
+    ))}
+  </>) },
+  lemonade: { w: 30, h: 38, draw: () => (<>
+    {shadow(15, 36, 11)}
+    <path d="M6 8 h16 l-2 28 h-12 Z" fill="#fff7c2cc" stroke="#e8d97a" strokeWidth="1" />
+    <path d="M7 14 h14" stroke="#f4e04d" strokeWidth="6" opacity=".5" />
+    <circle cx="20" cy="9" r="5" fill="#f4e04d" /><circle cx="20" cy="9" r="3.4" fill="#fff7c2" />
+    <rect x="10" y="20" width="4" height="4" rx="1" fill="#ffffffcc" /><rect x="15" y="25" width="4" height="4" rx="1" fill="#ffffffcc" />
+    <path d="M12 2 L14 30" stroke="#e5486a" strokeWidth="1.6" />
+    <ellipse cx="9" cy="8" rx="3" ry="1.5" fill={C.green} transform="rotate(-30 9 8)" />
+  </>) },
+  fan: { w: 34, h: 46, draw: () => (<>
+    {shadow(17, 44, 12)}
+    <path d="M8 44 h18 l-2 -4 h-14 Z" fill={C.grey2} />
+    <rect x="15.5" y="26" width="3" height="15" fill={C.grey} />
+    <circle cx="17" cy="16" r="14" fill="#cfe3ec" stroke={C.grey} strokeWidth="1.4" />
+    <g className="fan-blades">
+      {[0, 120, 240].map((a) => <ellipse key={a} cx="17" cy="9" rx="4" ry="7" fill="#7fb2d6" transform={`rotate(${a} 17 16)`} />)}
+    </g>
+    <circle cx="17" cy="16" r="2.4" fill={C.grey2} />
+  </>) },
+  apples: { w: 40, h: 28, draw: () => (<>
+    {shadow(20, 26, 17)}
+    <path d="M3 14 h34 l-4 12 h-26 Z" fill={C.wood} /><path d="M5 18 h30" stroke={C.wood2} strokeWidth="1.2" />
+    {[[10, 11, '#d9483b'], [18, 9, '#a8cf6a'], [26, 11, '#d9483b'], [14, 14, '#e8b33a'], [22, 14, '#a8cf6a']].map(([x, y, c], i) => (
+      <g key={i}><circle cx={x as number} cy={y as number} r="4.6" fill={c as string} /><path d={`M${x} ${(y as number) - 4} v-2`} stroke={C.dark} strokeWidth="1" /></g>
+    ))}
+  </>) },
+  jam: { w: 26, h: 34, draw: () => (<>
+    {shadow(13, 32, 10)}
+    <rect x="4" y="10" width="18" height="22" rx="4" fill="#c4622d" />
+    <rect x="6" y="12" width="3" height="16" rx="1.5" fill="#ffffff44" />
+    <path d="M2 10 q11 -6 22 0 l-2 -6 h-18 Z" fill="#e8d9b8" />
+    <path d="M4 6 q9 3 18 0" stroke={C.red} strokeWidth="1" strokeDasharray="2 2" fill="none" />
+    <rect x="7" y="18" width="12" height="8" rx="1" fill={C.paper} />
+    <circle cx="13" cy="22" r="2.4" fill="#d9483b" />
+  </>) },
   // ─────────── на окне ───────────
   tulle: { w: 44, h: 44, draw: () => (<>
     <rect x="2" y="2" width="40" height="40" rx="3" fill={C.white} />

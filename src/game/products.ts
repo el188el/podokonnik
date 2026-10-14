@@ -26,6 +26,10 @@ export const FORMS: Form[] = [
   { id: 'sunset', sp: 'crassula', name: 'Толстянка Закат', art: { leaf: '#8f9a3e', leaf2: '#e0512f' }, desc: 'Листья с огненной каймой, как осенний закат.', event: 'autumn' },
   { id: 'snowwhite', sp: 'decembrist', name: 'Декабрист Белоснежка', art: { flower: '#fbf7f2' }, desc: 'Белые цветы под Новый год.', event: 'newyear' },
   { id: 'lemon', sp: 'violet', name: 'Фиалка Лимонная', art: { flower: '#f4e04d' }, desc: 'Редчайшие жёлтые цветы.', event: 'spring' },
+  { id: 'frost', sp: 'cyclamen', name: 'Цикламен Иней', art: { flower: '#e6efff', leaf2: '#dfe9f2' }, desc: 'Бело-голубые цветы, будто тронутые морозом.', event: 'cozy' },
+  { id: 'berry', sp: 'kalanchoe', name: 'Каланхоэ Земляничное', art: { flower: '#e5354f' }, desc: 'Цветёт ярко-алыми гроздьями, как спелая земляника.', event: 'dacha' },
+  { id: 'sunny', sp: 'hibiscus', name: 'Гибискус Солнечный', art: { flower: '#ffd23f' }, desc: 'Огромные жёлтые цветы, как июльское солнце.', event: 'summer' },
+  { id: 'applebloom', sp: 'geranium', name: 'Герань Яблоневый цвет', art: { flower: '#f9c6cf' }, desc: 'Нежно-розовые шапки, как цветущий яблоневый сад.', event: 'apples' },
 ];
 
 export const FORM_BY_ID: Record<string, Form> = Object.fromEntries(FORMS.map((f) => [f.id, f]));

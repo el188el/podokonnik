@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { activeEvent, eventEndsAt, EVENT_TOKENS, tierOf } from '../../game/events';
 import { PRODUCT_BY_ID } from '../../game/products';
 import { approx } from '../../game/sim';
-import { buyStars, claimTier, closeSheet, eventProgress, now, rewardText, useStore } from '../../game/store';
+import { buyStars, catchesLeft, claimTier, closeSheet, eventProgress, now, rewardText, useStore } from '../../game/store';
 import { Bar, Btn } from '../kit/kit';
 
 /** Ивент и сезонный пропуск: две ветки наград по уровням. */
@@ -34,11 +34,12 @@ export function EventSheet() {
         Как получить {e.tokenName}: полив +{EVENT_TOKENS.water}, посадка +{EVENT_TOKENS.plant}, черенок +{EVENT_TOKENS.cut}, задание +{EVENT_TOKENS.quest},
         подарок другу +{EVENT_TOKENS.gift}, полив у друга +{EVENT_TOKENS.friendWater}, полив настоящего растения +{EVENT_TOKENS.twin}.
       </p>
+      <p className="catch-hint">{e.token} Иногда {e.tokenName} пролетают над подоконником — успей поймать! +1 {e.token} и +1 опыт. Сегодня ещё можно поймать: {catchesLeft(g)}</p>
 
       {!st.premium && (
         <div className="plus-card pass-card">
           <b>🎟 Сезонный пропуск</b>
-          <p className="small">Открывает платную ветку: эксклюзивный горшок, декор, {e.premium.reduce((n, r) => n + (r.leaves ?? 0), 0)} 🍃 и редкую форму на 10 уровне.</p>
+          <p className="small">Открывает платную ветку на все {e.tiers.length} уровней: эксклюзивный дизайн горшка, декор сезона, {e.premium.reduce((n, r) => n + (r.leaves ?? 0), 0)} 🍃, подкормки, горшки и редкую форму на {e.tiers.length}-м уровне. Награды за уже пройденные уровни заберёшь сразу.</p>
           <Btn kind="gold" disabled={busy} onClick={async () => { setBusy(true); await buyStars('pass'); setBusy(false); }}>Открыть за {pass.stars} ⭐</Btn>
         </div>
       )}
