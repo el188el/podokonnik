@@ -6,6 +6,7 @@ import { xpToNext } from '../game/progression';
 import { debug, openSheet, setTab, showGift, useStore, type Tab } from '../game/store';
 import { playerId } from '../net/api';
 import { platform } from '../platform';
+import { Safe } from './kit/kit';
 import { Popups } from './Popups';
 import { Sheets } from './sheets/Sheets';
 import { Friends } from './tabs/Friends';
@@ -62,12 +63,14 @@ export function App() {
       </header>
 
       <main className="content">
+        <Safe key={tab} label={tab}>
         {tab === 'sill' && <SillView />}
         {tab === 'shop' && <Shop />}
         {tab === 'herbarium' && <Herbarium />}
         {tab === 'quests' && <Quests />}
         {tab === 'profile' && <Profile />}
         {tab === 'friends' && <Friends />}
+        </Safe>
       </main>
 
       {isDebug && (

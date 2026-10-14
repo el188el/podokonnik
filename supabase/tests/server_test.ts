@@ -90,3 +90,14 @@ Deno.test('оплата: payload счёта', () => {
   assertEquals(parsePayload(`fake|${id}`), null);
   assertEquals(parsePayload('plus|not-a-uuid'), null);
 });
+
+Deno.test('напоминание о настоящем растении важнее игровых', () => {
+  const day = Date.UTC(2026, 5, 1, 10);
+  const s = newStateForTest(day - 5 * 86400e3);
+  s.twins = [{ id: 't1', sp: 'monstera', nick: 'Моня', every: 5, createdAt: day - 10 * 86400e3, lastWater: day - 6 * 86400e3, waters: 1, streak: 1, notify: true }];
+  const r = pickReminder(s, day, 180, day - 2 * 86400e3);
+  assert(r?.text.includes('Моня'), r?.text);
+  assert(r?.text.includes('настоящую монстеру'), r?.text);
+  s.twins[0].lastWater = day - 86400e3;
+  assert(!pickReminder(s, day, 180, day - 2 * 86400e3)?.text.includes('Моня'));
+});

@@ -641,6 +641,21 @@ export function Pot({ skin, big }: { skin: string; big?: boolean }) {
           <path d="M62,170 l4,-8 l4,8 l8,1 l-6,5 l2,8 l-8,-4 l-8,4 l2,-8 l-6,-5Z" fill="#fff3c4" opacity={0.85} />
         </g>
       )}
+      {p.pattern === 'autumn' && (
+        <path d="M70,158 l3,8 l8,-3 l-3,8 l7,4 l-8,3 l1,8 l-8,-4 l-8,4 l1,-8 l-8,-3 l7,-4 l-3,-8 l8,3Z" fill="#f2b134" />
+      )}
+      {p.pattern === 'snow' && (
+        <g stroke="#7fb2de" strokeWidth={1.6} strokeLinecap="round">
+          {[[58, 166], [82, 176], [68, 186]].map(([cx, cy], i) => (
+            <g key={i}>{[0, 60, 120].map((d) => <line key={d} x1={f(cx - Math.cos(rad(d)) * 5)} y1={f(cy - Math.sin(rad(d)) * 5)} x2={f(cx + Math.cos(rad(d)) * 5)} y2={f(cy + Math.sin(rad(d)) * 5)} />)}</g>
+          ))}
+        </g>
+      )}
+      {p.pattern === 'pastel' && (
+        <g>
+          {[[56, 166, '#b9e3d0'], [76, 172, '#fff'], [64, 184, '#f2b5c9'], [86, 186, '#b9e3d0']].map(([x, y, c], i) => <circle key={i} cx={x as number} cy={y as number} r={3.5} fill={c as string} />)}
+        </g>
+      )}
       {p.pattern === 'concrete' && (
         <g fill="#7e7e79">
           {[[52, 160], [80, 170], [66, 184], [90, 156], [58, 178]].map(([x, y], i) => <circle key={i} cx={x} cy={y} r={1.2} />)}

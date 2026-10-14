@@ -8,15 +8,18 @@ import {
 import type { WindowSide } from '../../game/types';
 import { formsOf } from '../../game/products';
 import { PlantArt } from '../art/PlantArt';
-import { Btn, Sheet } from '../kit/kit';
+import { Btn, Safe, Sheet } from '../kit/kit';
 import { shareGift } from '../share';
 import { PlantCard } from './PlantCard';
 import { Visit } from './Visit';
+import { EventSheet } from './EventSheet';
+import { TwinsSheet } from './TwinsSheet';
 
 export function Sheets() {
   const sheet = useStore((s) => s.sheet);
   return (
     <Sheet open={!!sheet} onClose={closeSheet} wide={sheet?.kind === 'visit'}>
+      <Safe key={sheet?.kind} label={sheet?.kind}>
       {sheet?.kind === 'card' && <PlantCard id={sheet.plant} />}
       {sheet?.kind === 'picker' && <Picker slot={sheet.slot} sill={sheet.sill} />}
       {sheet?.kind === 'window' && <WindowPick sill={sheet.sill} then={sheet.then} slot={sheet.slot} />}
@@ -25,6 +28,9 @@ export function Sheets() {
       {sheet?.kind === 'neighbor' && <Neighbor />}
       {sheet?.kind === 'install' && <Install />}
       {sheet?.kind === 'visit' && <Visit key={sheet.id} id={sheet.id} name={sheet.name} />}
+      {sheet?.kind === 'event' && <EventSheet />}
+      {sheet?.kind === 'twins' && <TwinsSheet />}
+      </Safe>
     </Sheet>
   );
 }

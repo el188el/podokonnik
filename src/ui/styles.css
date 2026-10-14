@@ -315,3 +315,47 @@ svg.big.sad { filter: sepia(0.6) saturate(0.6); }
 .form-chip { flex: 0 0 96px; background: #fff8e6; border-radius: 14px; padding: 6px; text-align: center; font-size: 11px; display: flex; flex-direction: column; align-items: center; }
 .form-chip svg { width: 60px; height: 86px; }
 .stars-shop .soon .btn { margin-top: 8px; }
+
+/* ─────────── ивенты ─────────── */
+.chip.alert { border-color: #4aa3df; background: #e6f3fc; }
+.event-banner { display: flex; align-items: center; gap: 10px; margin: 8px 12px 0; padding: 10px 12px; border: 0; border-radius: 16px; text-align: left; width: calc(100% - 24px); box-shadow: 0 2px 0 #0001; }
+.event-banner.theme-autumn, .event.theme-autumn .event-head { background: linear-gradient(135deg, #ffe0b8, #ffc98a); }
+.event-banner.theme-winter, .event.theme-winter .event-head { background: linear-gradient(135deg, #e3f1ff, #c9e2fb); }
+.event-banner.theme-spring, .event.theme-spring .event-head { background: linear-gradient(135deg, #ffe3ef, #e1f6e9); }
+.eb-icon { font-size: 28px; }
+.eb-text { flex: 1; display: flex; flex-direction: column; }
+.eb-text small { color: var(--muted); }
+.eb-ready { background: #e0574f; color: #fff; border-radius: 12px; padding: 4px 9px; font-weight: 700; font-size: 12px; animation: pulse 1.4s infinite; }
+.eb-go { font-size: 24px; color: var(--muted); }
+@keyframes pulse { 50% { transform: scale(1.08); } }
+.event-head { border-radius: 18px; padding: 10px 12px; text-align: center; margin-bottom: 10px; }
+.event-head h2 { margin: 0; }
+.event-tokens { display: flex; justify-content: space-between; align-items: baseline; font-size: 20px; }
+.pass { display: flex; flex-direction: column; gap: 5px; margin: 10px 0; }
+.pass-row { display: grid; grid-template-columns: 52px 1fr 1fr; gap: 6px; align-items: stretch; }
+.pass-headrow { font-size: 12px; color: var(--muted); font-weight: 700; }
+.lvl-n { display: flex; flex-direction: column; align-items: center; justify-content: center; font-weight: 800; background: var(--soft); border-radius: 12px; }
+.lvl-n small { font-weight: 400; font-size: 10px; color: var(--muted); }
+.pass-row.reached .lvl-n { background: #d9f0e2; }
+.reward { border: 2px solid var(--line); background: #fff; border-radius: 12px; padding: 8px 6px; font-size: 12.5px; min-height: 44px; }
+.reward.prem { background: #fffaf0; }
+.reward.ready { border-color: var(--gold); background: #fff4d6; font-weight: 700; animation: pulse 1.6s infinite; }
+.reward.got { opacity: 0.55; }
+.reward:disabled:not(.got) { opacity: 0.7; }
+.pass-card { margin: 10px 0; }
+.fall { position: absolute; inset: 0; pointer-events: none; overflow: hidden; }
+.fall span { position: absolute; top: -30px; font-size: 18px; animation: leaf-fall 9s linear infinite; }
+@keyframes leaf-fall { 0% { transform: translate(0, 0) rotate(0); opacity: 0; } 10% { opacity: 1; } 100% { transform: translate(40px, 210px) rotate(320deg); opacity: 0.2; } }
+
+/* ─────────── двойники ─────────── */
+.twin { display: flex; gap: 10px; background: var(--soft); border-radius: 18px; padding: 8px 10px; margin: 8px 0; align-items: center; }
+.twin.due { background: #e6f3fc; }
+.twin-art { width: 70px; height: 100px; flex: 0 0 auto; overflow: visible; }
+.twin-body { flex: 1; display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.twin-actions { display: flex; gap: 6px; margin-top: 4px; align-items: center; }
+.twin-menu { margin-top: 6px; display: flex; flex-direction: column; gap: 6px; }
+.due-text { color: #1d6fb8; font-weight: 700; }
+.twin-pick { display: flex; gap: 6px; overflow-x: auto; padding-bottom: 4px; }
+.small-pick { flex: 0 0 76px; padding: 4px; font-size: 11px; border: 2px solid transparent; }
+.small-pick svg { width: 54px; height: 76px; }
+.small-pick.on { border-color: var(--green); }

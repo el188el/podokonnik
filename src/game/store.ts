@@ -6,13 +6,14 @@ import { D, FEED_MS, H, MAX_CUTTINGS, MIST_MS, NEIGHBOR_COOLDOWN, NEIGHBOR_FREE_
 import { giftLink, makeCode } from './gifts';
 import { XP, levelReward, unlocksAt, xpToNext, SILL_UNLOCK } from './progression';
 import { QUEST_BONUS, bumpQuest, rollDay, streakReward } from './quests';
-import { ITEM_BY_ID, potIdOf } from './shop';
+import { ITEM_BY_ID, ITEMS, potIdOf } from './shop';
 import { advance, bestZone, canCut, cramped, ctxFor, hasLamp, lightBad, type SimEvent } from './sim';
-import { FORM_BY_ID, PRODUCT_BY_ID, RARE_DROP, formsOf } from './products';
+import { activeEvent, EVENT_TOKENS, eventSeason, tierOf, type GameEvent, type PassReward } from './events';
+import { FORM_BY_ID, FORMS, PRODUCT_BY_ID, RARE_DROP, formsOf } from './products';
 import { replayFriendWaters, type FriendWater } from './social';
 import { SPECIES, sp } from './species';
 import { loadCloud, loadLocal, newPlant, newState, pickNewer, saveCloud, saveLocal, upgrade } from './storage';
-import type { GameState, PendingGift, Plant, QuestKind, Zone } from './types';
+import type { EventProgress, GameState, PendingGift, Plant, QuestKind, Twin, Zone } from './types';
 
 // ─────────────────── UI-события: тосты, окна наград ───────────────────
 export type Popup =
@@ -38,6 +39,8 @@ export type Sheet =
   | { kind: 'neighbor' }
   | { kind: 'install' }
   | { kind: 'visit'; id: string; name: string }
+  | { kind: 'event' }
+  | { kind: 'twins' }
   | null;
 
 export type Tab = 'sill' | 'shop' | 'friends' | 'herbarium' | 'quests' | 'profile';
@@ -303,15 +306,24 @@ function applyInbox(items: api.InboxItem[]) {
             g.cuttings.push({ id: makeCode(8), sp: f.sp, form: f.id, at: Date.now() });
             toast(`✨ Черенок «${f.name}» в запасе — поставь в воду или подари!`);
           }
+        } else if (pr?.kind === 'pass') {
+          const e = activeEvent(now());
+          if (e) {
+            eventProgress(g, e, now()).premium = true;
+            toast(`${e.token} Сезонный пропуск «${e.title}» открыт — забирай награды!`);
+          }
         } else if (pr?.kind === 'plus') {
           g.plusUntil = Math.max(g.plusUntil ?? 0, Number(it.payload.plusUntil) || 0);
           g.owned.pot_gold = 1;
           toast('🌟 «Садовник+» включён! Золотой горшок уже в коллекции');
         }
         haptic('success');
+      } else if (it.kind === 'tester') {
+        grantTester(g, now());
       } else if (it.kind === 'water_reward') {
         const r = Number(it.payload.reward) || 0;
         g.leaves += r;
+        eventToken(g, 'friendWater', now());
         toast(`Спасибо от ${String(it.payload.host ?? 'друга')}: +${r} 🍃`);
       }
     }
@@ -506,7 +518,7 @@ export function water(plantId: string, insist = false): WaterResult | null {
     g.stats.waters += 1;
     const hour = new Date(t).getHours();
     if (hour >= 0 && hour < 5) g.stats.nightWater += 1;
-    if (helpful) { addXp(g, XP.water); quest(g, 'water'); }
+    if (helpful) { addXp(g, XP.water); quest(g, 'water'); eventToken(g, 'water', t); }
     fx(p.id, 'water');
     haptic('light');
     return 'watered';
@@ -524,6 +536,7 @@ export function plantInPot(plantId: string) {
     p.health = 100;
     g.stats.planted += 1;
     addXp(g, XP.plant);
+    eventToken(g, 'plant', t);
     quest(g, 'plant');
     fx(p.id, 'grow');
     haptic('success');
@@ -577,7 +590,7 @@ export function mist(plantId: string) {
     const fresh = !(p.mistUntil && t < p.mistUntil);
     p.mistUntil = t + MIST_MS;
     g.stats.mists += 1;
-    if (fresh) { addXp(g, XP.mist); quest(g, 'mist'); }
+    if (fresh) { addXp(g, XP.mist); quest(g, 'mist'); eventToken(g, 'mist', t); }
     fx(p.id, 'mist');
     say(p.id, 'Спасибо! 😊');
     haptic('light');
@@ -637,6 +650,7 @@ export function takeCutting(plantId: string) {
     g.cuttings.push(c);
     g.stats.cuts += 1;
     addXp(g, XP.cut);
+    eventToken(g, 'cut', t);
     quest(g, 'cut');
     haptic('success');
     return c.id;
@@ -669,6 +683,7 @@ export function giftCutting(cuttingId: string, from: string, note: number) {
     g.sent.push({ code: gift.code, sp: c.sp, at: t });
     g.stats.giftsSent += 1;
     addXp(g, XP.giftSent);
+    eventToken(g, 'gift', t);
     quest(g, 'gift');
     return { gift, link: giftLink(gift) };
   });
@@ -730,6 +745,7 @@ export function buyItem(id: string) {
   return mut((g, t) => {
     const it = ITEM_BY_ID[id];
     if (!it) return false;
+    if (it.eventOnly) { toast('Этот предмет — награда сезонного пропуска'); return false; }
     if (it.level && g.level < it.level) { toast(`Откроется на ${it.level} уровне`); return false; }
     if (it.months && !it.months.includes(new Date(t).getMonth() + 1)) { toast('Этот товар бывает только в сезон'); return false; }
     if (!it.consumable && (g.owned[id] ?? 0) > 0) { toast('Уже есть 🙂'); return false; }
@@ -845,6 +861,7 @@ export function claimQuest(id: string) {
     g.leaves += q.reward * (isPlus(g) ? 2 : 1);
     g.stats.questsDone += 1;
     addXp(g, XP.quest);
+    eventToken(g, 'quest', now());
     haptic('success');
   });
 }
@@ -921,4 +938,125 @@ export { H, D };
 
 export function setShowoffDone(plantId: string) {
   mut((g) => { const p = findPlant(g, plantId); if (p) p.showoffDone = true; });
+}
+
+// ─────────────────── ивенты и сезонный пропуск ───────────────────
+export function eventProgress(g: GameState, e: GameEvent, t: number): EventProgress {
+  const key = eventSeason(e, t);
+  g.events = g.events ?? {};
+  return (g.events[key] ??= { tokens: 0, free: [], prem: [], premium: false });
+}
+
+/** Начислить валюту текущего ивента за действие. */
+function eventToken(g: GameState, kind: keyof typeof EVENT_TOKENS, t: number) {
+  const e = activeEvent(t);
+  if (!e) return;
+  const st = eventProgress(g, e, t);
+  const before = tierOf(e, st.tokens);
+  st.tokens += EVENT_TOKENS[kind];
+  if (tierOf(e, st.tokens) > before) toast(`${e.token} Новый уровень пропуска «${e.title}» — забери награду!`);
+}
+
+export function addEventTokens(kind: keyof typeof EVENT_TOKENS) {
+  mut((g, t) => eventToken(g, kind, t));
+}
+
+function giveReward(g: GameState, r: PassReward, t: number) {
+  if (r.leaves) g.leaves += r.leaves;
+  if (r.feed) g.owned.feed = (g.owned.feed ?? 0) + r.feed;
+  if (r.item) {
+    g.owned[r.item] = 1;
+    const it = ITEM_BY_ID[r.item];
+    if (it?.cat === 'decor') {
+      const sill = g.sills.find((s) => s.id === g.activeSill)!;
+      if (!sill.decor.includes(r.item)) sill.decor.push(r.item);
+    }
+  }
+  if (r.form) {
+    const f = FORM_BY_ID[r.form];
+    if (f) g.cuttings.push({ id: makeCode(8), sp: f.sp, form: f.id, at: t });
+  }
+}
+
+export const rewardText = (r: PassReward) =>
+  r.leaves ? `+${r.leaves} 🍃` : r.feed ? `🧪 ×${r.feed}` : r.item ? `${ITEM_BY_ID[r.item]?.icon ?? '🎁'} ${ITEM_BY_ID[r.item]?.name ?? ''}` : r.form ? `✨ ${FORM_BY_ID[r.form]?.name}` : '';
+
+export function claimTier(i: number, premium: boolean) {
+  mut((g, t) => {
+    const e = activeEvent(t);
+    if (!e) return;
+    const st = eventProgress(g, e, t);
+    if (st.tokens < e.tiers[i]) return;
+    const list = premium ? st.prem : st.free;
+    if (list.includes(i) || (premium && !st.premium)) return;
+    list.push(i);
+    const r = (premium ? e.premium : e.free)[i];
+    giveReward(g, r, t);
+    haptic('success');
+    toast(`Награда: ${rewardText(r)}`);
+  });
+}
+
+// ─────────────────── двойники настоящих растений ───────────────────
+export function addTwin(spId: string, nick: string, every: number) {
+  mut((g, t) => {
+    g.twins = [...(g.twins ?? []), { id: makeCode(8), sp: spId, nick: nick.trim().slice(0, 20) || sp(spId).name, every: Math.max(1, Math.min(30, every)), createdAt: t, waters: 0, streak: 0, notify: true }];
+    discover(g, spId);
+    toast('Двойник создан! Отмечай полив настоящего растения — и он будет расти здесь 🏠');
+  });
+}
+
+export function waterTwin(id: string) {
+  mut((g, t) => {
+    const tw = g.twins?.find((x) => x.id === id);
+    if (!tw) return;
+    const early = tw.lastWater && t - tw.lastWater < tw.every * D * 0.5;
+    const onTime = !tw.lastWater || t <= tw.lastWater + (tw.every + 1) * D;
+    tw.streak = onTime ? tw.streak + 1 : 1;
+    tw.lastWater = t;
+    tw.waters += 1;
+    haptic('light');
+    if (early) {
+      toast('Записали полив. Награда — когда подойдёт срок 🙂');
+      return;
+    }
+    g.leaves += 3;
+    addXp(g, 5);
+    eventToken(g, 'twin', t);
+    toast(`💧 ${tw.nick} полит(а) по-настоящему! +3 🍃${tw.streak > 1 ? ` · серия ${tw.streak}` : ''}`);
+  });
+}
+
+export function updateTwin(id: string, patch: Partial<Pick<Twin, 'nick' | 'every' | 'notify'>>) {
+  mut((g) => {
+    const tw = g.twins?.find((x) => x.id === id);
+    if (tw) Object.assign(tw, patch);
+  });
+}
+
+export function removeTwin(id: string) {
+  mut((g) => { g.twins = (g.twins ?? []).filter((x) => x.id !== id); });
+}
+
+// ─────────────────── тестовая выдача всех привилегий ───────────────────
+function grantTester(g: GameState, t: number) {
+  g.leaves += 5000;
+  while (g.level < 12) {
+    g.level += 1;
+  }
+  g.xp = 0;
+  g.plusUntil = Math.max(g.plusUntil ?? 0, t + 365 * D);
+  for (const it of ITEMS) g.owned[it.id] = it.consumable ? (g.owned[it.id] ?? 0) + 10 : 1;
+  g.owned.pot_gold = 1;
+  for (const id of ['kitchen', 'balcony']) {
+    if (!g.sills.some((s) => s.id === id)) g.sills.push({ id, name: id === 'kitchen' ? 'Кухня' : 'Балкон', window: null, decor: [] });
+  }
+  for (const f of FORMS) g.cuttings.push({ id: makeCode(8), sp: f.sp, form: f.id, at: t });
+  const e = activeEvent(t);
+  if (e) {
+    const st = eventProgress(g, e, t);
+    st.premium = true;
+    st.tokens = Math.max(st.tokens, e.tiers[e.tiers.length - 1]);
+  }
+  toast('🧪 Тестовый режим: Садовник+ на год, 5000 🍃, 12 уровень, весь декор, все редкие формы и пропуск ивента');
 }

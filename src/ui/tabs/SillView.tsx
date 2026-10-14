@@ -1,5 +1,6 @@
 import { motion } from 'framer-motion';
 import { SLOTS, WINDOWS, ZONE_NAME } from '../../game/constants';
+import { activeEvent, eventSeason, tierOf } from '../../game/events';
 import { isWinter, seasonName, fmt } from '../../game/sim';
 import { sp } from '../../game/species';
 import { now, openSheet, plantAt, setActiveSill, showGift, useStore } from '../../game/store';
@@ -28,7 +29,11 @@ function hint(g: GameState, t: number): string {
   return `${seasonName(t)[0].toUpperCase() + seasonName(t).slice(1)} за окном. Растениям хорошо 🌿`;
 }
 
-const DECOR_ICON: Record<string, string> = { cat: '🐈', radio: '📻', vase: '🏺', books: '📚', lamp: '💡' };
+export const DECOR_ICON: Record<string, string> = {
+  cat: '🐈', radio: '📻', vase: '🏺', books: '📚', lamp: '💡',
+  plaid: '🧣', pumpkin: '🎃', lantern: '🏮', tangerines: '🍊', tree: '🎄', tulips: '🌷', birdhouse: '🐦', watering_can: '🫖',
+};
+export const DECOR_GLASS = ['cat', 'radio', 'lamp', 'pumpkin', 'lantern', 'tree', 'tulips', 'birdhouse'];
 
 export function SillView() {
   const g = useStore((s) => s.game);
@@ -38,6 +43,10 @@ export function SillView() {
   const winter = isWinter(t);
   const decor = sill.decor.filter((d) => (g.owned[d] ?? 0) > 0);
   const neighbor = g.neighbor && t < g.neighbor.until;
+  const ev = activeEvent(t);
+  const evp = ev ? g.events?.[eventSeason(ev, t)] : undefined;
+  const evReady = ev && evp ? ev.tiers.some((n, i) => evp.tokens >= n && (!evp.free.includes(i) || (evp.premium && !evp.prem.includes(i)))) : false;
+  const twinsDue = (g.twins ?? []).filter((x) => !x.lastWater || t >= x.lastWater + x.every * 86400e3).length;
 
   return (
     <div className="sillview">
@@ -55,7 +64,15 @@ export function SillView() {
           🪟 {sill.window ? WINDOWS[sill.window].short : 'Окно?'}
         </button>
         {neighbor && <button className="chip" onClick={() => openSheet({ kind: 'neighbor' })}>👵 соседка</button>}
+        <button className={'chip' + (twinsDue ? ' alert' : '')} onClick={() => openSheet({ kind: 'twins' })}>🏠 Настоящие{twinsDue ? ` 💧${twinsDue}` : ''}</button>
       </div>
+      {ev && (
+        <button className={`event-banner theme-${ev.theme}`} onClick={() => openSheet({ kind: 'event' })}>
+          <span className="eb-icon">{ev.token}</span>
+          <span className="eb-text"><b>{ev.title}</b><small>уровень {tierOf(ev, evp?.tokens ?? 0)}/{ev.tiers.length} · {evp?.tokens ?? 0} {ev.token}</small></span>
+          {evReady ? <span className="eb-ready">Награда!</span> : <span className="eb-go">›</span>}
+        </button>
+      )}
       <p className="hint">{hint(g, t)}</p>
 
       {g.pending.length > 0 && (
@@ -69,7 +86,9 @@ export function SillView() {
           <div className="sun" />
           <div className="cloud c1" />
           <div className="cloud c2" />
-          {winter && <div className="snow" />}
+          {(winter || ev?.theme === 'winter') && <div className="snow" />}
+          {ev?.theme === 'autumn' && <div className="fall">{['🍂', '🍁', '🍂', '🍁', '🍂'].map((x, i) => <span key={i} style={{ left: `${8 + i * 19}%`, animationDelay: `${i * 1.7}s` }}>{x}</span>)}</div>}
+          {ev?.theme === 'spring' && <div className="fall petals">{['🌸', '🌸', '🌸', '🌸'].map((x, i) => <span key={i} style={{ left: `${12 + i * 22}%`, animationDelay: `${i * 2.1}s` }}>{x}</span>)}</div>}
           {decor.includes('garland') && <div className="garland" />}
         </div>
         {decor.includes('tulle') && (
@@ -102,14 +121,14 @@ export function SillView() {
             <div className="col decor">
               <div className="cell glass">
                 <div className="decor-items">
-                  {decor.filter((d) => ['cat', 'radio', 'lamp'].includes(d)).map((d) => (
+                  {decor.filter((d) => DECOR_GLASS.includes(d)).map((d) => (
                     <span key={d} className={'decor-' + d}>{DECOR_ICON[d]}</span>
                   ))}
                 </div>
               </div>
               <div className="cell deep">
                 <div className="decor-items">
-                  {decor.filter((d) => ['vase', 'books'].includes(d)).map((d) => (
+                  {decor.filter((d) => DECOR_ICON[d] && !DECOR_GLASS.includes(d)).map((d) => (
                     <span key={d} className={'decor-' + d}>{DECOR_ICON[d]}</span>
                   ))}
                 </div>

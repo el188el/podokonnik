@@ -59,6 +59,9 @@ export async function grant(paid: Paid) {
   } else if (product.kind === 'leaves') {
     await db.from('inbox').insert({ player_id: playerId, kind: 'purchase', payload: { product: product.id, leaves: product.leaves } });
     text = `🍃 +${product.leaves} листиков уже на подоконнике. Спасибо!`;
+  } else if (product.kind === 'pass') {
+    await db.from('inbox').insert({ player_id: playerId, kind: 'purchase', payload: { product: product.id } });
+    text = '🎟 Сезонный пропуск открыт! Забирай награды платной ветки в игре.';
   } else if (product.kind === 'form' && product.form) {
     const f = FORM_BY_ID[product.form];
     await db.from('inbox').insert({ player_id: playerId, kind: 'purchase', payload: { product: product.id, form: f.id, sp: f.sp } });

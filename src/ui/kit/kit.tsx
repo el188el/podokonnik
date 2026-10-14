@@ -1,5 +1,5 @@
 import { AnimatePresence, motion } from 'framer-motion';
-import { useEffect, type ReactNode } from 'react';
+import { Component, useEffect, type ReactNode } from 'react';
 import { platform } from '../../platform';
 
 export function Sheet({ open, onClose, children, wide }: { open: boolean; onClose: () => void; children: ReactNode; wide?: boolean }) {
@@ -82,3 +82,24 @@ export const Leaves = ({ n }: { n: number }) => (
     {n} <span aria-label="листиков">🍃</span>
   </span>
 );
+
+/** Если в одном окне что-то сломалось — показываем заглушку, а не пустой экран. */
+export class Safe extends Component<{ children: ReactNode; label?: string }, { error: boolean }> {
+  state = { error: false };
+  static getDerivedStateFromError() {
+    return { error: true };
+  }
+  componentDidCatch(e: unknown) {
+    console.error(this.props.label ?? 'ui', e);
+  }
+  render() {
+    if (!this.state.error) return this.props.children;
+    return (
+      <div className="center crash">
+        <div className="gicon">🥀</div>
+        <p>Здесь что-то сломалось. Растения в порядке — прогресс сохранён.</p>
+        <Btn kind="primary" onClick={() => location.reload()}>Перезапустить</Btn>
+      </div>
+    );
+  }
+}

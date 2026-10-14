@@ -27,6 +27,15 @@ export function pickReminder(state: GameState, now: number, tzOffsetMin: number,
   const quietFrom = state.settings?.quietFrom ?? 23;
   const quietTo = state.settings?.quietTo ?? 9;
   if (isQuiet(localHour(now, tzOffsetMin), quietFrom, quietTo)) return null;
+  // настоящие растения важнее игровых
+  const dueTwins = (state.twins ?? []).filter((t) => t.notify && (!t.lastWater || now >= t.lastWater + t.every * 86400e3));
+  if (dueTwins.length) {
+    const t = dueTwins[0];
+    const more = dueTwins.length > 1 ? ` (и ещё ${dueTwins.length - 1})` : '';
+    const acc = sp(t.sp).acc;
+    const adj = /[ую]$/.test(acc) ? 'ую' : /[эео]$/.test(acc) ? 'ее' : 'ий';
+    return { text: `🏠 Пора полить настоящ${adj} ${acc} «${t.nick}»${more} 💧 Потом отметь полив в игре`, button: '💧 Отметить полив' };
+  }
   if (!Array.isArray(state.plants) || !state.plants.length) return null;
 
   const g = structuredClone(state);

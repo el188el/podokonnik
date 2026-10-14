@@ -7,8 +7,8 @@ import * as api from '../../net/api';
 import { platform } from '../../platform';
 import { PlantArt } from '../art/PlantArt';
 import { Btn } from '../kit/kit';
+import { DECOR_GLASS, DECOR_ICON } from '../tabs/SillView';
 
-const DECOR_ICON: Record<string, string> = { cat: '🐈', radio: '📻', vase: '🏺', books: '📚', lamp: '💡' };
 
 /** Подоконник друга: смотреть и поливать тех, кто хочет пить. */
 export function Visit({ id, name }: { id: string; name: string }) {
@@ -101,8 +101,8 @@ export function Visit({ id, name }: { id: string; name: string }) {
           })}
           {s?.decor.some((d) => DECOR_ICON[d]) && (
             <div className="col decor">
-              <div className="cell glass"><div className="decor-items">{s.decor.filter((d) => ['cat', 'radio', 'lamp'].includes(d)).map((d) => <span key={d}>{DECOR_ICON[d]}</span>)}</div></div>
-              <div className="cell deep"><div className="decor-items">{s.decor.filter((d) => ['vase', 'books'].includes(d)).map((d) => <span key={d}>{DECOR_ICON[d]}</span>)}</div></div>
+              <div className="cell glass"><div className="decor-items">{s.decor.filter((d) => DECOR_GLASS.includes(d)).map((d) => <span key={d}>{DECOR_ICON[d]}</span>)}</div></div>
+              <div className="cell deep"><div className="decor-items">{s.decor.filter((d) => DECOR_ICON[d] && !DECOR_GLASS.includes(d)).map((d) => <span key={d}>{DECOR_ICON[d]}</span>)}</div></div>
             </div>
           )}
         </div>

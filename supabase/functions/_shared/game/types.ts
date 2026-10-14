@@ -179,6 +179,28 @@ export interface GameState {
   settings: { sound: boolean; haptics: boolean; quietFrom: number; quietTo: number; notify?: boolean };
   inboxSeen?: number[]; // обработанные награды с сервера
   plusUntil?: number;   // «Садовник+» активен до
+  events?: Record<string, EventProgress>; // прогресс ивентов по сезонам (autumn-2026)
+  twins?: Twin[];       // двойники настоящих растений
   forms?: string[];     // собранные редкие формы
   tutorial: number;
+}
+
+export interface EventProgress {
+  tokens: number;
+  free: number[];     // забранные уровни бесплатной ветки
+  prem: number[];     // забранные уровни платной ветки
+  premium: boolean;   // куплен сезонный пропуск
+}
+
+/** Двойник настоящего комнатного растения игрока. */
+export interface Twin {
+  id: string;
+  sp: string;
+  nick: string;
+  every: number;      // поливать раз в N дней
+  createdAt: number;
+  lastWater?: number;
+  waters: number;
+  streak: number;     // поливов вовремя подряд
+  notify: boolean;
 }

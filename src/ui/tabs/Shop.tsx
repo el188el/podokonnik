@@ -4,7 +4,8 @@ import { ITEMS, potIdOf, type ShopCat } from '../../game/shop';
 import { DIFFICULTY_LABEL, SPECIES } from '../../game/species';
 import { FORM_BY_ID, PRODUCTS } from '../../game/products';
 import { fmt } from '../../game/sim';
-import { buyItem, buySpecies, buyStars, isPlus, now, unlockSill, useStore } from '../../game/store';
+import { activeEvent } from '../../game/events';
+import { buyItem, buySpecies, buyStars, isPlus, now, openSheet, unlockSill, useStore } from '../../game/store';
 import { tgAppLink } from '../../config';
 import { platform } from '../../platform';
 import { PlantArt } from '../art/PlantArt';
@@ -67,7 +68,7 @@ export function Shop() {
 
       {cat !== 'plants' && cat !== 'sills' && (
         <div className="list">
-          {ITEMS.filter((i) => i.cat === cat).map((it) => {
+          {ITEMS.filter((i) => i.cat === cat && (!i.eventOnly || (g.owned[i.id] ?? 0) > 0)).map((it) => {
             const owned = (g.owned[it.id] ?? 0) > 0 && !it.consumable;
             const lockLevel = it.level && g.level < it.level;
             const offSeason = it.months && !it.months.includes(month);
@@ -155,6 +156,14 @@ function StarsShop() {
         </Btn>
         <p className="muted small center">Продлевается раз в 30 дней, отменить можно в любой момент в настройках Telegram.</p>
       </div>
+
+      {activeEvent(t) && (
+        <div className="plus-card pass-card">
+          <b>{activeEvent(t)!.token} Сезонный пропуск «{activeEvent(t)!.title}»</b>
+          <p className="small">Платная ветка наград ивента: эксклюзивный горшок, декор и редкая форма.</p>
+          <Btn kind="gold" onClick={() => openSheet({ kind: 'event' })}>Посмотреть награды</Btn>
+        </div>
+      )}
 
       <h3>✨ Редкие формы</h3>
       <p className="muted small">Черенок попадёт в запас. Его можно вырастить или подарить — и у друга будет такая же редкость. Иногда редкая форма выпадает и из обычного черенка!</p>

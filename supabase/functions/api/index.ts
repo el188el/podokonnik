@@ -10,6 +10,7 @@ import type { GameState } from '../_shared/game/types.ts';
 import { CORS, fail, json } from '../_shared/http.ts';
 import { invoiceLink } from '../_shared/pay.ts';
 import { PRODUCT_BY_ID } from '../_shared/game/products.ts';
+import { activeEvent } from '../_shared/game/events.ts';
 import { escHtml, send } from '../_shared/tg.ts';
 
 const MAX_STATE = 300_000;
@@ -280,6 +281,7 @@ async function visitWater(playerId: string, b: Body) {
 async function payInvoice(playerId: string, b: Body) {
   const product = PRODUCT_BY_ID[str(b.product, 40)];
   if (!product) return fail('bad_product');
+  if (product.kind === 'pass' && !activeEvent(Date.now())) return fail('no_event');
   const { data: me } = await db.from('players').select('tg_id').eq('id', playerId).single();
   if (!me?.tg_id) return fail('telegram_only', 403);
   const link = await invoiceLink(product, playerId);

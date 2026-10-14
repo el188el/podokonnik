@@ -40,6 +40,12 @@ export function Profile() {
 
 
       <section className="panel">
+        <h3>🏠 Настоящие растения</h3>
+        <p className="muted small">Двойники твоих домашних цветов: бот напомнит о поливе, а двойник подрастёт.</p>
+        <Btn onClick={() => openSheet({ kind: 'twins' })}>Открыть ({(g.twins ?? []).length})</Btn>
+      </section>
+
+      <section className="panel">
         <h3>👵 Соседка польёт</h3>
         <p className="muted small">{neighbor ? `Поливает ещё ${fmt(g.neighbor!.until - t)}` : 'Уезжаешь? Растения не засохнут.'}</p>
         <Btn onClick={() => openSheet({ kind: 'neighbor' })}>{neighbor ? 'Управлять' : 'Попросить соседку'}</Btn>
