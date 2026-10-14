@@ -3,7 +3,7 @@ import { NOTES } from '../game/constants';
 import { STREAK_REWARDS } from '../game/quests';
 import { approx } from '../game/sim';
 import { sp } from '../game/species';
-import { achievementById, claimGift, claimStreak, closePopup, freeSlot, popup, useStore } from '../game/store';
+import { achievementById, claimGift, claimGiftOnline, claimStreak, closePopup, freeSlot, popup, toast, useStore } from '../game/store';
 import { PlantArt } from './art/PlantArt';
 import { Btn, Modal } from './kit/kit';
 import { shareThanks } from './share';
@@ -143,10 +143,12 @@ function GiftCard({ gift, full }: { gift: { sp: string; from: string; note: numb
       ) : (
         <Btn
           kind="gold"
-          onClick={() => {
-            const r = claimGift(gift);
+          onClick={async () => {
+            const r = await claimGiftOnline(gift);
             closePopup();
             if (r === 'ok') popup({ kind: 'thanks', sp: gift.sp, from: gift.from });
+            else if (r === 'taken') toast('Этот черенок уже забрал кто-то другой 🍃 Попроси у друга новый!');
+            else if (r === 'own') toast('Это твой собственный подарок — отправь ссылку другу 💌');
           }}
         >
           🎁 Забрать

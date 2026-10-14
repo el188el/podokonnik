@@ -1,0 +1,13 @@
+# Настройки Supabase CLI. project_id заполняется командой `supabase link`.
+project_id = "podokonnik"
+
+# Свои функции проверяют подпись Telegram / свой токен сессии сами,
+# поэтому JWT Supabase на входе не требуется.
+[functions.api]
+verify_jwt = false
+
+[functions.bot]
+verify_jwt = false
+
+[functions.notify]
+verify_jwt = false

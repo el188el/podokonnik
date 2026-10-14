@@ -65,7 +65,7 @@ export function newPlant(p: Partial<Plant> & Pick<Plant, 'sp' | 'sill' | 'slot' 
 }
 
 /** Дозаполняет поля, которых не было в старых сохранениях этой версии. */
-function upgrade(s: GameState, t: number): GameState {
+export function upgrade(s: GameState, t: number): GameState {
   const base = newState(t);
   const out = { ...base, ...s };
   out.stats = { ...base.stats, ...s.stats };

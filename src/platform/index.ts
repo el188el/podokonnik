@@ -128,7 +128,7 @@ function telegram(tg: TgWebApp): Platform {
   return {
     kind: 'telegram',
     user: u ? { id: 'tg' + u.id, name: [u.first_name, u.last_name].filter(Boolean).join(' '), username: u.username, photo: u.photo_url } : null,
-    startParam: tg.initDataUnsafe.start_param ?? new URLSearchParams(location.search).get('tgWebAppStartParam'),
+    startParam: tg.initDataUnsafe.start_param ?? new URLSearchParams(location.search).get('tgWebAppStartParam') ?? new URLSearchParams(location.search).get('g'),
     initData: tg.initData,
     haptic(k) {
       try {

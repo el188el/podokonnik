@@ -1,7 +1,7 @@
 import { createRoot } from 'react-dom/client';
 import { registerSW } from 'virtual:pwa-register';
 import { App } from './ui/App';
-import { boot, saveNow, tick } from './game/store';
+import { boot, pushNow, saveNow, tick } from './game/store';
 import { initPlatform, launchedInTelegram, loadTelegramScript } from './platform';
 import './ui/styles.css';
 
@@ -15,8 +15,10 @@ async function start() {
   createRoot(document.getElementById('root')!).render(<App />);
   setInterval(tick, 1000);
   document.addEventListener('visibilitychange', () => {
-    if (document.hidden) saveNow();
-    else tick();
+    if (document.hidden) {
+      saveNow();
+      pushNow(true);
+    } else tick();
   });
   addEventListener('pagehide', saveNow);
   if (pf.kind === 'web' && location.protocol !== 'file:') registerSW({ immediate: true });

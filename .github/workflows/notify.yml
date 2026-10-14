@@ -1,0 +1,18 @@
+name: Напоминания от бота
+
+on:
+  schedule:
+    - cron: '7,37 * * * *'   # каждые полчаса
+  workflow_dispatch:
+
+jobs:
+  notify:
+    if: vars.SUPABASE_PROJECT_REF != ''
+    runs-on: ubuntu-latest
+    steps:
+      - env:
+          BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          REF: ${{ vars.SUPABASE_PROJECT_REF }}
+        run: |
+          SECRET=$(printf 'podokonnik:cron' | openssl dgst -sha256 -hmac "$BOT_TOKEN" -hex | sed 's/.* //' | cut -c1-48)
+          curl -sf -X POST "https://$REF.supabase.co/functions/v1/notify" -H "x-cron-secret: $SECRET"

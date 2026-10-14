@@ -31,6 +31,7 @@ jobs:
           VITE_SITE_URL: ${{ vars.VITE_SITE_URL }}
           VITE_TG_BOT: ${{ vars.VITE_TG_BOT }}
           VITE_TG_APP: ${{ vars.VITE_TG_APP }}
+          VITE_API_URL: ${{ vars.SUPABASE_PROJECT_REF && format('https://{0}.supabase.co/functions/v1', vars.SUPABASE_PROJECT_REF) || '' }}
       - uses: actions/upload-pages-artifact@v3
         if: github.event_name != 'pull_request'
         with:

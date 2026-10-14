@@ -1,5 +1,6 @@
 import { createElement } from 'react';
 import { CONFIG, tgAppLink } from '../config';
+import { playerId } from '../net/api';
 import { NOTES } from '../game/constants';
 import { sp } from '../game/species';
 import { setShowoffDone, toast } from '../game/store';
@@ -28,8 +29,15 @@ export async function shareThanks(spId: string) {
   report(r);
 }
 
+/** Ссылка-приглашение: новичок получит +30 🍃, а пригласивший +50 🍃. */
+export const inviteLink = () => {
+  const id = playerId();
+  if (!id) return gameLink();
+  return tgAppLink('r' + id) || `${CONFIG.siteUrl}?start=r${id}`;
+};
+
 export async function shareInvite() {
-  const r = await platform().share({ text: 'Я выращиваю растения на подоконнике 🌿 Присоединяйся — подарю черенок!', url: gameLink() });
+  const r = await platform().share({ text: 'Я выращиваю растения на подоконнике 🌿 Заходи — дадут бонус на первые черенки!', url: inviteLink() });
   report(r);
 }
 

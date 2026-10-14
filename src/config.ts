@@ -9,6 +9,8 @@ export const CONFIG = {
   tgBot: (env.VITE_TG_BOT as string | undefined) || '',
   /** Короткое имя Mini App из BotFather (/newapp), например game. */
   tgApp: (env.VITE_TG_APP as string | undefined) || '',
+  /** Адрес серверных функций Supabase: https://<ref>.supabase.co/functions/v1. Без него игра работает офлайн. */
+  apiUrl: ((env.VITE_API_URL as string | undefined) || '').replace(/\/$/, ''),
 };
 
 export const tgAppLink = (startParam?: string) => {

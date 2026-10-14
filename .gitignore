@@ -3,3 +3,5 @@ dist
 .env.local
 *.log
 scripts/_*.ts
+tsconfig.tsbuildinfo
+deno.lock

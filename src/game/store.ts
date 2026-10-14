@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import * as api from '../net/api';
 import { platform } from '../platform';
 import { ACHIEVEMENTS, checkAchievements } from './achievements';
 import { D, FEED_MS, H, MAX_CUTTINGS, MIST_MS, NEIGHBOR_COOLDOWN, NEIGHBOR_FREE_DAYS, SLOTS, STAGE_NAME } from './constants';
@@ -8,7 +9,7 @@ import { QUEST_BONUS, bumpQuest, rollDay, streakReward } from './quests';
 import { ITEM_BY_ID, potIdOf } from './shop';
 import { advance, bestZone, canCut, cramped, ctxFor, hasLamp, lightBad, type SimEvent } from './sim';
 import { SPECIES, sp } from './species';
-import { loadCloud, loadLocal, newPlant, newState, pickNewer, saveCloud, saveLocal } from './storage';
+import { loadCloud, loadLocal, newPlant, newState, pickNewer, saveCloud, saveLocal, upgrade } from './storage';
 import type { GameState, PendingGift, Plant, QuestKind, Zone } from './types';
 
 // ─────────────────── UI-события: тосты, окна наград ───────────────────
@@ -66,7 +67,7 @@ export const useStore = create<Store>(() => ({
 const get = () => useStore.getState();
 const set = useStore.setState;
 
-export const now = () => Date.now() + (get().game.offset || 0);
+export const now = () => Date.now() + api.serverSkew() + (get().game.offset || 0);
 
 // ─────────────────── мелкие помощники ───────────────────
 let toastId = 0;
@@ -195,6 +196,7 @@ export function saveNow() {
   const g = get().game;
   g.lastSeen = now();
   const savedAt = saveLocal(g);
+  schedulePush();
   const cloud = platform().cloud;
   if (!cloud) return;
   const wait = Math.max(0, 15e3 - (Date.now() - lastCloud));
@@ -205,16 +207,104 @@ export function saveNow() {
   }, wait);
 }
 
+// ─────────────────── сервер ───────────────────
+let pushTimer: ReturnType<typeof setTimeout> | null = null;
+let lastPush = 0;
+let pushing = false;
+
+function schedulePush() {
+  if (!api.online()) return;
+  if (pushTimer) clearTimeout(pushTimer);
+  pushTimer = setTimeout(() => pushNow(), Math.max(4e3, 15e3 - (Date.now() - lastPush)));
+}
+
+/** Отправить сохранение на сервер. keepalive — когда игру сворачивают. */
+export async function pushNow(keepalive = false, force?: number) {
+  if (!api.online() || pushing || !get().ready) return;
+  pushing = true;
+  lastPush = Date.now();
+  try {
+    const r = await api.push(get().game, { keepalive, force });
+    if (r.kind === 'conflict') adoptServer(r.save, 'Подтянули прогресс с другого устройства ☁️');
+    if (r.kind !== 'skip') applyInbox(r.inbox);
+  } catch { /* нет сети — попробуем позже */ } finally {
+    pushing = false;
+  }
+}
+
+const score = (g: GameState) => g.level * 1e6 + g.xp + g.plants.length * 10 + g.stats.waters;
+
+function adoptServer(save: api.ServerSave, message?: string) {
+  const g = upgrade(save.state, Date.now());
+  api.adoptVersion(save.version);
+  const ev = advance(g, now());
+  handleEvents(g, ev, true);
+  set({ game: g });
+  saveLocal(g);
+  if (message) toast(message);
+}
+
+function applyInbox(items: api.InboxItem[]) {
+  if (!items.length) return;
+  const ids = items.map((i) => i.id);
+  mut((g) => {
+    const seen = new Set(g.inboxSeen ?? []);
+    for (const it of items) {
+      if (seen.has(it.id)) continue;
+      seen.add(it.id);
+      const name = String(it.payload.name ?? 'Друг');
+      if (it.kind === 'gift_claimed') {
+        g.leaves += 10;
+        toast(`🎁 ${name} забрал(а) твой черенок ${sp(String(it.payload.sp)).gen}! +10 🍃`);
+      } else if (it.kind === 'referral') {
+        g.leaves += 50;
+        toast(`👯 ${name} пришёл(ла) по твоему приглашению! +50 🍃`);
+      } else if (it.kind === 'welcome') {
+        g.leaves += 30;
+        toast('🎉 Тебя пригласил друг — держи +30 🍃 на первые черенки');
+      }
+    }
+    g.inboxSeen = [...seen].slice(-100);
+  });
+  api.inboxAck(ids);
+}
+
+/** Вход на сервер при запуске: выбираем, чей прогресс свежее — устройства или сервера. */
+async function connect(local: GameState): Promise<{ state: GameState; force?: number; inbox: api.InboxItem[] } | null> {
+  if (!api.online()) return null;
+  try {
+    const { save, inbox } = await api.login(local.name);
+    if (!save?.state || !Array.isArray(save.state.plants)) return { state: local, inbox };
+    const known = api.knownVersion();
+    if (known === 0) {
+      if (score(save.state) >= score(local)) {
+        api.adoptVersion(save.version);
+        return { state: upgrade(save.state, Date.now()), inbox };
+      }
+      return { state: local, force: save.version, inbox };
+    }
+    if (save.version > known) {
+      api.adoptVersion(save.version);
+      return { state: upgrade(save.state, Date.now()), inbox };
+    }
+    return { state: local, inbox };
+  } catch {
+    return null;
+  }
+}
+
 export async function boot() {
   const t0 = Date.now();
   const local = loadLocal(t0);
   let g = local.state;
   const cloud = platform().cloud;
   if (cloud) g = pickNewer(local, await loadCloud(cloud), t0);
+  const server = await connect(g);
+  if (server) g = server.state;
   const user = platform().user;
   if (user && !g.name) g.name = user.name.split(' ')[0].slice(0, 24);
 
-  const t = t0 + (g.offset || 0);
+  const t = Date.now() + api.serverSkew() + (g.offset || 0);
   const before = new Map(g.plants.map((p) => [p.id, { stage: p.stage, health: p.health }]));
   const away = t - (g.lastSeen || t);
   const ev = advance(g, t);
@@ -228,6 +318,10 @@ export async function boot() {
   if (fresh && g.streak.claimedDay !== g.streak.day && g.plants.length) popup({ kind: 'streak', count: g.streak.count, reward: streakReward(g.streak.count) });
   after(g);
   scheduleSave();
+  if (server) {
+    if (server.force !== undefined || api.knownVersion() === 0) pushNow(false, server.force);
+    applyInbox(server.inbox);
+  }
 }
 
 function awayReport(g: GameState, ev: SimEvent[], before: Map<string, { stage: number; health: number }>, ms: number): AwayReport {
@@ -470,7 +564,7 @@ export function plantCutting(cuttingId: string, sill?: string, slot?: number) {
 }
 
 export function giftCutting(cuttingId: string, from: string, note: number) {
-  return mut((g, t) => {
+  const r = mut((g, t) => {
     const c = g.cuttings.find((x) => x.id === cuttingId);
     if (!c) return null;
     g.name = from;
@@ -482,6 +576,8 @@ export function giftCutting(cuttingId: string, from: string, note: number) {
     quest(g, 'gift');
     return { gift, link: giftLink(gift) };
   });
+  if (r) api.giftCreate(r.gift);
+  return r;
 }
 
 export function removePlant(plantId: string) {
@@ -500,6 +596,15 @@ export function setPot(plantId: string, pot: string) {
 // ─────────────────── подарки: получение ───────────────────
 export function showGift(gift: PendingGift & { ok: boolean }) {
   popup({ kind: 'gift', gift });
+}
+
+/** Забрать подарок с проверкой на сервере: одну ссылку забирает только один человек. */
+export async function claimGiftOnline(gift: PendingGift): Promise<'ok' | 'dup' | 'full' | 'taken' | 'own'> {
+  const g = get().game;
+  if (g.received.includes(gift.code)) return 'dup';
+  const st = await api.giftClaim(gift);
+  if (st === 'taken' || st === 'own') return st;
+  return claimGift(gift);
 }
 
 export function claimGift(gift: PendingGift): 'ok' | 'dup' | 'full' {

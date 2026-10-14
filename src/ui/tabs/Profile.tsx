@@ -5,6 +5,7 @@ import { ITEM_BY_ID, DECOR_IDS } from '../../game/shop';
 import { fmt } from '../../game/sim';
 import { now, openSheet, setName, setSetting, toggleDecor, useStore } from '../../game/store';
 import { platform } from '../../platform';
+import { online, sendSettings } from '../../net/api';
 import { Bar, Btn, Leaves } from '../kit/kit';
 import { shareInvite } from '../share';
 
@@ -86,9 +87,14 @@ export function Profile() {
         <label className="toggle">
           <input type="checkbox" checked={g.settings.haptics} onChange={(e) => setSetting('haptics', e.target.checked)} /> Вибрация
         </label>
+        {pf.kind === 'telegram' && online() && (
+          <label className="toggle">
+            <input type="checkbox" checked={g.settings.notify !== false} onChange={(e) => { setSetting('notify', e.target.checked); sendSettings({ notify: e.target.checked }); }} /> Напоминания от бота
+          </label>
+        )}
         {pf.kind === 'web' && <Btn onClick={() => openSheet({ kind: 'install' })}>📲 Добавить на главный экран</Btn>}
         <p className="muted small">
-          {pf.kind === 'telegram' ? 'Прогресс сохраняется в облаке Telegram и доступен на всех устройствах.' : 'Прогресс сохраняется в этом браузере.'}
+          {online() ? 'Прогресс сохраняется на сервере и доступен на всех устройствах.' : pf.kind === 'telegram' ? 'Прогресс сохраняется в облаке Telegram и доступен на всех устройствах.' : 'Прогресс сохраняется в этом браузере.'}
         </p>
       </section>
     </div>

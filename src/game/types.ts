@@ -172,6 +172,7 @@ export interface GameState {
   streak: { day: string; count: number; best: number; claimedDay: string };
   quests: { day: string; list: QuestState[]; bonusClaimed: boolean };
   log: { at: number; text: string }[];
-  settings: { sound: boolean; haptics: boolean; quietFrom: number; quietTo: number };
+  settings: { sound: boolean; haptics: boolean; quietFrom: number; quietTo: number; notify?: boolean };
+  inboxSeen?: number[]; // обработанные награды с сервера
   tutorial: number;
 }
