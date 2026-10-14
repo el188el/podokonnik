@@ -12,6 +12,7 @@ import { CONTEST_ENTRY_REWARD, CONTEST_VOTE_REWARD, weekKey } from './contest';
 import { platform } from '../platform';
 import { ACHIEVEMENTS, checkAchievements } from './achievements';
 import { freshAgeMarks } from './age';
+import { INVITE_LADDER } from './invites';
 import { addMastery, type MasteryKind } from './mastery';
 import { CARE_TASK_REWARD } from './calendar';
 import { BOX_PRICE, rollBox, type BoxPrize } from './box';
@@ -1950,4 +1951,17 @@ export function takeGrannyPot(plantId?: string) {
     toast('👵 Валентина Петровна отдала старый горшок с антресолей');
   });
   if (plantId) plantInPot(plantId);
+}
+
+// ─────────────────── лестница приглашений ───────────────────
+export function claimInvite(n: number, active: number) {
+  mut((g, t) => {
+    const step = INVITE_LADDER.find((s) => s.n === n);
+    if (!step || active < n || (g.invites ?? []).includes(n)) return;
+    g.invites = [...(g.invites ?? []), n];
+    giveReward(g, step.reward, t);
+    track('invite_reward', { n });
+    haptic('success');
+    toast(`${step.icon} «${step.title}»: ${step.text}!`);
+  });
 }

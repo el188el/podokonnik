@@ -226,6 +226,7 @@ export interface GameState {
   mastery?: Record<string, { pts: number; stars: number }>; // мастерство видов
   grannyPot?: string;    // день, когда Валентина Петровна выручила горшком
   caught?: { day: string; n: number }; // пойманные падающие жетоны сезона
+  invites?: number[];    // забранные ступени лестницы приглашений
   tutorial: number;
 }
 

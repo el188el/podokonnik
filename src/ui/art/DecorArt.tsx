@@ -338,6 +338,16 @@ const ART: Record<string, { w: number; h: number; draw: () => ReactNode }> = {
     <rect x="7" y="18" width="12" height="8" rx="1" fill={C.paper} />
     <circle cx="13" cy="22" r="2.4" fill="#d9483b" />
   </>) },
+  gnome: { w: 28, h: 44, draw: () => (<>
+    {shadow(14, 42, 11)}
+    <path d="M6 42 v-12 q8 -4 16 0 v12 Z" fill="#3f6fb5" />
+    <path d="M5 30 q9 -5 18 0 l-1 4 q-8 -3 -16 0 Z" fill="#7a4e2d" />
+    <circle cx="14" cy="20" r="6" fill="#f8d2b4" />
+    <path d="M7 22 q7 14 14 0 q-2 6 -7 8 q-5 -2 -7 -8 Z" fill={C.white} />
+    <circle cx="14" cy="21.5" r="1.6" fill="#f08aa4" />
+    <path d="M6 17 L14 0 L22 17 Z" fill={C.red} />
+    <circle cx="11.5" cy="18.5" r=".9" fill={C.dark} /><circle cx="16.5" cy="18.5" r=".9" fill={C.dark} />
+  </>) },
   // ─────────── на окне ───────────
   tulle: { w: 44, h: 44, draw: () => (<>
     <rect x="2" y="2" width="40" height="40" rx="3" fill={C.white} />

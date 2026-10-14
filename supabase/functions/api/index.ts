@@ -277,6 +277,13 @@ async function friendsList(playerId: string) {
   return json({ friends, serverTime: now });
 }
 
+/** Сколько друзей пришло по приглашению; засчитываются те, кто дошёл до 2 уровня. */
+async function invites(playerId: string) {
+  const { count: joined } = await db.from('players').select('id', { count: 'exact', head: true }).eq('referrer', playerId);
+  const { count: active } = await db.from('players').select('id', { count: 'exact', head: true }).eq('referrer', playerId).gte('level', 2);
+  return json({ joined: joined ?? 0, active: active ?? 0 });
+}
+
 async function friendAdd(playerId: string, b: Body) {
   const other = str(b.id, 40);
   const { data: me } = await db.from('players').select('name').eq('id', playerId).single();
@@ -662,6 +669,7 @@ Deno.serve(async (req) => {
       case '/settings': return await settings(playerId, body);
       case '/friends': return await friendsList(playerId);
       case '/friends/add': return await friendAdd(playerId, body);
+      case '/invites': return await invites(playerId);
       case '/visit': return await visit(playerId, body);
       case '/visit/water': return await visitWater(playerId, body);
       case '/pay/invoice': return await payInvoice(playerId, body);

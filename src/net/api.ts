@@ -257,3 +257,6 @@ export const storyUpload = (image: string) => call<{ url: string }>('/story', { 
 
 /** Забрать подарочную подписку по коду. */
 export const plusClaim = (code: string) => call<{ status: 'ok' | 'gone' | 'own' | 'dup' | 'taken'; from?: string; plusUntil?: number }>('/plus/claim', { code });
+
+/** Сколько друзей пришло по приглашению (active — дошли до 2 уровня). */
+export const invites = () => call<{ joined: number; active: number }>('/invites', {});

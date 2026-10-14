@@ -6,7 +6,8 @@ import * as api from '../../net/api';
 import { Btn } from '../kit/kit';
 import { Market } from './Market';
 import { Contest } from './Contest';
-import { shareInvite, shareVacation } from '../share';
+import { InviteLadder } from './InviteLadder';
+import { shareVacation } from '../share';
 
 function seen(ms: number) {
   const m = Math.floor(ms / 60e3);
@@ -48,11 +49,7 @@ export function Friends() {
         </div>
       )}
       {mode === 'contest' && api.loggedIn() ? <Contest /> : mode === 'market' && api.loggedIn() ? <Market /> : <>
-      <section className="panel invite">
-        <h3>👯 Позови друзей</h3>
-        <p className="muted small">Друг получит +30 🍃 на первые черенки, а ты +50 🍃. Подаренный черенок тоже делает вас друзьями.</p>
-        <Btn kind="gold" onClick={shareInvite}>Пригласить друга</Btn>
-      </section>
+      <InviteLadder />
 
       {!api.online() || !api.loggedIn() ? (
         <section className="panel">

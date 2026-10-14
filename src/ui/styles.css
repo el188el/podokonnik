@@ -666,3 +666,11 @@ svg.big.sad { filter: sepia(0.6) saturate(0.6); }
 .catch-pop { position: absolute; transform: translate(-50%, -50%); background: #fff; border-radius: 12px; padding: 4px 10px; font-weight: 800; font-size: 13px; color: var(--green); box-shadow: 0 3px 8px #0002; animation: catch-pop 1.2s ease-out forwards; white-space: nowrap; }
 @keyframes catch-pop { 0% { opacity: 0; transform: translate(-50%, -30%) scale(0.6); } 20% { opacity: 1; transform: translate(-50%, -60%) scale(1.1); } 100% { opacity: 0; transform: translate(-50%, -180%) scale(1); } }
 .catch-hint { background: #fff6e0; border-radius: 12px; padding: 8px 10px; font-size: 13px; margin: 8px 0; }
+
+/* лестница приглашений */
+.ladder { display: flex; flex-direction: column; gap: 6px; margin: 8px 0 10px; position: relative; }
+.ladder-step { display: flex; align-items: center; gap: 10px; background: var(--soft); border-radius: 14px; padding: 8px 10px; }
+.ladder-step.ready { background: #fff4d6; box-shadow: 0 0 0 2px #f2b84a; }
+.ladder-step.got { opacity: 0.6; }
+.ladder-n { width: 30px; height: 30px; flex: none; border-radius: 50%; background: #fff; display: flex; align-items: center; justify-content: center; font-weight: 800; color: var(--green); }
+.ladder-body { flex: 1; display: flex; flex-direction: column; min-width: 0; }

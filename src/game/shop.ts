@@ -119,6 +119,7 @@ export const ITEMS: ShopItem[] = [
   { id: 'wp_brick', cat: 'decor', place: 'wallpaper', name: 'Кирпич', icon: '🧱', price: 140, desc: 'Лофт: кирпичная стена и зелень.', level: 5 },
   { id: 'hangers', cat: 'decor', place: 'spot', name: 'Подвесные кашпо', icon: '🪢', price: 300, desc: 'Три новых места над окном — для ампельных и маленьких растений. Света там много.', level: 6 },
 
+  { id: 'gnome', cat: 'decor', place: 'sill', name: 'Садовый гном', icon: '🧙', price: 0, desc: 'Награда за пятерых приглашённых друзей. Охраняет подоконник.', eventOnly: true },
   // награды альбома редкостей
   { id: 'glass_dome', cat: 'decor', place: 'sill', name: 'Стеклянный купол', icon: '🔔', price: 0, desc: 'Под ним — самый ценный черенок коллекции.', eventOnly: true, album: true },
   { id: 'golden_can', cat: 'decor', place: 'table', name: 'Золотая лейка', icon: '🏆', price: 0, desc: 'Для тех, кто вывел небывалые цветы.', eventOnly: true, album: true },
