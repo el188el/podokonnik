@@ -110,38 +110,66 @@ function Deco({ id, x, on, arrange, onItem, onMove }: { id: string; x: number; o
   );
 }
 
-/** Кот Барсик: лежит, иногда встаёт и гуляет вдоль ряда. Нажми — погладить, потяни — переставить. */
-function LiveCat({ x0, arrange, onCat, onMove }: { x0: number; arrange?: boolean; onCat?: () => void; onMove?: SceneProps['onMove'] }) {
+/**
+ * Кот Барсик: лежит, иногда встаёт и гуляет вдоль ряда, а иногда прыгает
+ * с подоконника на столик и обратно. Нажми — погладить, потяни — переставить.
+ * Живёт поверх обоих рядов, чтобы прыжок был одним движением.
+ */
+function LiveCat({ x0, row0, arrange, onCat, onMove }: { x0: number; row0: 'sill' | 'table'; arrange?: boolean; onCat?: () => void; onMove?: SceneProps['onMove'] }) {
   const [x, setX] = useState(x0);
-  const [walk, setWalk] = useState<{ dur: number; left: boolean } | null>(null);
+  const [row, setRow] = useState(row0);
+  const [move, setMove] = useState<{ dur: number; left: boolean; jump?: boolean } | null>(null);
   const [pet, setPet] = useState(0);
-  const xr = useRef(x0);
-  useEffect(() => { xr.current = x0; setX(x0); }, [x0]);
+  const [bottoms, setBottoms] = useState<{ sill: number; table: number } | null>(null);
+  const ref = useRef<HTMLButtonElement>(null);
+  const cur = useRef({ x: x0, row: row0 });
+  useEffect(() => { cur.current = { x: x0, row: row0 }; setX(x0); setRow(row0); }, [x0, row0]);
+  // где «пол» у каждого ряда — считаем от низа контейнера рядов
+  useEffect(() => {
+    const rows = ref.current?.closest('.rows') as HTMLElement | null;
+    if (!rows) return;
+    const measure = () => {
+      const g = rows.querySelector<HTMLElement>('.row-glass');
+      const d = rows.querySelector<HTMLElement>('.row-deep');
+      if (!g || !d) return;
+      const H = rows.clientHeight;
+      setBottoms({ sill: H - (g.offsetTop + g.offsetHeight) - 2, table: H - (d.offsetTop + d.offsetHeight) - 2 });
+    };
+    measure();
+    const ro = new ResizeObserver(measure);
+    ro.observe(rows);
+    return () => ro.disconnect();
+  }, []);
   useEffect(() => {
     if (reduced() || arrange) return;
     let timer: ReturnType<typeof setTimeout>;
     const plan = () => {
       timer = setTimeout(() => {
-        const to = 0.05 + Math.random() * 0.9;
-        const dur = Math.max(2, Math.abs(to - xr.current) * 9);
-        setWalk({ dur, left: to < xr.current });
-        xr.current = to;
+        const c = cur.current;
+        const jump = Math.random() < 0.35;
+        const to = jump ? Math.min(0.92, Math.max(0.08, c.x + (Math.random() - 0.5) * 0.3)) : 0.05 + Math.random() * 0.9;
+        const dur = jump ? 0.75 : Math.max(2, Math.abs(to - c.x) * 9);
+        setMove({ dur, left: to < c.x, jump });
+        cur.current = { x: to, row: jump ? (c.row === 'sill' ? 'table' : 'sill') : c.row };
         setX(to);
-        timer = setTimeout(() => { setWalk(null); plan(); }, dur * 1000);
-      }, 14000 + Math.random() * 22000);
+        setRow(cur.current.row);
+        timer = setTimeout(() => { setMove(null); plan(); }, dur * 1000 + (jump ? 300 : 0));
+      }, 12000 + Math.random() * 20000);
     };
     plan();
     return () => clearTimeout(timer);
   }, [arrange]);
-  const drag = useDrag(true, () => { setPet(Date.now()); onCat?.(); }, (nx, row) => { setWalk(null); xr.current = nx; setX(nx); onMove?.('cat', nx, row); });
+  const drag = useDrag(true, () => { setPet(Date.now()); onCat?.(); }, (nx, r) => { setMove(null); cur.current = { x: nx, row: r }; setX(nx); setRow(r); onMove?.('cat', nx, r); });
+  const tr = move ? (move.jump ? `left ${move.dur}s ease-in-out, bottom ${move.dur}s cubic-bezier(.45,0,.55,1)` : `left ${move.dur}s linear`) : undefined;
   return (
     <button
-      className={'cat-live' + (walk ? ' walking' : '') + (walk?.left ? ' to-left' : '') + (drag.dragging ? ' dragging' : '')}
-      style={{ left: `${x * 100}%`, transition: walk ? `left ${walk.dur}s linear` : undefined, ...drag.style }}
+      ref={ref}
+      className={'cat-live' + (move ? ' walking' : '') + (move?.jump ? ' jumping' : '') + (move?.left ? ' to-left' : '') + (drag.dragging ? ' dragging' : '')}
+      style={{ left: `${x * 100}%`, bottom: bottoms ? bottoms[row] : undefined, visibility: bottoms ? undefined : 'hidden', transition: tr, ['--jump' as string]: `${move?.dur ?? 0.75}s`, ...drag.style }}
       aria-label="Барсик: погладить или перетащить"
       {...drag.handlers}
     >
-      <span className="cat-flip"><DecorArt id={walk ? 'cat_walk' : 'cat'} scale={walk ? 1.15 : 1.25} /></span>
+      <span className="cat-flip"><span className="cat-hop"><DecorArt id={move ? 'cat_walk' : 'cat'} scale={move ? 1.15 : 1.25} /></span></span>
       {pet > 0 && <span className="purr" key={pet}>💕</span>}
     </button>
   );
@@ -239,7 +267,7 @@ export function SillScene({ decor, tod, winter, sky, theme, win = 'E', cell, han
           ))}
           <div className="ledge-decor">
             {sillD.map(deco)}
-            {cat && rowOf('cat') === 'sill' && (onCat ? <LiveCat x0={pos.cat?.x ?? CAT_X} arrange={arrange} onCat={onCat} onMove={onMove} /> : <span className="deco deco-cat" style={{ left: '50%' }}><DecorArt id="cat" /></span>)}
+            {cat && !onCat && <span className="deco deco-cat" style={{ left: '50%' }}><DecorArt id="cat" /></span>}
           </div>
         </div>
         <div className="ledge" />
@@ -249,10 +277,10 @@ export function SillScene({ decor, tod, winter, sky, theme, win = 'E', cell, han
           ))}
           <div className="ledge-decor">
             {tableD.map(deco)}
-            {cat && rowOf('cat') === 'table' && onCat && <LiveCat x0={pos.cat?.x ?? CAT_X} arrange={arrange} onCat={onCat} onMove={onMove} />}
           </div>
         </div>
         <div className="table" />
+        {cat && onCat && <LiveCat x0={pos.cat?.x ?? CAT_X} row0={rowOf('cat')} arrange={arrange} onCat={onCat} onMove={onMove} />}
       </div>
     </div>
   );

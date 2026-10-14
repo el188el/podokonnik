@@ -13,6 +13,7 @@ import { ctxFor } from '../../game/sim';
 import { claimFirstChest, moveItem, petCat, placeOpen, say, setArrange, switchItem, SWITCHABLE, toast } from '../../game/store';
 import { ITEM_BY_ID, placeOf } from '../../game/shop';
 import { climateOf, rhWord, tempWord } from '../../game/climate';
+import { darkWall, roomVars } from '../../game/room';
 import { zoneOfSlot } from '../../game/layout';
 import { PlantArt } from '../art/PlantArt';
 import { Slot } from '../Slot';
@@ -132,7 +133,7 @@ function OwnSill() {
           <button className={'chip arrange-chip' + (arrange ? ' on' : '')} onClick={() => setArrange(!arrange)}>{arrange ? '✓ Готово' : '🛋 Переставить'}</button>
         )}
       </div>
-      {arrange && <p className="arrange-hint">Перетаскивай предметы и кота: по подоконнику или на столик</p>}
+      {arrange && <p className="arrange-hint">Перетаскивай предметы и кота: по подоконнику или на столик · <button className="linkish" onClick={() => openSheet({ kind: 'room' })}>🎨 цвета стен и стола</button></p>}
 
       {g.tutorial < TUTORIAL_DONE ? <Guide /> : (ev || shown.length > 0) && (
         <div className={'info-grid' + (ev ? '' : ' no-event')}>
@@ -153,7 +154,8 @@ function OwnSill() {
       <SceneFit hang={!!decor.includes('hangers')}>
         {(style) => (
           <SillScene
-            style={style}
+            style={{ ...style, ...roomVars(decor.some((d) => placeOf(d) === 'wallpaper') ? { ...sill.colors, wall: undefined } : sill.colors) } as CSSProperties}
+            className={darkWall(sill.colors?.wall) ? 'dark-wall' : ''}
             decor={decor}
             tod={tod}
             winter={winter}

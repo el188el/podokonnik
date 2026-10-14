@@ -88,6 +88,14 @@ export function Profile() {
 
       <section className="panel">
         <h3>⚙️ Настройки</h3>
+        <div className="theme-row">
+          <span>🌙 Тема</span>
+          <div className="seg">
+            {([['auto', 'Как в системе'], ['light', '☀️ Светлая'], ['dark', '🌙 Тёмная']] as const).map(([k, label]) => (
+              <button key={k} className={(g.settings.theme ?? 'auto') === k ? 'on' : ''} onClick={() => setSetting('theme', k)}>{label}</button>
+            ))}
+          </div>
+        </div>
         <label className="toggle">
           <input type="checkbox" checked={g.settings.haptics} onChange={(e) => setSetting('haptics', e.target.checked)} /> Вибрация
         </label>

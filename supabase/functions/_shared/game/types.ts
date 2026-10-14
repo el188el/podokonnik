@@ -129,6 +129,7 @@ export interface Sill {
   off?: string[];       // выключенные предметы (фитолампа, радио, свеча…)
   vent?: boolean;       // форточка открыта
   curtains?: boolean;   // шторы задёрнуты
+  colors?: { wall?: string; table?: string; sill?: string }; // цвета стен, столика и подоконника
 }
 
 /** Положение предмета: доля ширины ряда (0…1) и ряд — подоконник или столик. */
@@ -242,7 +243,7 @@ export interface GameState {
   streak: { day: string; count: number; best: number; claimedDay: string };
   quests: { day: string; list: QuestState[]; bonusClaimed: boolean };
   log: { at: number; text: string }[];
-  settings: { sound: boolean; haptics: boolean; quietFrom: number; quietTo: number; notify?: boolean; place?: Place | null };
+  settings: { sound: boolean; haptics: boolean; quietFrom: number; quietTo: number; notify?: boolean; place?: Place | null; theme?: 'auto' | 'light' | 'dark' };
   weather?: Weather;    // последняя сводка погоды за окном
   contest?: { week: string; entered: boolean; votes: number }; // награды конкурса за неделю
   weekly?: { week: string; list: WeeklyQuest[]; chest: boolean; days: string[] }; // большие задания недели

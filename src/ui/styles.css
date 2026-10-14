@@ -1007,3 +1007,93 @@ b, strong { font-weight: 800; }
 .decor-svg .heat { animation: steam 2s ease-in-out infinite; }
 .linkish-row { display: block; width: 100%; border: 0; background: none; padding: 0; text-align: left; font: inherit; color: inherit; cursor: pointer; }
 .scene .drape, .scene .vent-sash, .scene .draft { z-index: 1; }
+/* кот прыгает между подоконником и столиком */
+.scene .rows > .cat-live { z-index: 6; }
+.cat-live .cat-hop { display: block; }
+.cat-live.jumping .cat-hop { animation: cat-jump var(--jump, 0.75s) ease-in-out; }
+@keyframes cat-jump { 0% { transform: translateY(0) scale(1, 0.9); } 15% { transform: translateY(-8px) scale(0.95, 1.08); } 50% { transform: translateY(-46px) rotate(-8deg); } 85% { transform: translateY(-4px) scale(1.05, 0.92); } 100% { transform: translateY(0) scale(1); } }
+
+/* цвета комнаты */
+.scene .table { background: var(--table, #c99a6b); box-shadow: 0 5px 0 var(--table2, #a87d52); }
+.scene.dark-wall .row-deep .label b, .scene.dark-wall .row-deep .label span { color: #fff; }
+.swatches { display: grid; grid-template-columns: repeat(auto-fill, minmax(72px, 1fr)); gap: 8px; }
+.swatch { display: flex; flex-direction: column; align-items: center; gap: 4px; border: 0; background: none; padding: 4px; border-radius: 14px; cursor: pointer; font: inherit; color: inherit; }
+.swatch i { width: 46px; height: 46px; border-radius: 14px; box-shadow: inset 0 0 0 1px #0001, var(--sh-sm); }
+.swatch small { font-size: 11px; text-align: center; line-height: 1.15; color: var(--muted); }
+.swatch.on i { box-shadow: 0 0 0 3px var(--green), var(--sh-sm); }
+.swatch.on small { color: var(--ink); font-weight: 800; }
+.room-sheet h3 { margin: 14px 0 6px; }
+
+/* ═════════════ тёмная тема ═════════════ */
+.theme-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin: 4px 0 10px; }
+.seg { display: flex; background: var(--soft); border-radius: 14px; padding: 3px; gap: 2px; }
+.seg button { border: 0; background: none; border-radius: 11px; padding: 6px 9px; font-size: 12.5px; font-weight: 700; color: var(--muted); }
+.seg button.on { background: var(--card); color: var(--ink); box-shadow: var(--sh-sm); }
+@media (max-width: 390px) { .topbar .streak { display: none; } }
+
+:root[data-theme='dark'] {
+  color-scheme: dark;
+  --bg: #121a17;
+  --ink: #e4ede7;
+  --muted: #94a69e;
+  --card: #1c2622;
+  --soft: #24302b;
+  --line: #2c3833;
+  --green: #4cbf7c;
+  --green2: #45a86f;
+  --sh-sm: 0 1px 2px rgba(0, 0, 0, 0.3);
+  --sh: 0 1px 2px rgba(0, 0, 0, 0.3), 0 8px 24px rgba(0, 0, 0, 0.25);
+  --sh-lg: 0 12px 40px rgba(0, 0, 0, 0.5);
+}
+:root[data-theme='dark'] body { background: radial-gradient(120% 60% at 50% 0%, #17221e 0%, var(--bg) 60%), var(--bg); }
+:root[data-theme='dark'] .topbar { background: rgba(18, 26, 23, 0.85); }
+:root[data-theme='dark'] .tabbar { background: rgba(28, 38, 34, 0.94); }
+:root[data-theme='dark'] .tabbar .on, :root[data-theme='dark'] .tool.on { background: #24382e; }
+:root[data-theme='dark'] .tools { background: #18221e; }
+:root[data-theme='dark'] :is(.panel, .row-item, .sheet, .modal, .chip, .tile, .mini-banner, .tray, .leaves, .me, .sill-picker, .card-nav button, .lineage, .pick, .shop-item, .toolbar .water-all, .round-banner, .pending, .chat-plant-card, .box-card, .comeback, .swap, .postcard) { background-color: var(--card); color: var(--ink); }
+:root[data-theme='dark'] :is(.btn.soft, .bar, .clim-big, .pc-preview, .tray-pots, .cutting, .care-task, .album-prize, .need, .neighbors-note, .card-note, .soon, .sday, .seg) { background: var(--soft); color: var(--ink); }
+:root[data-theme='dark'] .chip.on { background: var(--green); color: #0d1a13; }
+:root[data-theme='dark'] .btn.ghost { color: var(--muted); }
+:root[data-theme='dark'] .btn.warn { background: #3a2422; color: #ffb1aa; }
+:root[data-theme='dark'] .tile.orders, :root[data-theme='dark'] .orders-banner { background: #2c2716; color: #f0d58a; }
+:root[data-theme='dark'] .tile.ready { background: linear-gradient(90deg, #3a3118, var(--card)); }
+:root[data-theme='dark'] .tile.round { background: #1d2738; color: #a9c2f0; }
+:root[data-theme='dark'] .heirloom { background: linear-gradient(135deg, #3a3118, #2c2614); box-shadow: inset 0 0 0 1px #6b5a2a; }
+:root[data-theme='dark'] .problem-box { background: #2e1f1d; }
+:root[data-theme='dark'] .over-box { background: #18262e; }
+:root[data-theme='dark'] .clim-warn { background: #2e2616; }
+:root[data-theme='dark'] .chip.alert, :root[data-theme='dark'] .climate-chip.alert { background: #2c2416; }
+:root[data-theme='dark'] .inp, :root[data-theme='dark'] input, :root[data-theme='dark'] textarea { background: var(--soft); color: var(--ink); border-color: var(--line); }
+:root[data-theme='dark'] .backdrop { background: rgba(0, 0, 0, 0.55); }
+:root[data-theme='dark'] .grip { background: #3a4842; }
+:root[data-theme='dark'] .card-head .big { background: radial-gradient(circle at 50% 70%, #2a3631, #1f2925 70%); box-shadow: inset 0 0 0 1px #2c3833; }
+:root[data-theme='dark'] .lineage .gen { color: #d6b47a; }
+:root[data-theme='dark'] .lineage li + li { border-top-color: #3a463f; }
+:root[data-theme='dark'] .switch { background: #3a4842; }
+:root[data-theme='dark'] .event-card { filter: brightness(0.82) saturate(0.9); }
+/* подоконник вечером: чуть приглушаем комнату, небо и растения остаются яркими */
+:root[data-theme='dark'] .scene { box-shadow: 0 10px 30px rgba(0, 0, 0, 0.45); }
+:root[data-theme='dark'] .scene .wall, :root[data-theme='dark'] .scene .hang-row { filter: brightness(0.72) saturate(0.9); }
+:root[data-theme='dark'] .scene .frame { filter: brightness(0.8); }
+:root[data-theme='dark'] .scene .label b, :root[data-theme='dark'] .scene .label span { color: #fff; text-shadow: 0 1px 2px #000a; }
+:root[data-theme='dark'] .bubble { background: #2a3631; color: var(--ink); }
+:root[data-theme='dark'] .toast { background: rgba(236, 244, 239, 0.95); color: #142019; }
+:root[data-theme='dark'] .bubble::after { border-top-color: #2a3631; }
+:root[data-theme='dark'] .bubble.timer { background: var(--green); color: #0d1a13; }
+:root[data-theme='dark'] .bubble.ready { background: #3a3118; }
+:root[data-theme='dark'] .bubble.sad { background: #3a2422; }
+:root[data-theme='dark'] .pick, :root[data-theme='dark'] .shop-item { background: var(--card); box-shadow: var(--sh-sm); }
+:root[data-theme='dark'] .event-card { color: #2a1d10; }
+:root[data-theme='dark'] .event-card small { opacity: 0.8; }
+:root[data-theme='dark'] :is(.box-card, .box-card.ready, .starter-pack, .comeback, .chat-plant-card) { background: var(--card); }
+:root[data-theme='dark'] .box-card.ready { background: linear-gradient(90deg, #3a3118, var(--card)); }
+:root[data-theme='dark'] .chat-plant-card { background: linear-gradient(135deg, #1b2b36, #1d2b24); }
+:root[data-theme='dark'] .comeback { background: linear-gradient(135deg, #3a3118, #3a2230); }
+:root[data-theme='dark'] :is(.pending, .stars, .postcard, .form-chip, .reward.prem, .guide, .event .event-head) { background: var(--card); color: var(--ink); }
+:root[data-theme='dark'] :is(.invite, .plus-card) { background: linear-gradient(135deg, #2c2716, #1d2b24); color: var(--ink); }
+:root[data-theme='dark'] :is(.boosts span, .reward.ready, .twin.due, .round-banner, .round-banner.done) { background: var(--soft); color: var(--ink); }
+:root[data-theme='dark'] .starter-banner.ready { background: linear-gradient(135deg, #3a3118, #2c2616); color: var(--ink); }
+:root[data-theme='dark'] .guide-avatar { background: #3a3118; }
+:root[data-theme='dark'] .event-banner { color: #2a1d10; }
+:root[data-theme='dark'] .empty { border-color: #6f9c8e; background: #ffffff10; color: #b9d6cc; }
+:root[data-theme='dark'] .mood-line { color: var(--ink); opacity: 0.9; }

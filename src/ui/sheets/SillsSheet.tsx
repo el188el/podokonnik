@@ -40,6 +40,7 @@ export function SillsSheet() {
           </button>
         )}
       </div>
+      <Btn onClick={() => openSheet({ kind: 'room' })}>🎨 Цвета стен, стола и подоконника</Btn>
       <Btn onClick={() => openSheet({ kind: 'postcard' })}>💌 Открытка с этого подоконника</Btn>
       <button className="linkish small" onClick={() => { closeSheet(); setTab('shop'); }}>🛒 Ещё подоконник — в магазине, раздел «Окна»</button>
     </div>

@@ -86,6 +86,7 @@ export type Sheet =
   | { kind: 'repot'; plant: string }
   | { kind: 'timelapse'; plant: string }
   | { kind: 'climate' }
+  | { kind: 'room' }
   | { kind: 'doctor'; sp?: string }
   | { kind: 'coop' }
   | { kind: 'album' }
@@ -2325,5 +2326,17 @@ export function toggleCurtains(sillId: string) {
     sill.curtains = !sill.curtains;
     haptic('select');
     toast(sill.curtains ? '🎐 Шторы задёрнуты: света у стекла меньше' : '🎐 Шторы раздвинуты');
+  });
+}
+
+// ─────────────────── цвета комнаты ───────────────────
+export function setRoomColor(sillId: string, part: 'wall' | 'table' | 'sill', id: string) {
+  mut((g) => {
+    const sill = g.sills.find((s) => s.id === sillId);
+    if (!sill) return;
+    sill.colors = { ...(sill.colors ?? {}), [part]: id };
+    // свой цвет стен вместо обоев: обои снимаем (остаются в коллекции)
+    if (part === 'wall') sill.decor = sill.decor.filter((d) => placeOf(d) !== 'wallpaper');
+    haptic('select');
   });
 }

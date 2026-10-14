@@ -1,9 +1,10 @@
+import { useTheme } from './theme';
 import { AnimatePresence, motion } from 'framer-motion';
 import { useEffect } from 'react';
 import { D, H, MIN } from '../game/constants';
 import { decodeGift, legacyGift } from '../game/gifts';
 import { xpToNext } from '../game/progression';
-import { claimPlusGift, debug, joinCoop, openSheet, setTab, showGift, toast, useStore, type Tab } from '../game/store';
+import { claimPlusGift, debug, joinCoop, openSheet, setSetting, setTab, showGift, toast, useStore, type Tab } from '../game/store';
 import { loggedIn, playerId } from '../net/api';
 import { platform } from '../platform';
 import { Safe } from './kit/kit';
@@ -33,6 +34,7 @@ export function App() {
   const g = useStore((s) => s.game);
   const toasts = useStore((s) => s.toasts);
   const coopOn = useStore((s) => s.coopOn);
+  useTheme();
   const questsReady = g.quests.list.some((q) => !q.claimed && q.progress >= q.target);
 
   // подарок по ссылке: ?g=… (веб), startapp (Telegram) или старый формат ?gift=…
@@ -74,6 +76,7 @@ export function App() {
         <div className="money">
           {g.streak.count > 0 && <span className="streak">🔥{g.streak.count}</span>}
           <span className="leaves">{g.leaves} 🍃</span>
+          <ThemeToggle />
           <button className="me" onClick={() => setTab('profile')} aria-label="Профиль">👤</button>
         </div>
       </header>
@@ -139,6 +142,17 @@ function SillPicker() {
     <button className="sill-picker" onClick={() => openSheet({ kind: 'sills' })}>
       <span>{coop ? `💞 ${coop.state.name}` : `🪟 ${sill.name}`}</span>
       <i>▾</i>
+    </button>
+  );
+}
+
+/** Быстрый выключатель темы в шапке: светлая ↔ тёмная. */
+function ThemeToggle() {
+  const mode = useStore((s) => s.game.settings.theme ?? 'auto');
+  const dark = typeof document !== 'undefined' && document.documentElement.dataset.theme === 'dark';
+  return (
+    <button className="me theme-toggle" onClick={() => setSetting('theme', dark ? 'light' : 'dark')} aria-label={dark ? 'Светлая тема' : 'Тёмная тема'} data-mode={mode}>
+      {dark ? '☀️' : '🌙'}
     </button>
   );
 }
