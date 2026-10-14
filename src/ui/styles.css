@@ -594,3 +594,4 @@ svg.big.sad { filter: sepia(0.6) saturate(0.6); }
 .starter-row ul { margin: 0; padding-left: 4px; list-style: none; font-size: 14px; line-height: 1.6; }
 .sale { background: #e0574f; color: #fff; border-radius: 8px; padding: 1px 6px; font-size: 12px; margin-left: 6px; }
 .gift-code { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-top: 6px; }
+.name-ideas { justify-content: center; margin: 8px 0; }

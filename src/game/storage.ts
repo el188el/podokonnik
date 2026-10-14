@@ -73,6 +73,7 @@ export function upgrade(s: GameState, t: number): GameState {
   out.settings = { ...base.settings, ...s.settings };
   out.owned = { ...s.owned };
   normalizeLayout(out.plants);
+  if (out.firstChest === undefined && t - out.createdAt > 2 * 86400e3) out.firstChest = true; // сундучок — только новичкам
   if (!out.bloomed) out.bloomed = [...new Set(out.plants.filter((p) => p.bloomedOnce).map((p) => p.sp))];
   if (out.tutorial < 99 && out.stats.planted > 0) out.tutorial = 99; // опытным игрокам обучение не показываем
   return out;

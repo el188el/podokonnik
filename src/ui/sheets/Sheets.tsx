@@ -19,6 +19,7 @@ import { WeatherSheet } from './WeatherSheet';
 import { DoctorSheet } from './DoctorSheet';
 import { CoopSheet } from './CoopSheet';
 import { AlbumSheet } from './AlbumSheet';
+import { NameSheet } from './NameSheet';
 import { StarterSheet } from './StarterSheet';
 
 export function Sheets() {
@@ -40,6 +41,7 @@ export function Sheets() {
       {sheet?.kind === 'doctor' && <DoctorSheet sp={sheet.sp} />}
       {sheet?.kind === 'coop' && <CoopSheet />}
       {sheet?.kind === 'album' && <AlbumSheet />}
+      {sheet?.kind === 'name' && <NameSheet plant={sheet.plant} />}
       {sheet?.kind === 'starter' && <StarterSheet />}
       </Safe>
     </Sheet>

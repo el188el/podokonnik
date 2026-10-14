@@ -61,3 +61,17 @@ export function roundInfo(g: GameState, t: number): RoundInfo | null {
 }
 
 export const ROUND_REWARD = 15;
+
+// ─────────────── мгновенная первая победа ───────────────
+/** Первое посаженное растение становится «молодым» уже через 10 минут. */
+export const FIRST_YOUNG_H = 10 / 60;
+/** Сундучок первого часа: открывается через час после начала игры. */
+export const FIRST_CHEST_MS = 60 * 60e3;
+export const FIRST_CHEST = { leaves: 60, feed: 2, item: 'pot_white' };
+
+/** null — сундучок уже забран или ещё рано показывать (идёт обучение). */
+export function firstChest(g: GameState, t: number): { ready: boolean; left: number } | null {
+  if (g.firstChest || g.tutorial < 99 || !g.stats.planted) return null;
+  const left = g.createdAt + FIRST_CHEST_MS - t;
+  return { ready: left <= 0, left: Math.max(0, left) };
+}

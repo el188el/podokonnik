@@ -20,14 +20,14 @@ import { giftLink, makeCode } from './gifts';
 import { XP, levelReward, unlocksAt, xpToNext, SILL_UNLOCK } from './progression';
 import { QUEST_BONUS, WEEKLY_CHEST, dayKey, bumpQuest, bumpWeekly, rollDay, rollWeek, streakReward, weeklyVisit } from './quests';
 import { ITEM_BY_ID, ITEMS, placeOf, potIdOf } from './shop';
-import { advance, badLight, bestZone, canCut, cramped, ctxFor, hasLamp, type SimEvent } from './sim';
+import { advance, badLight, bestZone, canCut, cramped, ctxFor, hasLamp, stageMarks, type SimEvent } from './sim';
 import { activeEvent, EVENT_TOKENS, eventSeason, tierOf, type GameEvent, type PassReward } from './events';
 import { FORM_BY_ID, FORMS, PRODUCT_BY_ID, RARE_DROP, formsOf } from './products';
 import { replayFriendWaters, type FriendWater } from './social';
 import { SPECIES, sp } from './species';
 import { rowSlots, zoneOfSlot } from './layout';
 import { BREED_COOLDOWN, canBreed, crossHue, hueOf } from './breeding';
-import { ROUND_REWARD, STARTER, roundInfo, starterLeft } from './onboarding';
+import { FIRST_CHEST, FIRST_YOUNG_H, ROUND_REWARD, STARTER, firstChest, roundInfo, starterLeft } from './onboarding';
 import { loadCloud, loadLocal, newPlant, newState, pickNewer, saveCloud, saveLocal, upgrade } from './storage';
 import type { Cutting, EventProgress, GameState, PendingGift, Plant, QuestKind, Twin, WeeklyKind, Zone } from './types';
 
@@ -66,6 +66,7 @@ export type Sheet =
   | { kind: 'doctor'; sp?: string }
   | { kind: 'coop' }
   | { kind: 'album' }
+  | { kind: 'name'; plant: string }
   | null;
 
 export type Tab = 'sill' | 'shop' | 'friends' | 'herbarium' | 'quests' | 'profile';
@@ -667,9 +668,11 @@ export function plantInPot(plantId: string) {
   mut((g, t) => {
     const p = findPlant(g, plantId);
     if (!p || p.stage !== 1) return;
+    const first = g.stats.planted === 0;
     p.stage = 2;
     p.plantedAt = t;
-    p.growth = 0;
+    // первая победа: самое первое растение подрастёт уже через 10 минут
+    p.growth = first ? Math.max(0, stageMarks(p.sp)[0] - FIRST_YOUNG_H) : 0;
     p.moisture = 1;
     p.health = 100;
     g.stats.planted += 1;
@@ -681,6 +684,10 @@ export function plantInPot(plantId: string) {
     haptic('success');
     toast(`${sp(p.sp).name} в горшке! Поливай, когда подсохнет 💧`);
   });
+  // имя для растения: именованное жалко бросать
+  const g = get().game;
+  const p = findPlant(g, plantId);
+  if (p && p.stage === 2 && !p.nick && g.tutorial >= TUTORIAL_DONE && !get().sheet) setTimeout(() => openSheet({ kind: 'name', plant: plantId }), 900);
 }
 
 /** Сообщить про свет после перестановки и засчитать задание «переставь к свету». */
@@ -855,8 +862,20 @@ export function removePlant(plantId: string) {
 }
 
 export function renamePlant(plantId: string, nick: string) {
-  mut((g) => { const p = findPlant(g, plantId); if (p) p.nick = nick.trim().slice(0, 20) || undefined; });
+  mut((g) => {
+    const p = findPlant(g, plantId);
+    if (!p) return;
+    const fresh = !p.named && !!nick.trim();
+    p.nick = nick.trim().slice(0, 20) || undefined;
+    if (fresh) {
+      p.named = true;
+      g.leaves += NAME_REWARD;
+      toast(`${p.nick} — отличное имя! +${NAME_REWARD} 🍃`);
+    }
+  });
 }
+
+const NAME_REWARD = 5;
 
 export function setPot(plantId: string, pot: string) {
   mut((g) => { const p = findPlant(g, plantId); if (p && (pot === 'terracotta' || g.owned['pot_' + pot])) p.pot = pot; });
@@ -1762,4 +1781,19 @@ export async function claimPlusGift(code: string) {
   } catch {
     toast('Не получилось забрать подарок. Проверь интернет');
   }
+}
+
+/** Сундучок первого часа. */
+export function claimFirstChest() {
+  mut((g, t) => {
+    const c = firstChest(g, t);
+    if (!c?.ready) return;
+    g.firstChest = true;
+    g.leaves += FIRST_CHEST.leaves;
+    g.owned.feed = (g.owned.feed ?? 0) + FIRST_CHEST.feed;
+    g.owned[FIRST_CHEST.item] = 1;
+    track('first_chest');
+    haptic('success');
+    toast(`🎁 Сундучок первого часа: +${FIRST_CHEST.leaves} 🍃, подкормка ×${FIRST_CHEST.feed} и белый горшок!`);
+  });
 }

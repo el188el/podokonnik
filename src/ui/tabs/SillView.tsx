@@ -9,12 +9,12 @@ import { CoopSill } from './CoopSill';
 import { useEffect } from 'react';
 import { chatter } from '../../game/mood';
 import { ctxFor } from '../../game/sim';
-import { say } from '../../game/store';
+import { claimFirstChest, say } from '../../game/store';
 import type { GameState } from '../../game/types';
 import { PlantArt } from '../art/PlantArt';
 import { Slot } from '../Slot';
 import { Guide } from '../Guide';
-import { roundInfo, starterDone, starterLeft } from '../../game/onboarding';
+import { firstChest, roundInfo, starterDone, starterLeft } from '../../game/onboarding';
 import { TUTORIAL_DONE } from '../../game/store';
 import { SillScene, timeOfDay } from '../SillScene';
 import { SKY, isDim, isSunny, tempText, weatherAt } from '../../game/weather';
@@ -153,6 +153,15 @@ function OwnSill() {
       )}
       {g.tutorial < TUTORIAL_DONE ? <Guide /> : <p className="hint">{hint(g, t)}</p>}
 
+      {(() => {
+        const c = firstChest(g, t);
+        if (!c) return null;
+        return (
+          <button className={'mini-banner starter-banner' + (c.ready ? ' ready' : '')} disabled={!c.ready} onClick={claimFirstChest}>
+            🎁 Сундучок первого часа · {c.ready ? 'открыть!' : `через ${fmt(c.left)}`}
+          </button>
+        );
+      })()}
       {g.tutorial >= TUTORIAL_DONE && !starterDone(g) && (
         <button className={'mini-banner starter-banner' + (starterLeft(g, t).length ? ' ready' : '')} onClick={() => openSheet({ kind: 'starter' })}>
           🎁 Подарки новичка · {starterLeft(g, t).length ? `забрать (${starterLeft(g, t).length})` : 'завтра новый'}

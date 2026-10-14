@@ -31,3 +31,19 @@ describe('обход', () => {
     expect(roundInfo(g, at(1, 20))?.checked).toBe(0); // вечером — новый обход
   });
 });
+
+describe('первая победа', () => {
+  it('сундучок первого часа', async () => {
+    const { firstChest } = await import('./onboarding');
+    const { newState } = await import('./storage');
+    const T = Date.UTC(2026, 9, 14, 10);
+    const g = newState(T);
+    g.tutorial = 99;
+    expect(firstChest(g, T)).toBeNull();
+    g.stats.planted = 1;
+    expect(firstChest(g, T + 30 * 60e3)).toEqual({ ready: false, left: 30 * 60e3 });
+    expect(firstChest(g, T + 61 * 60e3)?.ready).toBe(true);
+    g.firstChest = true;
+    expect(firstChest(g, T + 61 * 60e3)).toBeNull();
+  });
+});

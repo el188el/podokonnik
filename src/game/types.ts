@@ -103,6 +103,7 @@ export interface Plant {
   showoffDone?: boolean;
   ageSeen?: number;     // последняя отпразднованная отметка возраста (дней)
   waterBy?: { name: string; at: number }; // кто полил последним (общий подоконник)
+  named?: boolean;      // награда за имя уже выдана
 }
 
 export interface Sill {
@@ -218,6 +219,7 @@ export interface GameState {
   starterPack?: boolean; // стартовый пакет куплен
   plusGifts?: { code: string; at: number; sent?: boolean }[]; // купленные подписки в подарок
   box?: string;          // день, когда открывали ящик-сюрприз
+  firstChest?: boolean;  // сундучок первого часа забран
   tutorial: number;
 }
 
