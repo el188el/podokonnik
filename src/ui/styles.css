@@ -550,3 +550,29 @@ svg.big.sad { filter: sepia(0.6) saturate(0.6); }
 .album-item:not(.got) span { color: #9aa8a3; }
 .album-prize { display: flex; gap: 10px; align-items: center; background: var(--soft); border-radius: 14px; padding: 10px; margin: 10px 0; }
 .album-prize > div { display: flex; flex-direction: column; }
+
+/* интерьер: подвесные кашпо над окном */
+.scene { --hang: 0px; --wp: repeating-linear-gradient(90deg, #f6ead8 0 22px, #f2e3cd 22px 44px); }
+.scene.has-hang { --hang: 78px; }
+.scene .window { top: var(--hang); }
+.scene .wall { top: calc(var(--hang) + var(--cellh) + var(--ledge)); }
+.hang-row { position: relative; z-index: 3; height: var(--hang); display: grid; grid-template-columns: repeat(3, 1fr); border-top: 9px solid var(--wood); box-shadow: inset 0 3px 0 var(--wood2); }
+.cell.hang { align-items: flex-start; overflow: visible; }
+.cell.hang::before, .cell.hang::after { content: ''; position: absolute; top: 0; height: 22px; width: 1.5px; background: #8a6a4a; }
+.cell.hang::before { left: calc(50% - 16px); transform: rotate(-12deg); transform-origin: top; }
+.cell.hang::after { left: calc(50% + 16px); transform: rotate(12deg); transform-origin: top; }
+.cell.hang .slot { transform: scale(0.4); transform-origin: 50% 0; margin-top: 4px; height: 170px; }
+.cell.hang .slot.lift { transform: translate(var(--dx, 0), var(--dy, 0)) scale(0.45); }
+.cell.hang .label { display: none; }
+.cell.hang .bubble { font-size: 26px; padding: 6px 14px; max-width: 300px; top: -14px; }
+.cell.hang .empty { height: 56px; width: 56px; margin-top: 14px; }
+.cell.hang .empty small { display: none; }
+
+/* обои */
+.scene[data-wp='wp_flowers'] { --wp: radial-gradient(circle at 25% 30%, #f3b9c6 0 3px, transparent 4px) 0 0 / 34px 34px, radial-gradient(circle at 75% 75%, #f7d77a 0 3px, transparent 4px) 0 0 / 34px 34px, #fbf3e6; }
+.scene[data-wp='wp_soviet'] { --wp: repeating-linear-gradient(45deg, #d9b98f 0 2px, transparent 2px 18px), repeating-linear-gradient(-45deg, #d9b98f 0 2px, transparent 2px 18px), #ead3b0; }
+.scene[data-wp='wp_mint'] { --wp: #cfeee0; }
+.scene[data-wp='wp_stripes'] { --wp: repeating-linear-gradient(90deg, #dcecfb 0 16px, #f4f9ff 16px 32px); }
+.scene[data-wp='wp_wood'] { --wp: repeating-linear-gradient(90deg, #d8a36b 0 26px, #c99158 26px 28px), #d8a36b; }
+.scene[data-wp='wp_brick'] { --wp: linear-gradient(#c98f76 2px, transparent 2px) 0 0 / 44px 20px, linear-gradient(90deg, #c98f76 2px, transparent 2px) 0 0 / 44px 20px, #b8664b; }
+.scene .wall, .hang-row { background: var(--wp); }

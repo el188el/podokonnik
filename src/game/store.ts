@@ -12,11 +12,11 @@ import { platform } from '../platform';
 import { ACHIEVEMENTS, checkAchievements } from './achievements';
 import { freshAgeMarks } from './age';
 import { SHELVES, shelfDone } from './album';
-import { D, FEED_MS, H, MAX_CUTTINGS, MIST_MS, NEIGHBOR_COOLDOWN, NEIGHBOR_FREE_DAYS, SLOTS, STAGE_NAME } from './constants';
+import { D, FEED_MS, H, HANG_SLOTS, MAX_CUTTINGS, MIST_MS, NEIGHBOR_COOLDOWN, NEIGHBOR_FREE_DAYS, SLOTS, STAGE_NAME } from './constants';
 import { giftLink, makeCode } from './gifts';
 import { XP, levelReward, unlocksAt, xpToNext, SILL_UNLOCK } from './progression';
 import { QUEST_BONUS, WEEKLY_CHEST, bumpQuest, bumpWeekly, rollDay, rollWeek, streakReward, weeklyVisit } from './quests';
-import { ITEM_BY_ID, ITEMS, potIdOf } from './shop';
+import { ITEM_BY_ID, ITEMS, placeOf, potIdOf } from './shop';
 import { advance, badLight, bestZone, canCut, cramped, ctxFor, hasLamp, type SimEvent } from './sim';
 import { activeEvent, EVENT_TOKENS, eventSeason, tierOf, type GameEvent, type PassReward } from './events';
 import { FORM_BY_ID, FORMS, PRODUCT_BY_ID, RARE_DROP, formsOf } from './products';
@@ -901,7 +901,11 @@ export function buyItem(id: string) {
     haptic('success');
     if (it.cat === 'decor' || it.pack) {
       const sill = g.sills.find((s) => s.id === g.activeSill)!;
-      for (const x of ids) if (ITEM_BY_ID[x]?.cat === 'decor' && !sill.decor.includes(x)) sill.decor.push(x);
+      for (const x of ids) {
+        if (ITEM_BY_ID[x]?.cat !== 'decor' || sill.decor.includes(x)) continue;
+        if (placeOf(x) === 'wallpaper') sill.decor = sill.decor.filter((d) => placeOf(d) !== 'wallpaper');
+        sill.decor.push(x);
+      }
     }
     toast(`Куплено: ${it.name} ${it.icon}`);
     return true;
@@ -929,9 +933,17 @@ export function toggleDecor(sillId: string, id: string) {
   mut((g) => {
     const sill = g.sills.find((s) => s.id === sillId);
     if (!sill || !(g.owned[id] > 0)) return;
+    // подвесные кашпо нельзя снять, пока в них растут растения
+    const holder = g.sills.find((s) => s.decor.includes(id));
+    if (placeOf(id) === 'spot' && holder && g.plants.some((p) => p.sill === holder.id && HANG_SLOTS.includes(p.slot))) {
+      toast('Сначала пересади растения из подвесных кашпо');
+      return;
+    }
     if (sill.decor.includes(id)) sill.decor = sill.decor.filter((x) => x !== id);
     else {
       for (const other of g.sills) other.decor = other.decor.filter((x) => x !== id);
+      // обои — одни на подоконник
+      if (placeOf(id) === 'wallpaper') sill.decor = sill.decor.filter((x) => placeOf(x) !== 'wallpaper');
       sill.decor.push(id);
     }
   });

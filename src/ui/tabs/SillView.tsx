@@ -111,6 +111,21 @@ function OwnSill() {
   const w = weatherAt(g, t);
   const twinsDue = (g.twins ?? []).filter((x) => !x.lastWater || t >= x.lastWater + x.every * 86400e3).length;
 
+  const cellAt = (i: number) => {
+    const p = plantAt(g, sill.id, i);
+    if (p) return <Slot plant={p} sill={sill.id} slot={i} />;
+    return (
+      <motion.button
+        whileTap={{ scale: 0.92 }}
+        className="empty"
+        onClick={() => (sill.window ? openSheet({ kind: 'picker', slot: i, sill: sill.id }) : openSheet({ kind: 'window', sill: sill.id, then: 'picker', slot: i }))}
+      >
+        <span>+</span>
+        <small>{i < 3 || i > 5 ? 'у стекла' : 'в глубине'}</small>
+      </motion.button>
+    );
+  };
+
   return (
     <div className="sillview">
       <div className="sillbar">
@@ -162,20 +177,8 @@ function OwnSill() {
         sky={w?.sky}
         theme={ev?.theme}
         win={sill.window ?? 'E'}
-        cell={(i) => {
-          const p = plantAt(g, sill.id, i);
-          if (p) return <Slot plant={p} sill={sill.id} slot={i} />;
-          return (
-            <motion.button
-              whileTap={{ scale: 0.92 }}
-              className="empty"
-              onClick={() => (sill.window ? openSheet({ kind: 'picker', slot: i, sill: sill.id }) : openSheet({ kind: 'window', sill: sill.id, then: 'picker', slot: i }))}
-            >
-              <span>+</span>
-              <small>{i < 3 ? 'у стекла' : 'в глубине'}</small>
-            </motion.button>
-          );
-        }}
+        hangCell={cellAt}
+        cell={cellAt}
       />
 
       <Toolbar sill={sill.id} />

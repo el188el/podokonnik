@@ -5,7 +5,7 @@
 import type { Plant, Zone } from './types.ts';
 
 export const ROW = 3;
-export const zoneOfSlot = (slot: number): Zone => (slot < ROW ? 'glass' : 'deep');
+export const zoneOfSlot = (slot: number): Zone => (slot < ROW || slot >= ROW * 2 ? 'glass' : 'deep');
 export const rowSlots = (zone: Zone) => (zone === 'glass' ? [0, 1, 2] : [3, 4, 5]);
 
 /**
@@ -19,7 +19,7 @@ export function normalizeLayout(plants: Plant[]) {
     const taken = new Set<number>();
     const misplaced: Plant[] = [];
     for (const p of here) {
-      if (p.slot >= 0 && p.slot < ROW * 2 && zoneOfSlot(p.slot) === p.zone && !taken.has(p.slot)) taken.add(p.slot);
+      if (p.slot >= 0 && p.slot < ROW * 3 && zoneOfSlot(p.slot) === p.zone && !taken.has(p.slot)) taken.add(p.slot);
       else misplaced.push(p);
     }
     for (const p of misplaced) {

@@ -15,13 +15,15 @@ export interface SceneProps {
   theme?: 'autumn' | 'winter' | 'spring';
   win?: string;
   cell: (slot: number) => ReactNode;
+  /** Места в подвесных кашпо (6–8) — только на своём подоконнике. */
+  hangCell?: (slot: number) => ReactNode;
   className?: string;
 }
 
 const icon = (id: string) => ITEM_BY_ID[id]?.icon ?? '';
 const LEDGE_POS = ['4%', '35%', '65%', '96%']; // промежутки между горшками
 
-export function SillScene({ decor, tod, winter, sky, theme, win = 'E', cell, className = '' }: SceneProps) {
+export function SillScene({ decor, tod, winter, sky, theme, win = 'E', cell, hangCell, className = '' }: SceneProps) {
   const at = (place: string) => decor.filter((d) => placeOf(d) === place);
   const windowD = at('window');
   const sillD = at('sill').slice(0, 4);
@@ -29,9 +31,18 @@ export function SillScene({ decor, tod, winter, sky, theme, win = 'E', cell, cla
   const wallD = at('wall');
   const snow = sky === 'snow' || (!sky && (winter || theme === 'winter'));
   const rain = sky === 'rain' || sky === 'storm';
+  const wallpaper = at('wallpaper')[0];
+  const hang = !!hangCell && decor.includes('hangers');
 
   return (
-    <div className={`scene tod-${tod}${winter ? ' winter' : ''}${sky ? ' sky-' + sky : ''} ${className}`} data-win={win}>
+    <div className={`scene tod-${tod}${winter ? ' winter' : ''}${sky ? ' sky-' + sky : ''}${hang ? ' has-hang' : ''} ${className}`} data-win={win} data-wp={wallpaper}>
+      {hang && (
+        <div className="hang-row">
+          {[6, 7, 8].map((i) => (
+            <div className="cell hang" data-slot={i} data-zone="glass" key={i}>{hangCell!(i)}</div>
+          ))}
+        </div>
+      )}
       {/* ─── окно ─── */}
       <div className="window">
         <div className="sky">

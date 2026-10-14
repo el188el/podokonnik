@@ -2,7 +2,7 @@
 
 export type ShopCat = 'pots' | 'decor' | 'care' | 'packs';
 /** Куда ставится декор: на стекло, на подоконник, на столик или на стену. */
-export type DecorPlace = 'window' | 'sill' | 'table' | 'wall';
+export type DecorPlace = 'window' | 'sill' | 'table' | 'wall' | 'wallpaper' | 'spot';
 
 export interface ShopItem {
   id: string;
@@ -87,6 +87,15 @@ export const ITEMS: ShopItem[] = [
   { id: 'tulips', cat: 'decor', place: 'sill', name: 'Тюльпаны', icon: '🌷', price: 0, desc: 'Букет в банке.', eventOnly: true },
   { id: 'birdhouse', cat: 'decor', place: 'window', name: 'Скворечник', icon: '🐦', price: 0, desc: 'Скворцы вернулись!', eventOnly: true },
   { id: 'watering_can', cat: 'decor', place: 'table', name: 'Лейка-чайник', icon: '🫖', price: 0, desc: 'Бабушкин чайник, теперь лейка.', eventOnly: true },
+
+  // интерьер: обои (одни на подоконник) и новые места для растений
+  { id: 'wp_flowers', cat: 'decor', place: 'wallpaper', name: 'Обои в цветочек', icon: '🌼', price: 120, desc: 'Мелкий ситцевый цветок, как на даче.' },
+  { id: 'wp_soviet', cat: 'decor', place: 'wallpaper', name: 'Обои «Хрущёвка»', icon: '🟫', price: 100, desc: 'Коричневые ромбы. Ностальгия гарантирована.' },
+  { id: 'wp_mint', cat: 'decor', place: 'wallpaper', name: 'Мятная краска', icon: '🟩', price: 80, desc: 'Свежий спокойный цвет.' },
+  { id: 'wp_stripes', cat: 'decor', place: 'wallpaper', name: 'Голубая полоска', icon: '🟦', price: 90, desc: 'Как в детской.' },
+  { id: 'wp_wood', cat: 'decor', place: 'wallpaper', name: 'Деревянная вагонка', icon: '🪵', price: 150, desc: 'Тёплое дерево, будто на веранде.', level: 4 },
+  { id: 'wp_brick', cat: 'decor', place: 'wallpaper', name: 'Кирпич', icon: '🧱', price: 140, desc: 'Лофт: кирпичная стена и зелень.', level: 5 },
+  { id: 'hangers', cat: 'decor', place: 'spot', name: 'Подвесные кашпо', icon: '🪢', price: 300, desc: 'Три новых места над окном — для ампельных и маленьких растений. Света там много.', level: 6 },
 
   // награды альбома редкостей
   { id: 'glass_dome', cat: 'decor', place: 'sill', name: 'Стеклянный купол', icon: '🔔', price: 0, desc: 'Под ним — самый ценный черенок коллекции.', eventOnly: true, album: true },

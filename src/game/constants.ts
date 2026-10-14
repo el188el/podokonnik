@@ -5,6 +5,8 @@ export const H = 60 * MIN;
 export const D = 24 * H;
 
 export const SLOTS = 6;
+/** Подвесные кашпо над окном: места 6–8 (появляются после покупки). */
+export const HANG_SLOTS = [6, 7, 8];
 export const MIST_MS = 12 * H;
 export const FEED_MS = 24 * H;
 /** Самый первый черенок и подарки всегда укореняются за 2 минуты — чтобы сразу было «вау». */
