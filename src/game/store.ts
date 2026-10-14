@@ -18,7 +18,7 @@ import { rowSlots, zoneOfSlot } from './layout';
 import { BREED_COOLDOWN, canBreed, crossHue, hueOf } from './breeding';
 import { ROUND_REWARD, STARTER, roundInfo, starterLeft } from './onboarding';
 import { loadCloud, loadLocal, newPlant, newState, pickNewer, saveCloud, saveLocal, upgrade } from './storage';
-import type { EventProgress, GameState, PendingGift, Plant, QuestKind, Twin, Zone } from './types';
+import type { Cutting, EventProgress, GameState, PendingGift, Plant, QuestKind, Twin, Zone } from './types';
 
 // ─────────────────── UI-события: тосты, окна наград ───────────────────
 export type Popup =
@@ -339,6 +339,15 @@ function applyInbox(items: api.InboxItem[]) {
           toast('🌟 «Садовник+» включён! Золотой горшок уже в коллекции');
         }
         haptic('success');
+      } else if (it.kind === 'swap_got' || it.kind === 'swap_return') {
+        const spId = String(it.payload.sp);
+        if (sp(spId).id === spId) {
+          const form = it.payload.form ? String(it.payload.form) : undefined;
+          const hue = it.payload.hue ? String(it.payload.hue) : undefined;
+          g.cuttings.push({ id: makeCode(8), sp: spId, at: Date.now(), ...(form ? { form } : {}), ...(hue ? { hue } : {}) });
+          discover(g, spId);
+          toast(it.kind === 'swap_return' ? `Черенок ${sp(spId).gen} вернулся с барахолки` : `🔄 ${String(it.payload.from ?? 'Садовник')}: черенок ${sp(spId).gen} пришёл по обмену!`);
+        }
       } else if (it.kind === 'tester') {
         grantTester(g, now());
       } else if (it.kind === 'water_reward') {
@@ -1257,4 +1266,66 @@ export function pollinate(aId: string, bId: string) {
     toast(`${h.rare ? '🌈 Редкость!' : '🐝'} Семечко: ${sp(a.sp).name.toLowerCase()} ${h.name}${isNew ? ' — новый цвет в коллекции!' : ''}`);
     return hue;
   });
+}
+
+// ─────────────────── барахолка ───────────────────
+const refOf = (c: Cutting) => ({ sp: c.sp, ...(c.form ? { form: c.form } : {}), ...(c.hue ? { hue: c.hue } : {}) });
+
+function takeCuttingOut(id: string): Cutting | null {
+  const c = get().game.cuttings.find((x) => x.id === id) ?? null;
+  if (c) mut((g) => { g.cuttings = g.cuttings.filter((x) => x.id !== id); });
+  return c;
+}
+function putCuttingBack(c: Cutting) {
+  mut((g) => { if (!g.cuttings.some((x) => x.id === c.id)) g.cuttings.push(c); });
+}
+
+/** Выставить черенок на барахолку. Пока объявление висит, черенок хранится на сервере. */
+export async function listSwap(cuttingId: string, wants: string[], note = '') {
+  const c = takeCuttingOut(cuttingId);
+  if (!c) return false;
+  try {
+    await api.swapCreate({ ...refOf(c), wants, note });
+    track('swap_list', { sp: c.sp });
+    toast('Черенок на барахолке! Как только кто-то обменяет — он придёт тебе 🔄');
+    pushNow();
+    return true;
+  } catch (e) {
+    putCuttingBack(c);
+    toast(String((e as Error).message) === 'too_many' ? 'Можно выставить не больше 3 черенков одновременно' : 'Не получилось выставить — проверь интернет');
+    return false;
+  }
+}
+
+/** Обменять свой черенок на чужое объявление. */
+export async function takeSwap(offerId: number, cuttingId: string) {
+  const c = takeCuttingOut(cuttingId);
+  if (!c) return false;
+  try {
+    const r = await api.swapTake(offerId, refOf(c));
+    if (r.status === 'ok') {
+      track('swap_take', { sp: c.sp });
+      haptic('success');
+      toast('🔄 Обмен состоялся! Новый черенок уже в пути');
+      setTimeout(() => pushNow(), 600);
+      return true;
+    }
+    putCuttingBack(c);
+    toast('Этот черенок уже обменяли — выбери другой');
+    return false;
+  } catch (e) {
+    putCuttingBack(c);
+    toast(String((e as Error).message) === 'not_wanted' ? 'Хозяин хочет взамен другой вид' : 'Не получилось обменять — проверь интернет');
+    return false;
+  }
+}
+
+export async function cancelSwap(id: number) {
+  try {
+    await api.swapCancel(id);
+    toast('Объявление снято, черенок вернётся в запас');
+    setTimeout(() => pushNow(), 600);
+  } catch {
+    toast('Не получилось снять объявление');
+  }
 }

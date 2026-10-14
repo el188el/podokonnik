@@ -11,6 +11,8 @@ import { CORS, fail, json } from '../_shared/http.ts';
 import { invoiceLink } from '../_shared/pay.ts';
 import { PRODUCT_BY_ID } from '../_shared/game/products.ts';
 import { activeEvent } from '../_shared/game/events.ts';
+import { FORM_BY_ID } from '../_shared/game/products.ts';
+import { hueOf } from '../_shared/game/breeding.ts';
 import { escHtml, send } from '../_shared/tg.ts';
 
 const MAX_STATE = 300_000;
@@ -334,6 +336,83 @@ async function trackEvents(playerId: string, b: Body) {
   return json({ ok: true, n: rows.length });
 }
 
+// ─────────────────── барахолка ───────────────────
+const SWAP_TTL = 7 * 86400e3;
+const SWAP_MAX_OPEN = 3;
+
+/** Проверить черенок из запроса: вид существует, форма и цвет подходят к виду. */
+function cleanCutting(v: unknown): { sp: string; form?: string; hue?: string } | null {
+  const o = (v ?? {}) as Record<string, unknown>;
+  const spId = str(o.sp, 32);
+  if (species(spId).id !== spId) return null;
+  const form = str(o.form, 32);
+  const hue = str(o.hue, 32);
+  return {
+    sp: spId,
+    ...(form && FORM_BY_ID[form]?.sp === spId ? { form } : {}),
+    ...(hue && hueOf(spId, hue) ? { hue } : {}),
+  };
+}
+
+async function swapsList(playerId: string) {
+  const since = new Date(Date.now() - SWAP_TTL).toISOString();
+  const { data: market } = await db.from('swaps')
+    .select('id, owner, sp, form, hue, wants, note, created_at, players!swaps_owner_fkey(name, level)')
+    .is('taken_by', null).eq('cancelled', false).neq('owner', playerId).gte('created_at', since)
+    .order('created_at', { ascending: false }).limit(60);
+  const { data: mine } = await db.from('swaps')
+    .select('id, sp, form, hue, wants, note, created_at, taken_at, given, cancelled')
+    .eq('owner', playerId).or(`taken_by.is.null,taken_at.gte.${new Date(Date.now() - 14 * 86400e3).toISOString()}`)
+    .eq('cancelled', false).order('created_at', { ascending: false }).limit(20);
+  return json({
+    market: (market ?? []).map((m) => {
+      const pl = (Array.isArray(m.players) ? m.players[0] : m.players) as { name?: string; level?: number } | null;
+      return { id: m.id, sp: m.sp, form: m.form, hue: m.hue, wants: m.wants, note: m.note, at: Date.parse(m.created_at), owner: pl?.name || 'Садовник', level: pl?.level ?? 1 };
+    }),
+    mine: (mine ?? []).map((m) => ({ id: m.id, sp: m.sp, form: m.form, hue: m.hue, wants: m.wants, at: Date.parse(m.created_at), taken: !!m.taken_at, given: m.given })),
+  });
+}
+
+async function swapCreate(playerId: string, b: Body) {
+  const c = cleanCutting(b);
+  if (!c) return fail('bad_cutting');
+  const wants = (Array.isArray(b.wants) ? b.wants : []).map((w) => str(w, 32)).filter((w) => species(w).id === w).slice(0, 3);
+  const { count } = await db.from('swaps').select('id', { count: 'exact', head: true }).eq('owner', playerId).is('taken_by', null).eq('cancelled', false);
+  if ((count ?? 0) >= SWAP_MAX_OPEN) return fail('too_many', 429);
+  const { data, error } = await db.from('swaps').insert({ owner: playerId, ...c, wants, note: str(b.note, 80) }).select('id').single();
+  if (error) return fail('db', 500);
+  return json({ id: data.id });
+}
+
+async function swapTake(playerId: string, b: Body) {
+  const id = Number(b.id);
+  const give = cleanCutting(b.give);
+  if (!Number.isFinite(id) || !give) return fail('bad_args');
+  const { data: offer } = await db.from('swaps').select('id, owner, sp, form, hue, wants').eq('id', id).maybeSingle();
+  if (!offer) return json({ status: 'gone' });
+  if (offer.wants?.length && !offer.wants.includes(give.sp)) return fail('not_wanted');
+  const { data: s } = await db.rpc('take_swap', { p_id: id, p_taker: playerId, p_given: give });
+  if (!s?.id) return json({ status: 'gone' });
+  const { data: names } = await db.from('players').select('id, name, tg_id, notify').in('id', [playerId, offer.owner]);
+  const me = names?.find((x) => x.id === playerId);
+  const owner = names?.find((x) => x.id === offer.owner);
+  await db.from('inbox').insert([
+    { player_id: playerId, kind: 'swap_got', payload: { sp: offer.sp, form: offer.form, hue: offer.hue, from: owner?.name || 'Садовник' } },
+    { player_id: offer.owner, kind: 'swap_got', payload: { ...give, from: me?.name || 'Садовник', traded: offer.sp } },
+  ]);
+  if (owner?.tg_id && owner.notify) {
+    await send(owner.tg_id, `🔄 ${escHtml(me?.name || 'Кто-то')} обменял(а) твой черенок ${species(offer.sp).gen} на черенок ${species(give.sp).gen}! Он уже ждёт в запасе.`, { text: '🪴 Открыть подоконник', url: appLink() });
+  }
+  return json({ status: 'ok' });
+}
+
+async function swapCancel(playerId: string, b: Body) {
+  const { data: s } = await db.rpc('cancel_swap', { p_id: Number(b.id), p_owner: playerId });
+  if (!s?.id) return json({ status: 'gone' });
+  await db.from('inbox').insert({ player_id: playerId, kind: 'swap_return', payload: { sp: s.sp, form: s.form, hue: s.hue } });
+  return json({ status: 'ok' });
+}
+
 // ─────────────────── оплата ───────────────────
 async function payInvoice(playerId: string, b: Body) {
   const product = PRODUCT_BY_ID[str(b.product, 40)];
@@ -369,6 +448,10 @@ Deno.serve(async (req) => {
       case '/visit/water': return await visitWater(playerId, body);
       case '/pay/invoice': return await payInvoice(playerId, body);
       case '/track': return await trackEvents(playerId, body);
+      case '/swaps': return await swapsList(playerId);
+      case '/swaps/create': return await swapCreate(playerId, body);
+      case '/swaps/take': return await swapTake(playerId, body);
+      case '/swaps/cancel': return await swapCancel(playerId, body);
       default: return fail('not_found', 404);
     }
   } catch (e) {

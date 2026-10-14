@@ -449,3 +449,16 @@ svg.big.sad { filter: sepia(0.6) saturate(0.6); }
 .partner { border: 2px solid var(--line); background: #fff; border-radius: 14px; padding: 4px 8px; display: flex; flex-direction: column; align-items: center; font-size: 12px; flex: 0 0 auto; }
 .partner:active { border-color: var(--gold); }
 .palette { background: #fff8f0; border-radius: 14px; padding: 8px 10px; margin: 8px 0; }
+
+/* ─────────── барахолка ─────────── */
+.segment { display: flex; background: #fff; border-radius: 14px; padding: 4px; margin-bottom: 12px; box-shadow: 0 2px 0 var(--line); }
+.segment button { flex: 1; border: 0; background: none; padding: 8px; border-radius: 10px; font-weight: 600; color: var(--muted); }
+.segment button.on { background: #e5f5ec; color: var(--green); }
+.swap { display: flex; gap: 10px; align-items: center; padding: 8px 0; border-bottom: 1px solid var(--soft); }
+.swap-body { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 1px; }
+.swap .mini { width: 52px; height: 74px; flex: 0 0 auto; }
+.ok-text { color: var(--green); font-weight: 600; }
+.market-head { display: flex; justify-content: space-between; align-items: center; }
+.give-pick { display: flex; gap: 6px; overflow-x: auto; margin-top: 6px; }
+.cutting.on { box-shadow: inset 0 0 0 2px var(--green); }
+.list-form .chips { max-height: 150px; overflow-y: auto; }

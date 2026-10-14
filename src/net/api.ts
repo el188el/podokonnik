@@ -180,3 +180,32 @@ export async function postTrack(events: unknown[], keepalive = false): Promise<b
     return false;
   }
 }
+
+// ─────────────────── барахолка ───────────────────
+export interface SwapOffer {
+  id: number;
+  sp: string;
+  form?: string | null;
+  hue?: string | null;
+  wants: string[];
+  note?: string;
+  at: number;
+  owner: string;
+  level: number;
+}
+export interface MySwap {
+  id: number;
+  sp: string;
+  form?: string | null;
+  hue?: string | null;
+  wants: string[];
+  at: number;
+  taken: boolean;
+  given?: { sp: string; form?: string; hue?: string } | null;
+}
+type CuttingRef = { sp: string; form?: string; hue?: string };
+
+export const swaps = () => call<{ market: SwapOffer[]; mine: MySwap[] }>('/swaps', {});
+export const swapCreate = (c: CuttingRef & { wants: string[]; note?: string }) => call<{ id: number }>('/swaps/create', c);
+export const swapTake = (id: number, give: CuttingRef) => call<{ status: 'ok' | 'gone' }>('/swaps/take', { id, give });
+export const swapCancel = (id: number) => call<{ status: 'ok' | 'gone' }>('/swaps/cancel', { id });
