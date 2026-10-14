@@ -42,7 +42,7 @@ export function orderText(o: Order): string {
     case 'adult': return `Хочу посмотреть на взрослое растение — ${s.name.toLowerCase()}. Какое оно вырастает?`;
     case 'healthy': return `Мой ${s.name.toLowerCase()} хиреет… Покажи своё здоровое — как ты ухаживаешь?`;
     case 'rare': return `Ищу редкость — черенок «${FORM_BY_ID[o.form!]?.name ?? s.name}». Выручишь?`;
-    case 'hue': return `Мечтаю увидеть цветущую ${s.name.toLowerCase()} цвета «${hueOf(o.sp, o.hue)?.name ?? o.hue}»!`;
+    case 'hue': return `Мечтаю увидеть, как цветёт ${s.name.toLowerCase()} цвета «${hueOf(o.sp, o.hue)?.name ?? o.hue}»!`;
   }
 }
 

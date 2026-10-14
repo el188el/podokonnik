@@ -232,18 +232,21 @@ export function Slot({ plant: p, sill, slot }: { plant: Plant; sill: string; slo
 /** Реплика растения — облачко поверх всего интерфейса (не обрезается рамкой подоконника). */
 function Speech({ anchor, text }: { anchor: RefObject<HTMLDivElement | null>; text: string }) {
   const [pos, setPos] = useState<{ x: number; y: number } | null>(null);
+  // пока открыто окно или всплывашка — растения молчат
+  const covered = useStore((s) => !!s.sheet || s.popups.length > 0);
   useLayoutEffect(() => {
     const upd = () => {
-      const r = anchor.current?.querySelector('.art')?.getBoundingClientRect() ?? anchor.current?.getBoundingClientRect();
-      if (r) setPos({ x: Math.min(window.innerWidth - 90, Math.max(90, r.left + r.width / 2)), y: r.top + 6 });
+      // ровно там, где у растения облачко состояния: по центру ячейки, у её верхнего края
+      const r = anchor.current?.getBoundingClientRect();
+      if (r) setPos({ x: Math.min(window.innerWidth - 74, Math.max(74, r.left + r.width / 2)), y: r.top + 2 });
     };
     upd();
     window.addEventListener('resize', upd);
     return () => window.removeEventListener('resize', upd);
   }, [anchor, text]);
-  if (!pos) return null;
+  if (!pos || covered) return null;
   return createPortal(
-    <motion.div className="speech" style={{ left: pos.x, top: pos.y, x: '-50%', y: '-100%', originY: 1 }} initial={{ scale: 0.5, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} key={text}>
+    <motion.div className="speech" style={{ left: pos.x, top: pos.y, x: '-50%', originY: 1 }} initial={{ scale: 0.6, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} key={text}>
       {text}
     </motion.div>,
     document.body,
