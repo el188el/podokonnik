@@ -648,3 +648,4 @@ svg.big.sad { filter: sepia(0.6) saturate(0.6); }
 .road-rank { color: #a87408; }
 .lvl { cursor: pointer; }
 .mastery { background: #fff8e6; border-radius: 14px; padding: 8px 10px; margin: 8px 0; display: flex; flex-direction: column; gap: 4px; }
+.scene .empty.extra { border-color: #e9c46a; color: #c8952a; background: #fff8e166; }

@@ -26,16 +26,18 @@ describe('четвёртые места в ряду', () => {
     expect(rowCell(rows, 10)).toBe(b);
   });
 
-  it('места открываются уровнем или покупкой', async () => {
+  it('места открываются только покупкой (уровень не открывает)', async () => {
     const { placeOpen } = await import('./store');
     const { newState } = await import('./storage');
     const g = newState(0);
     expect(placeOpen(g, 'room', 2)).toBe(true);
     expect(placeOpen(g, 'room', 9)).toBe(false);
-    g.level = 4;
+    g.level = 40;
+    expect(placeOpen(g, 'room', 9)).toBe(false);
+    g.places = [9];
     expect(placeOpen(g, 'room', 9)).toBe(true);
     expect(placeOpen(g, 'room', 10)).toBe(false);
-    g.places = [10];
+    g.places = [9, 10];
     expect(placeOpen(g, 'room', 10)).toBe(true);
     expect(placeOpen(g, 'room', 6)).toBe(false);
   });

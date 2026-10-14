@@ -9,8 +9,8 @@ import { CoopSill } from './CoopSill';
 import { useEffect } from 'react';
 import { chatter } from '../../game/mood';
 import { ctxFor } from '../../game/sim';
-import { buyPlace, claimFirstChest, placeOpen, say, toast } from '../../game/store';
-import { EXTRA_PLACES, zoneOfSlot } from '../../game/layout';
+import { claimFirstChest, placeOpen, say } from '../../game/store';
+import { zoneOfSlot } from '../../game/layout';
 import type { GameState } from '../../game/types';
 import { PlantArt } from '../art/PlantArt';
 import { Slot } from '../Slot';
@@ -117,12 +117,11 @@ function OwnSill() {
     const p = plantAt(g, sill.id, i);
     if (p) return <Slot plant={p} sill={sill.id} slot={i} />;
     if (!placeOpen(g, sill.id, i)) {
-      const x = EXTRA_PLACES[i];
       return (
-        <button className="empty locked" onClick={() => (g.leaves >= x.price ? confirm(`Открыть ${x.name} за ${x.price} 🍃? Оно откроется на всех подоконниках.`) && buyPlace(i) : toast(`Откроется на ${x.level} уровне или за ${x.price} 🍃`))}>
-          <span>🔒</span>
-          <small>{x.level} ур. · {x.price} 🍃</small>
-        </button>
+        <motion.button whileTap={{ scale: 0.92 }} className="empty extra" onClick={() => openSheet({ kind: 'place', slot: i })}>
+          <span>+</span>
+          <small>новое место</small>
+        </motion.button>
       );
     }
     return (

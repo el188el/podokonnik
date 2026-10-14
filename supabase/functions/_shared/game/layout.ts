@@ -15,10 +15,10 @@ export const ALL_SLOTS = [...GLASS_ROW, ...DEEP_ROW, ...HANG_ROW];
 export const zoneOfSlot = (slot: number): Zone => (DEEP_ROW.includes(slot) ? 'deep' : 'glass');
 export const rowSlots = (zone: Zone) => (zone === 'glass' ? GLASS_ROW : DEEP_ROW);
 
-/** Места, которые открываются не сразу: уровнем или покупкой. */
-export const EXTRA_PLACES: Record<number, { level: number; price: number; name: string }> = {
-  9: { level: 4, price: 120, name: 'четвёртое место у стекла' },
-  10: { level: 7, price: 200, name: 'четвёртое место на столике' },
+/** Четвёртые места в ряду: за звёзды — сразу, за листики — с нужного уровня. */
+export const EXTRA_PLACES: Record<number, { level: number; price: number; stars: number; product: string; name: string }> = {
+  9: { level: 4, price: 150, stars: 25, product: 'place_9', name: 'четвёртое место у стекла' },
+  10: { level: 7, price: 250, stars: 35, product: 'place_10', name: 'четвёртое место на столике' },
 };
 
 /**

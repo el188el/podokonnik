@@ -22,6 +22,7 @@ import { CoopSheet } from './CoopSheet';
 import { AlbumSheet } from './AlbumSheet';
 import { NameSheet } from './NameSheet';
 import { LevelsSheet } from './LevelsSheet';
+import { PlaceSheet } from './PlaceSheet';
 import { StarterSheet } from './StarterSheet';
 
 export function Sheets() {
@@ -45,6 +46,7 @@ export function Sheets() {
       {sheet?.kind === 'album' && <AlbumSheet />}
       {sheet?.kind === 'name' && <NameSheet plant={sheet.plant} />}
       {sheet?.kind === 'levels' && <LevelsSheet />}
+      {sheet?.kind === 'place' && <PlaceSheet slot={sheet.slot} />}
       {sheet?.kind === 'starter' && <StarterSheet />}
       </Safe>
     </Sheet>

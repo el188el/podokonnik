@@ -33,7 +33,7 @@ export const formsOf = (spId: string) => FORMS.filter((f) => f.sp === spId);
 /** Шанс, что обычный черенок окажется редкой формой. */
 export const RARE_DROP = 0.03;
 
-export type ProductKind = 'plus' | 'leaves' | 'form' | 'pass' | 'starter' | 'plus_gift';
+export type ProductKind = 'plus' | 'leaves' | 'form' | 'pass' | 'starter' | 'plus_gift' | 'place';
 
 export interface Product {
   id: string;
@@ -45,6 +45,7 @@ export interface Product {
   form?: string;
   item?: string;  // предмет магазина в наборе
   once?: boolean; // купить можно только один раз
+  slot?: number;  // место на подоконнике (для kind: 'place')
 }
 
 export const PLUS_DAYS = 30;
@@ -65,6 +66,8 @@ export const PRODUCTS: Product[] = [
     id: 'starter', kind: 'starter', stars: 49, once: true, leaves: 300, form: 'albo', item: 'pot_khokhloma', title: 'Стартовый пакет',
     desc: 'Один раз и с большой скидкой: редкий черенок «Монстера Альбо», горшок «Хохлома» и 300 листиков.',
   },
+  { id: 'place_9', kind: 'place', stars: 25, slot: 9, once: true, title: 'Место у стекла', desc: 'Четвёртое место у стекла на всех подоконниках.' },
+  { id: 'place_10', kind: 'place', stars: 35, slot: 10, once: true, title: 'Место на столике', desc: 'Четвёртое место на столике на всех подоконниках.' },
   {
     id: 'plus_gift', kind: 'plus_gift', stars: 99, title: 'Садовник+ в подарок',
     desc: 'Месяц «Садовник+» для друга. Пришлём ссылку-подарок — отправь её кому захочешь.',

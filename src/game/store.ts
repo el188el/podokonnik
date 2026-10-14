@@ -69,6 +69,7 @@ export type Sheet =
   | { kind: 'album' }
   | { kind: 'name'; plant: string }
   | { kind: 'levels' }
+  | { kind: 'place'; slot: number }
   | null;
 
 export type Tab = 'sill' | 'shop' | 'friends' | 'herbarium' | 'quests' | 'profile';
@@ -236,8 +237,7 @@ export const plantAt = (g: GameState, sill: string, slot: number) => g.plants.fi
 /** Открыто ли место: четвёртые места — с уровня или после покупки, кашпо — если повешены. */
 export function placeOpen(g: GameState, sill: string, slot: number) {
   if (HANG_SLOTS.includes(slot)) return !!g.sills.find((s) => s.id === sill)?.decor.includes('hangers') && (g.owned.hangers ?? 0) > 0;
-  const x = EXTRA_PLACES[slot];
-  return !x || g.level >= x.level || (g.places ?? []).includes(slot);
+  return !EXTRA_PLACES[slot] || (g.places ?? []).includes(slot);
 }
 
 export function freeSlot(g: GameState, sill = g.activeSill, prefer?: Zone) {
@@ -250,7 +250,8 @@ export function freeSlot(g: GameState, sill = g.activeSill, prefer?: Zone) {
 export function buyPlace(slot: number) {
   mut((g) => {
     const x = EXTRA_PLACES[slot];
-    if (!x || (g.places ?? []).includes(slot) || g.level >= x.level) return;
+    if (!x || (g.places ?? []).includes(slot)) return;
+    if (g.level < x.level) { toast(`За листики — с ${x.level} уровня. Или открой сразу за ${x.stars} ⭐`); return; }
     if (g.leaves < x.price) { toast(`Нужно ${x.price} 🍃`); return; }
     g.leaves -= x.price;
     g.places = [...(g.places ?? []), slot];
@@ -475,6 +476,9 @@ function applyInbox(items: api.InboxItem[]) {
           g.plusUntil = Math.max(g.plusUntil ?? 0, Number(it.payload.plusUntil) || 0);
           g.owned.pot_gold = 1;
           toast('🌟 «Садовник+» включён! Золотой горшок уже в коллекции');
+        } else if (pr?.kind === 'place' && pr.slot) {
+          if (!(g.places ?? []).includes(pr.slot)) g.places = [...(g.places ?? []), pr.slot];
+          toast('🪴 Новое место открыто на всех подоконниках!');
         } else if (pr?.kind === 'starter') {
           g.starterPack = true;
           g.leaves += pr.leaves ?? 0;

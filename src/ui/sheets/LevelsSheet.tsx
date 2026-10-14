@@ -1,6 +1,5 @@
 import { useEffect, useRef } from 'react';
 import { RANKS, levelPerks, levelReward, nextRank, rankOf, xpToNext } from '../../game/progression';
-import { EXTRA_PLACES } from '../../game/layout';
 import { SPECIES } from '../../game/species';
 import { closeSheet, useStore } from '../../game/store';
 import { Bar, Btn } from '../kit/kit';
@@ -31,7 +30,6 @@ export function LevelsSheet() {
         {Array.from({ length: top - 1 }, (_, i) => i + 2).map((l) => {
           const perks = levelPerks(l);
           const species = SPECIES.filter((s) => s.unlockLevel === l);
-          const place = Object.values(EXTRA_PLACES).find((x) => x.level === l);
           const rk = RANKS.find((r) => r.level === l);
           const done = g.level >= l;
           return (
@@ -40,8 +38,7 @@ export function LevelsSheet() {
               <div className="road-body">
                 {rk && <b className="road-rank">{rk.icon} Ранг «{rk.title}»</b>}
                 <span>🍃 {levelReward(l)}</span>
-                {perks.filter((p) => !place || !p.text.includes('Четвёртое')).map((p) => <span key={p.text}>{p.icon} {p.text}</span>)}
-                {place && <span>🪴 {place.name[0].toUpperCase() + place.name.slice(1)}</span>}
+                {perks.map((p) => <span key={p.text}>{p.icon} {p.text}</span>)}
                 {species.map((s) => <span key={s.id}>🌱 Новый вид: {s.name}</span>)}
               </div>
             </div>

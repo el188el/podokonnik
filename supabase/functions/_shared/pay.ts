@@ -71,6 +71,9 @@ export async function grant(paid: Paid) {
     await db.from('plus_gifts').insert({ code, buyer: playerId, charge_id: paid.chargeId });
     await db.from('inbox').insert({ player_id: playerId, kind: 'plus_gift', payload: { code } });
     text = `🎁 Подарок готов! Перешли другу эту ссылку — по ней он получит месяц «Садовник+»:\n${appLink('p' + code)}`;
+  } else if (product.kind === 'place') {
+    await db.from('inbox').insert({ player_id: playerId, kind: 'purchase', payload: { product: product.id, slot: product.slot } });
+    text = '🪴 Новое место для растения открыто на всех подоконниках!';
   } else if (product.kind === 'form' && product.form) {
     const f = FORM_BY_ID[product.form];
     await db.from('inbox').insert({ player_id: playerId, kind: 'purchase', payload: { product: product.id, form: f.id, sp: f.sp } });

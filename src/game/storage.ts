@@ -76,6 +76,8 @@ export function upgrade(s: GameState, t: number): GameState {
   normalizeLayout(out.plants);
   if (out.firstChest === undefined && t - out.createdAt > 2 * 86400e3) out.firstChest = true; // сундучок — только новичкам
   seedMastery(out);
+  // места, где уже растут растения, остаются открытыми
+  for (const p of out.plants) if ((p.slot === 9 || p.slot === 10) && !(out.places ?? []).includes(p.slot)) out.places = [...(out.places ?? []), p.slot];
   if (!out.bloomed) out.bloomed = [...new Set(out.plants.filter((p) => p.bloomedOnce).map((p) => p.sp))];
   if (out.tutorial < 99 && out.stats.planted > 0) out.tutorial = 99; // опытным игрокам обучение не показываем
   return out;
