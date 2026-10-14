@@ -30,7 +30,7 @@ export function newState(t: number): GameState {
     activeSill: 'room',
     plants: [],
     cuttings: [],
-    owned: { pot_terracotta: 1, potL: 1, feed: 1 },
+    owned: { pot_terracotta: 1, potL: 1, feed: 1, pot: 3 },
     discovered: [],
     grownAdult: [],
     achievements: [],
@@ -73,6 +73,7 @@ export function upgrade(s: GameState, t: number): GameState {
   out.stats = { ...base.stats, ...s.stats };
   out.settings = { ...base.settings, ...s.settings };
   out.owned = { ...s.owned };
+  if (out.owned.pot === undefined) out.owned.pot = 5; // горшки стали расходником — старым сохранениям запас
   normalizeLayout(out.plants);
   if (out.firstChest === undefined && t - out.createdAt > 2 * 86400e3) out.firstChest = true; // сундучок — только новичкам
   seedMastery(out);

@@ -10,6 +10,7 @@ export const BOX_PRICE = 30;
 export type BoxPrize =
   | { kind: 'leaves'; n: number }
   | { kind: 'feed'; n: number }
+  | { kind: 'pots'; n: number }
   | { kind: 'item'; id: string }
   | { kind: 'form'; id: string };
 
@@ -32,6 +33,7 @@ export function rollBox(g: GameState, rnd: () => number): BoxPrize {
     return it ? { kind: 'item', id: it.id } : { kind: 'leaves', n: 80 };
   }
   if (r < 0.45) return { kind: 'leaves', n: 60 };
-  if (r < 0.65) return { kind: 'feed', n: 2 };
+  if (r < 0.55) return { kind: 'feed', n: 2 };
+  if (r < 0.70) return { kind: 'pots', n: 3 };
   return { kind: 'leaves', n: 15 + Math.floor(rnd() * 26) };
 }

@@ -149,6 +149,7 @@ function OwnSill() {
         )}
         {neighbor && <button className="chip" onClick={() => openSheet({ kind: 'neighbor' })}>👵 соседка</button>}
         <button className={'chip' + (twinsDue ? ' alert' : '')} onClick={() => openSheet({ kind: 'twins' })}>🏠 Настоящие{twinsDue ? ` 💧${twinsDue}` : ''}</button>
+        {(g.owned.pot ?? 0) === 0 && <button className="chip alert" onClick={() => openSheet({ kind: 'pots' })} aria-label="Горшки">🪴 0</button>}
         {g.plants.some((p) => p.sill === sill.id && p.stage >= 2) && (
           <button className="chip" onClick={() => shareSillStory()} aria-label="Поделиться подоконником">📸</button>
         )}
@@ -208,7 +209,7 @@ function OwnSill() {
 
       {g.cuttings.length > 0 && (
         <div className="tray">
-          <div className="tray-title">✂️ Черенки в запасе</div>
+          <div className="tray-title">✂️ Черенки в запасе <button className="linkish" onClick={() => openSheet({ kind: 'pots' })}>🪴 горшков: {g.owned.pot ?? 0}</button></div>
           <div className="tray-list">
             {g.cuttings.map((c) => (
               <button key={c.id} className="cutting" onClick={() => openSheet({ kind: 'send', cutting: c.id })}>

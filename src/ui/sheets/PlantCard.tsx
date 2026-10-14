@@ -214,11 +214,11 @@ export function PlantCard({ id }: { id: string }) {
 
       {potted && (
         <div className="block">
-          <Btn onClick={() => setPots(!pots)}>🎨 Горшок: {POTS[p.pot]?.name ?? 'Глиняный'}</Btn>
+          <Btn onClick={() => setPots(!pots)}>🎨 Дизайн горшка: {POTS[p.pot]?.name ?? 'Глиняный'}</Btn>
           {pots && (
             <div className="pots">
               {Object.keys(POTS).map((k) => (
-                <button key={k} className={'pot-pick' + (p.pot === k ? ' on' : '')} onClick={() => (ownsPot(g, k) ? setPot(p.id, k) : toast('Этот горшок продаётся в магазине 🛒'))}>
+                <button key={k} className={'pot-pick' + (p.pot === k ? ' on' : '')} onClick={() => (ownsPot(g, k) ? setPot(p.id, k) : toast('Этот дизайн продаётся в магазине 🛒 — покупается один раз, навсегда'))}>
                   <PlantArt sp={p.sp} stage={2} pot={k} seed={p.id} className="mini" />
                   <span>{ownsPot(g, k) ? POTS[k].name : '🔒 ' + POTS[k].name}</span>
                 </button>

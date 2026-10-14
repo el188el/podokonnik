@@ -77,7 +77,7 @@ export function Quests() {
             const all = g.weekly!.list.every((q) => q.claimed);
             return (
               <Btn kind={all && !g.weekly!.chest ? 'gold' : 'soft'} disabled={!all || g.weekly!.chest} onClick={claimWeeklyChest}>
-                {g.weekly!.chest ? '✓ Сундук недели открыт' : `🎁 Сундук недели: +${WEEKLY_CHEST} 🍃 и редкий черенок`}
+                {g.weekly!.chest ? '✓ Сундук недели открыт' : `🎁 Сундук недели: +${WEEKLY_CHEST} 🍃, 3 горшка и редкий черенок`}
               </Btn>
             );
           })()}

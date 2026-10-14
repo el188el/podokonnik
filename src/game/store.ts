@@ -70,6 +70,7 @@ export type Sheet =
   | { kind: 'name'; plant: string }
   | { kind: 'levels' }
   | { kind: 'place'; slot: number }
+  | { kind: 'pots'; plant?: string }
   | null;
 
 export type Tab = 'sill' | 'shop' | 'friends' | 'herbarium' | 'quests' | 'profile';
@@ -179,6 +180,7 @@ function givePerks(g: GameState, level: number) {
   for (const p of levelPerks(level)) {
     if (p.leaves) g.leaves += p.leaves;
     if (p.feed) g.owned.feed = (g.owned.feed ?? 0) + p.feed;
+    if (p.pots) g.owned.pot = (g.owned.pot ?? 0) + p.pots;
     if (p.item) {
       g.owned[p.item] = 1;
       // декор сразу ставим на текущий подоконник
@@ -754,10 +756,20 @@ export function water(plantId: string, insist = false): WaterResult | null {
   });
 }
 
+/** Горшков в запасе (каждому растению нужен свой). */
+export const potsLeft = (g: GameState) => g.owned.pot ?? 0;
+
 export function plantInPot(plantId: string) {
+  const g0 = get().game;
+  const p0 = findPlant(g0, plantId);
+  if (p0?.stage === 1 && potsLeft(g0) <= 0) {
+    openSheet({ kind: 'pots', plant: plantId });
+    return;
+  }
   mut((g, t) => {
     const p = findPlant(g, plantId);
-    if (!p || p.stage !== 1) return;
+    if (!p || p.stage !== 1 || potsLeft(g) <= 0) return;
+    g.owned.pot = potsLeft(g) - 1;
     const first = g.stats.planted === 0;
     p.stage = 2;
     p.plantedAt = t;
@@ -880,6 +892,7 @@ export function repot(plantId: string) {
     } else g.owned.potL -= 1;
     p.bigPot = true;
     p.repottedAt = t;
+    g.owned.pot = potsLeft(g) + 1; // старый горшок освободился
     g.stats.repots += 1;
     addXp(g, XP.repot);
     quest(g, 'repot');
@@ -949,7 +962,11 @@ export function giftCutting(cuttingId: string, from: string, note: number) {
 }
 
 export function removePlant(plantId: string) {
-  mut((g) => { g.plants = g.plants.filter((p) => p.id !== plantId); });
+  mut((g) => {
+    const p = findPlant(g, plantId);
+    if (p && p.stage >= 2) g.owned.pot = potsLeft(g) + 1; // горшок освободился
+    g.plants = g.plants.filter((x) => x.id !== plantId);
+  });
   closeSheet();
 }
 
@@ -1022,7 +1039,8 @@ export function buyItem(id: string) {
     if (g.leaves < it.price) { toast('Не хватает листиков 🍃'); haptic('warning'); return false; }
     g.leaves -= it.price;
     const ids = it.pack ?? [id];
-    for (const x of ids) g.owned[x] = (g.owned[x] ?? 0) + 1;
+    if (it.gives) g.owned[it.gives] = (g.owned[it.gives] ?? 0) + (it.count ?? 1);
+    else for (const x of ids) g.owned[x] = (g.owned[x] ?? 0) + 1;
     g.stats.bought += 1;
     track('buy_item', { item: id });
     quest(g, 'buy');
@@ -1180,6 +1198,7 @@ export function claimWeeklyChest() {
     if (!w || w.chest || !w.list.length || !w.list.every((q) => q.claimed)) return;
     w.chest = true;
     g.leaves += WEEKLY_CHEST;
+    g.owned.pot = potsLeft(g) + 3;
     const pool = FORMS.filter((f) => !f.event);
     const f = pool[Math.floor(Math.random() * pool.length)];
     if (f && g.cuttings.length < MAX_CUTTINGS) {
@@ -1719,6 +1738,9 @@ export async function coopDo(id: number, action: CoopAction, cuttingId?: string)
     toast('В стаканах на кухне уже 10 черенков — подари или посади их');
     return null;
   }
+  if (action.kind === 'pot') {
+    if (potsLeft(get().game) <= 0) { openSheet({ kind: 'pots' }); return null; }
+  }
   try {
     const r = await api.coopAct(id, action);
     if (r.coop) putCoop(r.coop);
@@ -1739,6 +1761,7 @@ export async function coopDo(id: number, action: CoopAction, cuttingId?: string)
         quest(g, 'mist');
         haptic('light');
       } else if (res.effect === 'potted') {
+        g.owned.pot = Math.max(0, potsLeft(g) - 1);
         g.stats.planted += 1;
         addXp(g, XP.plant);
         quest(g, 'plant');
@@ -1842,6 +1865,7 @@ export function openBox() {
     const prize = rollBox(g, Math.random);
     if (prize.kind === 'leaves') g.leaves += prize.n;
     else if (prize.kind === 'feed') g.owned.feed = (g.owned.feed ?? 0) + prize.n;
+    else if (prize.kind === 'pots') g.owned.pot = potsLeft(g) + prize.n;
     else if (prize.kind === 'item') g.owned[prize.id] = 1;
     else if (prize.kind === 'form') {
       const f = FORM_BY_ID[prize.id];
@@ -1888,4 +1912,24 @@ export function claimFirstChest() {
     haptic('success');
     toast(`🎁 Сундучок первого часа: +${FIRST_CHEST.leaves} 🍃, подкормка ×${FIRST_CHEST.feed} и белый горшок!`);
   });
+}
+
+// ─────────────────── горшки ───────────────────
+/** Купить горшки и (если ждёт черенок) сразу посадить. */
+export function buyPots(itemId: string, plantId?: string) {
+  if (!buyItem(itemId)) return;
+  if (plantId) plantInPot(plantId);
+}
+
+/** Выручка Валентины Петровны: раз в день старый горшок бесплатно, если листиков не хватает. */
+export const grannyPotReady = (g: GameState, t = now()) => g.grannyPot !== dayKey(t) && g.leaves < (ITEM_BY_ID.pot?.price ?? 10);
+
+export function takeGrannyPot(plantId?: string) {
+  mut((g, t) => {
+    if (!grannyPotReady(g, t)) return;
+    g.grannyPot = dayKey(t);
+    g.owned.pot = potsLeft(g) + 1;
+    toast('👵 Валентина Петровна отдала старый горшок с антресолей');
+  });
+  if (plantId) plantInPot(plantId);
 }

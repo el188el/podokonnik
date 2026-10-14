@@ -207,7 +207,7 @@ function BoxReveal({ prize }: { prize: BoxPrize }) {
   return (
     <div className="center">
       <motion.div className="gicon" initial={{ scale: 0.4, rotate: -25 }} animate={{ scale: [0.4, 1.25, 1], rotate: [-25, 10, 0] }} transition={{ duration: 0.7 }}>
-        {prize.kind === 'leaves' ? '🍃' : prize.kind === 'feed' ? '🧪' : it ? it.icon : '✨'}
+        {prize.kind === 'leaves' ? '🍃' : prize.kind === 'feed' ? '🧪' : prize.kind === 'pots' ? '🪴' : it ? it.icon : '✨'}
       </motion.div>
       <p className="muted small">В ящике-сюрпризе…</p>
       {f && (
@@ -216,6 +216,7 @@ function BoxReveal({ prize }: { prize: BoxPrize }) {
       <h2>
         {prize.kind === 'leaves' && `+${prize.n} листиков`}
         {prize.kind === 'feed' && `Подкормка ×${prize.n}`}
+        {prize.kind === 'pots' && `Горшки ×${prize.n}`}
         {it && it.name}
         {f && `Редкий черенок «${f.name}»!`}
       </h2>

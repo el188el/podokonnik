@@ -9,7 +9,7 @@ describe('ящик-сюрприз', () => {
     const rnd = () => ((seed = (seed * 16807) % 2147483647) / 2147483647);
     const kinds: Record<string, number> = {};
     for (let i = 0; i < 5000; i++) { const p = rollBox(g, rnd); kinds[p.kind] = (kinds[p.kind] ?? 0) + 1; }
-    expect(Object.keys(kinds).sort()).toEqual(['feed', 'form', 'item', 'leaves']);
+    expect(Object.keys(kinds).sort()).toEqual(['feed', 'form', 'item', 'leaves', 'pots']);
     expect(kinds.form / 5000).toBeLessThan(0.07);
     expect(kinds.form / 5000).toBeGreaterThan(0.02);
   });

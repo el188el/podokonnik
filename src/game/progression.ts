@@ -54,23 +54,24 @@ export interface LevelPerk {
   text: string;
   leaves?: number;
   feed?: number;
+  pots?: number;   // глиняные горшки
   item?: string;   // предмет магазина
   form?: string;   // черенок редкой формы
 }
 
 const PERKS: Record<number, LevelPerk[]> = {
-  2: [{ icon: '🧪', text: 'Подкормка ×2', feed: 2 }],
+  2: [{ icon: '🧪', text: 'Подкормка ×2', feed: 2 }, { icon: '🪴', text: 'Горшки ×3', pots: 3 }],
   3: [{ icon: '🧶', text: 'Клубок и спицы на стол', item: 'yarn' }],
   4: [{ icon: '🪴', text: 'Четвёртое место у стекла можно открыть за листики' }],
   5: [{ icon: '🍳', text: 'Подоконник на кухне' }],
-  6: [{ icon: '🧪', text: 'Подкормка ×3', feed: 3 }],
+  6: [{ icon: '🧪', text: 'Подкормка ×3', feed: 3 }, { icon: '🪴', text: 'Горшки ×5', pots: 5 }],
   7: [{ icon: '🪴', text: 'Четвёртое место на столике можно открыть за листики' }],
   8: [{ icon: '🕰️', text: 'Часы с маятником', item: 'clock' }],
   9: [{ icon: '🌇', text: 'Балкон' }],
   10: [{ icon: '💙', text: 'Горшок «Гжель»', item: 'pot_gzhel' }],
   11: [{ icon: '🧪', text: 'Подкормка ×5', feed: 5 }],
   12: [{ icon: '🪢', text: 'Подвесные кашпо: +3 места', item: 'hangers' }],
-  13: [{ icon: '🍃', text: '100 листиков', leaves: 100 }],
+  13: [{ icon: '🍃', text: '100 листиков', leaves: 100 }, { icon: '🪴', text: 'Горшки ×5', pots: 5 }],
   14: [{ icon: '🛏', text: 'Подоконник в спальне' }],
   15: [{ icon: '✨', text: 'Редкий черенок «Сциндапсус Неон»', form: 'neon' }],
   16: [{ icon: '🖼️', text: 'Картина «Утро в лесу»', item: 'painting' }],

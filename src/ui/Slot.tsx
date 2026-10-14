@@ -22,7 +22,7 @@ function bubbleFor(p: Plant, t: number, flash?: { text: string; until: number })
     return { text: `🌱 ${fmt(Math.max(0, r - t))}`, cls: '' };
   }
   if (p.stage === 0) return { text: 'Налей воды 💧', cls: '' };
-  if (p.stage === 1) return { text: 'Посади меня 🪴', cls: 'ready' };
+  if (p.stage === 1) return { text: (g.owned.pot ?? 0) > 0 ? 'Посади меня 🪴' : 'Нужен горшок 🪴', cls: 'ready' };
   if (p.moisture > 1) return { text: 'Перелили 😵', cls: '' };
   if (p.moisture < 0.25) return { text: isThirstySad(p) ? 'Мне грустно… 💧' : 'Хочу пить', cls: isThirstySad(p) ? 'sad' : '' };
   const bad = badLight(p, t, ctx);

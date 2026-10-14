@@ -80,6 +80,9 @@ export function Shop() {
         </>
       )}
 
+      {cat === 'pots' && (
+        <p className="muted small">Под каждое растение нужен свой горшок — как в жизни. А дизайн (цвет и узор) покупается один раз и остаётся навсегда: выбирай его в карточке растения.</p>
+      )}
       {cat !== 'plants' && cat !== 'sills' && (
         <div className="list">
           {ITEMS.filter((i) => i.cat === cat && (!i.eventOnly || (g.owned[i.id] ?? 0) > 0)).map((it) => {
@@ -89,7 +92,7 @@ export function Shop() {
             return (
               <div key={it.id} className="row-item">
                 <div className="ricon">
-                  {it.cat === 'pots' ? <PlantArt sp="chlorophytum" stage={2} pot={potIdOf(it.id)} seed="pot" /> : hasDecorArt(it.id) ? <DecorArt id={it.id} scale={1.5} className="shop-decor" /> : it.icon}
+                  {it.gives || it.id === 'pot' ? <span className="pot-stack">🪴{it.count ? `×${it.count}` : ''}</span> : it.cat === 'pots' ? <PlantArt sp="chlorophytum" stage={2} pot={potIdOf(it.id)} seed="pot" /> : hasDecorArt(it.id) ? <DecorArt id={it.id} scale={1.5} className="shop-decor" /> : it.icon}
                 </div>
                 <div className="rtext">
                   <b>{it.name}</b>

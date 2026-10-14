@@ -17,6 +17,8 @@ export interface ShopItem {
   album?: boolean;     // награда за полную полку альбома
   place?: DecorPlace;  // где стоит декор
   pack?: string[];    // набор: что входит
+  gives?: string;     // покупка добавляет count штук этого предмета
+  count?: number;
   level?: number;
 }
 
@@ -35,7 +37,11 @@ export const POTS: Record<string, { name: string; body: string; rim: string; pat
 };
 
 export const ITEMS: ShopItem[] = [
-  // горшки (скины)
+  // горшки: под каждое растение нужен свой
+  { id: 'pot', cat: 'pots', name: 'Глиняный горшок', icon: '🪴', price: 10, desc: 'Под каждое растение — свой горшок. Цвет и узор задаёт дизайн.', consumable: true },
+  { id: 'pot5', cat: 'pots', name: 'Пять горшков', icon: '🪴', price: 40, desc: 'Запас на целый подоконник — выгоднее на 20%.', consumable: true, gives: 'pot', count: 5 },
+  { id: 'pot12', cat: 'pots', name: 'Двенадцать горшков', icon: '🪴', price: 90, desc: 'Для большой оранжереи — выгоднее на 25%.', consumable: true, gives: 'pot', count: 12, level: 5 },
+  // дизайны горшков (покупаются один раз — навсегда)
   { id: 'pot_white', cat: 'pots', name: 'Белая керамика', icon: '🤍', price: 30, desc: 'Чистый скандинавский стиль.' },
   { id: 'pot_concrete', cat: 'pots', name: 'Бетонный', icon: '🩶', price: 50, desc: 'Лофт на подоконнике.' },
   { id: 'pot_glass', cat: 'pots', name: 'Прозрачный', icon: '🫙', price: 45, desc: 'Видно корни. Орхидеи такой обожают.' },

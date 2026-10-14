@@ -224,6 +224,7 @@ export interface GameState {
   places?: number[];     // купленные заранее места (9, 10)
   perksTo?: number;      // до какого уровня выданы награды «Пути садовода»
   mastery?: Record<string, { pts: number; stars: number }>; // мастерство видов
+  grannyPot?: string;    // день, когда Валентина Петровна выручила горшком
   tutorial: number;
 }
 
