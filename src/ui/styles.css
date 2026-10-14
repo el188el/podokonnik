@@ -1120,3 +1120,9 @@ b, strong { font-weight: 800; }
 /* иконки сторис и таймлапса в карточке */
 .story-links { display: flex; gap: 8px; margin: 4px 0; }
 .icon-btn { width: 38px; height: 38px; border-radius: 50%; border: 0; background: var(--soft); font-size: 18px; display: grid; place-items: center; cursor: pointer; box-shadow: var(--sh-sm); }
+.tile.steps { background: linear-gradient(135deg, #e7f6ec, #fff); color: #24603d; }
+:root[data-theme='dark'] .tile.steps { background: linear-gradient(135deg, #1d3326, var(--card)); color: #9fe0b8; }
+.first-steps .step.ready { box-shadow: 0 4px 14px rgba(242, 173, 46, 0.25); }
+.first-steps .step.got { opacity: 0.6; }
+.newbie-boost { background: linear-gradient(135deg, #fff4d6, #e7f6ec); border-radius: 16px; padding: 10px 12px; font-size: 13.5px; margin: 8px 0; }
+:root[data-theme='dark'] .newbie-boost { background: linear-gradient(135deg, #3a3118, #1d3326); }

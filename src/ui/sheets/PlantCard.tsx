@@ -194,8 +194,9 @@ export function PlantCard({ id }: { id: string }) {
             {s.mist === 'love' && (ctx.rh ?? 45) < 35 ? ' · любит влажный воздух' : ''}
             {ctx.draft ? ' · сквозняк!' : ''} ›
           </button>
-          {(mistOn || feedOn || boostOn || p.drain) && (
+          {(mistOn || feedOn || boostOn || p.drain || ctx.newbie) && (
             <div className="boosts">
+              {ctx.newbie && potted && p.stage < 4 && <span>🌟 бонус новичка: ×3 к росту</span>}
               {mistOn && <span>💦 бонус ещё {fmt(p.mistUntil! - t)}</span>}
               {feedOn && <span>🧪 подкормка ещё {fmt(p.feedUntil! - t)}</span>}
               {boostOn && <span>⚡ стимулятор ещё {fmt(p.boostUntil! - t)}</span>}

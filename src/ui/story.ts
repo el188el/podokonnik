@@ -6,7 +6,7 @@ import { createElement } from 'react';
 import { HANG_ROW, layoutRows } from '../game/layout';
 import { plural } from '../game/sim';
 import { sp } from '../game/species';
-import { toast, useStore } from '../game/store';
+import { notePostcard, toast, useStore } from '../game/store';
 import type { Plant } from '../game/types';
 import * as api from '../net/api';
 import { track } from '../net/track';
@@ -262,6 +262,7 @@ export async function postcardCard(text: string): Promise<Blob | null> {
 export async function sharePostcard(blob: Blob | null) {
   if (!blob) return toast('Не получилось нарисовать открытку');
   track('postcard', { platform: platform().kind });
+  notePostcard();
   const file = new File([blob], 'otkrytka.jpg', { type: 'image/jpeg' });
   const r = await platform().share({ text: 'Привет с моего подоконника! 🪴', url: gameLink(), files: [file] });
   if (r === 'copied') toast('Ссылка скопирована — отправь её в чат 📋');

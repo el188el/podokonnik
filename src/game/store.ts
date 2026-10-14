@@ -32,7 +32,7 @@ import { replayFriendWaters, type FriendWater } from './social';
 import { SPECIES, sp } from './species';
 import { DEEP_ROW, EXTRA_PLACES, GLASS_ROW, rowSlots, zoneOfSlot } from './layout';
 import { BREED_COOLDOWN, canBreed, crossHue, hueOf } from './breeding';
-import { FIRST_CHEST, FIRST_YOUNG_H, ROUND_REWARD, STARTER, firstChest, roundInfo, starterLeft } from './onboarding';
+import { FIRST_CHEST, FIRST_STEPS, FIRST_YOUNG_H, ROUND_REWARD, STARTER, firstChest, roundInfo, starterLeft } from './onboarding';
 import { childLine } from './lineage';
 import { climateOf } from './climate';
 import { loadCloud, loadLocal, newPlant, newState, pickNewer, saveCloud, saveLocal, switchLocal, upgrade } from './storage';
@@ -87,6 +87,7 @@ export type Sheet =
   | { kind: 'timelapse'; plant: string }
   | { kind: 'climate' }
   | { kind: 'room' }
+  | { kind: 'firststeps' }
   | { kind: 'doctor'; sp?: string }
   | { kind: 'coop' }
   | { kind: 'album' }
@@ -1320,7 +1321,7 @@ export function claimShelf(id: string) {
 }
 
 export function visitHerbarium() {
-  mut((g) => { quest(g, 'visitHerbarium'); });
+  mut((g) => { quest(g, 'visitHerbarium'); g.stats.herbarium = (g.stats.herbarium ?? 0) + 1; });
 }
 
 export function setName(name: string) {
@@ -1420,6 +1421,7 @@ export function catchToken(): boolean {
     if (!activeEvent(t) || catchesLeft(g, t) <= 0) return false;
     const day = dayKey(t);
     g.caught = g.caught?.day === day ? { day, n: g.caught.n + 1 } : { day, n: 1 };
+    g.stats.caughtAll = (g.stats.caughtAll ?? 0) + 1;
     eventToken(g, 'catch', t);
     addXp(g, 1);
     haptic('light');
@@ -2339,4 +2341,27 @@ export function setRoomColor(sillId: string, part: 'wall' | 'table' | 'sill', id
     if (part === 'wall') sill.decor = sill.decor.filter((d) => placeOf(d) !== 'wallpaper');
     haptic('select');
   });
+}
+
+// ─────────────────── первые шаги ───────────────────
+export function claimFirstStep(i: number) {
+  mut((g) => {
+    const st = FIRST_STEPS[i];
+    if (!st || (g.firstSteps ?? []).includes(i) || !st.done(g)) return;
+    g.firstSteps = [...(g.firstSteps ?? []), i];
+    g.leaves += st.leaves;
+    if (st.feed) g.owned.feed = (g.owned.feed ?? 0) + st.feed;
+    if (st.boost) g.owned.boost = (g.owned.boost ?? 0) + st.boost;
+    if (st.pots) g.owned.pot = (g.owned.pot ?? 0) + st.pots;
+    addXp(g, 10);
+    haptic('success');
+    const extra = [st.feed ? `🧪 ×${st.feed}` : '', st.boost ? `⚡ ×${st.boost}` : '', st.pots ? `🪴 ×${st.pots}` : ''].filter(Boolean).join(' ');
+    toast(`${st.icon} «${st.title}» — готово! +${st.leaves} 🍃 ${extra}`.trim());
+    track('first_step', { i });
+  });
+}
+
+/** Открытку отправили — для «Первых шагов». */
+export function notePostcard() {
+  mut((g) => { g.stats.postcards = (g.stats.postcards ?? 0) + 1; });
 }

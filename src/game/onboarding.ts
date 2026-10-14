@@ -75,3 +75,42 @@ export function firstChest(g: GameState, t: number): { ready: boolean; left: num
   const left = g.createdAt + FIRST_CHEST_MS - t;
   return { ready: left <= 0, left: Math.max(0, left) };
 }
+
+// ─────────── «Первые шаги»: короткие задания на первые часы ───────────
+// Пока растения растут, новичку есть чем заняться: каждое действие — сразу награда.
+
+export interface FirstStep {
+  icon: string;
+  title: string;
+  hint: string;
+  leaves: number;
+  feed?: number;
+  boost?: number;
+  pots?: number;
+  done: (g: GameState) => boolean;
+}
+
+export const FIRST_STEPS: FirstStep[] = [
+  { icon: '💧', title: 'Полей растение', hint: 'Возьми лейку внизу и тапни по горшку', leaves: 10, done: (g) => g.stats.waters > 0 },
+  { icon: '✏️', title: 'Дай растению имя', hint: 'Открой карточку растения и нажми на название', leaves: 10, done: (g) => g.plants.some((p) => !!p.nick) },
+  { icon: '💦', title: 'Опрыскай растение', hint: 'Опрыскиватель — рядом с лейкой', leaves: 10, done: (g) => g.stats.mists > 0 },
+  { icon: '🍂', title: 'Поймай падающий листик', hint: 'Иногда сверху падают листики — лови!', leaves: 15, done: (g) => (g.stats.caughtAll ?? 0) > 0 },
+  { icon: '🌱', title: 'Посади второе растение', hint: 'Купи черенок в магазине и поставь в воду', leaves: 20, pots: 1, done: (g) => g.stats.planted >= 2 },
+  { icon: '📖', title: 'Загляни в Гербарий', hint: 'Вкладка внизу — там всё о твоих видах', leaves: 10, done: (g) => (g.stats.herbarium ?? 0) > 0 },
+  { icon: '🛒', title: 'Купи что-нибудь в магазине', hint: 'Горшок, декор или средство ухода', leaves: 15, done: (g) => g.stats.bought > 0 },
+  { icon: '📋', title: 'Помоги соседу', hint: 'Записки соседей — на главном экране', leaves: 30, feed: 1, done: (g) => (g.orders?.done ?? 0) > 0 },
+  { icon: '🌿', title: 'Вырасти молодое растение', hint: 'Поливай вовремя — растёт само', leaves: 30, boost: 1, done: (g) => g.plants.some((p) => p.stage >= 3) },
+  { icon: '💌', title: 'Отправь открытку другу', hint: 'Шапка → «Комната ▾» → «Открытка»', leaves: 20, done: (g) => (g.stats.postcards ?? 0) > 0 },
+  { icon: '⭐', title: 'Достигни 3 уровня', hint: 'Опыт дают уход, задания и заказы', leaves: 40, feed: 2, done: (g) => g.level >= 3 },
+  { icon: '✂️', title: 'Возьми первый черенок', hint: 'У взрослого растения — ножницами', leaves: 50, boost: 1, done: (g) => g.stats.cuts > 0 },
+];
+
+export const firstStepsLeft = (g: GameState) => FIRST_STEPS.map((_, i) => i).filter((i) => !(g.firstSteps ?? []).includes(i));
+/** Текущий шаг (первый незабранный) и готов ли он. */
+export function firstStepNow(g: GameState): { i: number; step: FirstStep; ready: boolean } | null {
+  const i = firstStepsLeft(g)[0];
+  if (i === undefined) return null;
+  return { i, step: FIRST_STEPS[i], ready: FIRST_STEPS[i].done(g) };
+}
+
+export { newbieLeft, NEWBIE_MULT } from './sim';

@@ -218,6 +218,9 @@ export interface Stats {
   hybrids?: number;
   doctor?: number;      // консультаций «доктора»
   cured?: number;       // вылечено растений
+  caughtAll?: number;   // всего поймано падающих листиков
+  herbarium?: number;   // заглядывал в гербарий
+  postcards?: number;   // отправлено открыток
 }
 
 export interface GameState {
@@ -271,6 +274,7 @@ export interface GameState {
   mastery?: Record<string, { pts: number; stars: number }>; // мастерство видов
   grannyPot?: string;    // день, когда Валентина Петровна выручила горшком
   caught?: { day: string; n: number }; // пойманные падающие жетоны сезона
+  firstSteps?: number[];  // забранные награды «Первых шагов»
   invites?: number[];    // забранные ступени лестницы приглашений
   catPet?: string;       // день, когда гладили Барсика
   boosts?: { day: string; n: number }; // сколько стимуляторов дали сегодня

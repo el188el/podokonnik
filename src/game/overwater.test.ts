@@ -46,7 +46,16 @@ describe('стимулятор роста', () => {
 
   it('все ускорения вместе — не больше лимита', () => {
     const { g, p } = world({ moisture: 1, sp: 'scindapsus' });
+    g.level = 6; // без бонуса новичка
     p.boostUntil = p.feedUntil = p.mistUntil = T0 + 24 * H;
     expect(growthRate(p, T0, ctxFor(g, p, T0))).toBeLessThanOrEqual(MAX_GROWTH_MULT);
+  });
+
+  it('новичок первые двое суток растит втрое быстрее, потом — как все', () => {
+    const { g, p } = world({ moisture: 1, sp: 'tradescantia' });
+    const fast = growthRate(p, T0, ctxFor(g, p, T0));
+    const later = T0 + 49 * H;
+    const slow = growthRate(p, later, ctxFor(g, p, later));
+    expect(fast / slow).toBeGreaterThan(2.5);
   });
 });

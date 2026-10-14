@@ -24,6 +24,7 @@ import { RepotGame } from './RepotGame';
 import { TimelapseSheet } from './TimelapseSheet';
 import { ClimateSheet } from './ClimateSheet';
 import { RoomSheet } from './RoomSheet';
+import { FirstStepsSheet } from './FirstStepsSheet';
 import { DoctorSheet } from './DoctorSheet';
 import { CoopSheet } from './CoopSheet';
 import { AlbumSheet } from './AlbumSheet';
@@ -57,6 +58,7 @@ export function Sheets() {
       {sheet?.kind === 'timelapse' && <TimelapseSheet id={sheet.plant} />}
       {sheet?.kind === 'climate' && <ClimateSheet />}
       {sheet?.kind === 'room' && <RoomSheet />}
+      {sheet?.kind === 'firststeps' && <FirstStepsSheet />}
       {sheet?.kind === 'doctor' && <DoctorSheet sp={sheet.sp} />}
       {sheet?.kind === 'coop' && <CoopSheet />}
       {sheet?.kind === 'album' && <AlbumSheet />}

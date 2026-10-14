@@ -18,7 +18,7 @@ import { zoneOfSlot } from '../../game/layout';
 import { PlantArt } from '../art/PlantArt';
 import { Slot } from '../Slot';
 import { Guide } from '../Guide';
-import { firstChest, roundInfo, starterDone, starterLeft } from '../../game/onboarding';
+import { firstChest, firstStepNow, roundInfo, starterDone, starterLeft } from '../../game/onboarding';
 import { TUTORIAL_DONE } from '../../game/store';
 import { SillScene, timeOfDay } from '../SillScene';
 import { SKY, tempText, weatherAt } from '../../game/weather';
@@ -92,6 +92,8 @@ function OwnSill() {
   // плитки справа от события: что сейчас важно
   const tiles: { key: string; cls: string; text: string; onClick?: () => void; disabled?: boolean }[] = [];
   if (g.pending.length) tiles.push({ key: 'pending', cls: 'ready', text: `🎁 Черенок от ${g.pending[0].from} ждёт места`, onClick: () => showGift({ ...g.pending[0], ok: true }) });
+  const step = g.tutorial >= TUTORIAL_DONE ? firstStepNow(g) : null;
+  if (step) tiles.push({ key: 'steps', cls: 'steps' + (step.ready ? ' ready' : ''), text: step.ready ? `🧭 ${step.step.title} — забрать +${step.step.leaves} 🍃` : `🧭 ${step.step.icon} ${step.step.title}`, onClick: () => openSheet({ kind: 'firststeps' }) });
   const chest = firstChest(g, t);
   if (chest) tiles.push({ key: 'chest', cls: chest.ready ? 'ready' : '', text: `🎁 Сундучок · ${chest.ready ? 'открыть!' : fmt(chest.left)}`, onClick: claimFirstChest, disabled: !chest.ready });
   if (g.tutorial >= TUTORIAL_DONE && (g.orders?.list.length ?? 0) > 0) {

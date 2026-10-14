@@ -112,10 +112,16 @@ export interface Ctx {
   draft?: boolean; // сквозняк из форточки
   bugs?: boolean;  // в открытую форточку летят насекомые
   fan?: boolean;   // работает вентилятор
+  newbie?: boolean; // бонус новичка: первые двое суток растут втрое быстрее
   repel?: boolean; // рядом взрослая герань — отпугивает вредителей
   tulle?: boolean; // тюль рассеивает прямое солнце у стекла
   radio?: boolean; // радио на подоконнике: под музыку растут чуть быстрее
 }
+
+/** Бонус новичка: первые двое суток (пока уровень ниже 6) растения растут втрое быстрее. */
+export const NEWBIE_MS = 48 * H;
+export const NEWBIE_MULT = 3;
+export const newbieLeft = (g: Pick<GameState, 'createdAt' | 'level'>, t: number) => (g.level < 6 ? Math.max(0, g.createdAt + NEWBIE_MS - t) : 0);
 
 export function growthRate(p: Plant, t: number, ctx: Ctx) {
   if (p.stage < 2) return 0;
@@ -133,6 +139,7 @@ export function growthRate(p: Plant, t: number, ctx: Ctx) {
   r *= climateGrowth(ctx.temp ?? 22, ctx.rh ?? 45, sp(p.sp).mist === 'love');
   if (ctx.radio) r *= 1.05;
   r = Math.min(r, MAX_GROWTH_MULT);
+  if (ctx.newbie) r *= NEWBIE_MULT; // бонус новичка — поверх всех ускорений
   return r;
 }
 
@@ -268,6 +275,7 @@ export function ctxFor(state: GameState, p: Plant, t: number): Ctx {
     })(),
     repel: near.some((n) => n.sp === 'geranium' && n.stage === 4),
     tulle: hasDecorOn(state, sill, 'tulle'),
+    newbie: newbieLeft(state, t) > 0,
     radio: hasDecorOn(state, sill, 'radio'),
   };
 }
