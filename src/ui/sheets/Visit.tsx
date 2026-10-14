@@ -1,6 +1,5 @@
 import { motion } from 'framer-motion';
 import { useEffect, useState } from 'react';
-import { SLOTS } from '../../game/constants';
 import type { PublicView } from '../../game/social';
 import { closeSheet, pushNow, toast } from '../../game/store';
 import * as api from '../../net/api';
@@ -8,7 +7,8 @@ import { track } from '../../net/track';
 import { platform } from '../../platform';
 import { PlantArt } from '../art/PlantArt';
 import { Btn } from '../kit/kit';
-import { DECOR_GLASS, DECOR_ICON } from '../tabs/SillView';
+import { layoutRows } from '../../game/layout';
+import { SillScene, timeOfDay } from '../SillScene';
 
 
 /** Подоконник друга: смотреть и поливать тех, кто хочет пить. */
@@ -60,6 +60,7 @@ export function Visit({ id, name }: { id: string; name: string }) {
   const here = view.plants.filter((p) => p.sill === sill);
   const thirsty = here.filter((p) => p.thirsty).length;
   const s = view.sills.find((x) => x.id === sill) ?? view.sills[0];
+  const rows = layoutRows(here);
   return (
     <div className="visit">
       <h2>В гостях: {view.name}</h2>
@@ -74,41 +75,29 @@ export function Visit({ id, name }: { id: string; name: string }) {
           ))}
         </div>
       )}
-      <div className="stage guest-stage tod-day">
-        <div className="sky"><div className="sun" /><div className="cloud c1" /></div>
-        {s?.decor.includes('tulle') && <><div className="tulle left" /><div className="tulle right" /></>}
-        <div className="scroller">
-          {Array.from({ length: SLOTS }, (_, i) => {
-            const p = here.find((x) => x.slot === i);
-            const cell = (zone: 'glass' | 'deep') =>
-              p && p.zone === zone ? (
-                <button className={'slot guest' + (p.sad ? ' sad' : '')} onClick={() => (p.thirsty ? pour(p.id) : toast(p.stage < 2 ? 'Черенок пускает корни в стакане 🌱' : 'Ему хорошо, поливать не нужно 🌿'))}>
-                  {p.thirsty && !view.neighbor && <div className="bubble">Хочу пить 💧</div>}
-                  <div className="art">
-                    <PlantArt sp={p.sp} form={p.form} stage={p.stage} seed={p.id} pot={p.pot} bigPot={p.bigPot} blooming={p.blooming} className="plant-svg" />
-                  </div>
-                  {drops[p.id] && (
-                    <div className="fx" key={drops[p.id]}>
-                      {[0, 1, 2, 3, 4].map((k) => <span key={k} className="drop" style={{ left: 22 + k * 17, animationDelay: k * 0.07 + 's' }}>💧</span>)}
-                    </div>
-                  )}
-                </button>
-              ) : null;
-            return (
-              <div className="col" key={i}>
-                <div className="cell glass">{cell('glass')}</div>
-                <div className="cell deep">{cell('deep')}</div>
+      <SillScene
+        className="guest-scene"
+        decor={s?.decor ?? []}
+        tod={timeOfDay(Date.now())}
+        win={s?.window ?? 'E'}
+        cell={(slot) => {
+          const p = (slot < 3 ? rows.glass : rows.deep)[slot % 3];
+          if (!p) return null;
+          return (
+            <button className={'slot guest' + (p.sad ? ' sad' : '')} onClick={() => (p.thirsty ? pour(p.id) : toast(p.stage < 2 ? 'Черенок пускает корни в стакане 🌱' : 'Ему хорошо, поливать не нужно 🌿'))}>
+              {p.thirsty && !view.neighbor && <div className="bubble">Хочу пить 💧</div>}
+              <div className="art">
+                <PlantArt sp={p.sp} form={p.form} stage={p.stage} seed={p.id} pot={p.pot} bigPot={p.bigPot} blooming={p.blooming} className="plant-svg" />
               </div>
-            );
-          })}
-          {s?.decor.some((d) => DECOR_ICON[d]) && (
-            <div className="col decor">
-              <div className="cell glass"><div className="decor-items">{s.decor.filter((d) => DECOR_GLASS.includes(d)).map((d) => <span key={d}>{DECOR_ICON[d]}</span>)}</div></div>
-              <div className="cell deep"><div className="decor-items">{s.decor.filter((d) => DECOR_ICON[d] && !DECOR_GLASS.includes(d)).map((d) => <span key={d}>{DECOR_ICON[d]}</span>)}</div></div>
-            </div>
-          )}
-        </div>
-      </div>
+              {drops[p.id] && (
+                <div className="fx" key={drops[p.id]}>
+                  {[0, 1, 2, 3, 4].map((k) => <span key={k} className="drop" style={{ left: 22 + k * 17, animationDelay: k * 0.07 + 's' }}>💧</span>)}
+                </div>
+              )}
+            </button>
+          );
+        }}
+      />
       <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
         <Btn kind="ghost" onClick={closeSheet}>Вернуться домой</Btn>
       </motion.div>

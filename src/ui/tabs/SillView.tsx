@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion';
-import { SLOTS, WINDOWS, ZONE_NAME } from '../../game/constants';
+import { WINDOWS } from '../../game/constants';
 import { activeEvent, eventSeason, tierOf } from '../../game/events';
 import { isWinter, seasonName, fmt } from '../../game/sim';
 import { sp } from '../../game/species';
@@ -7,11 +7,8 @@ import { now, openSheet, plantAt, setActiveSill, setTool, showGift, useStore, wa
 import type { GameState } from '../../game/types';
 import { PlantArt } from '../art/PlantArt';
 import { Slot } from '../Slot';
+import { SillScene, timeOfDay } from '../SillScene';
 
-function timeOfDay(t: number) {
-  const h = new Date(t).getHours();
-  return h >= 7 && h < 17 ? 'day' : h >= 17 && h < 21 ? 'eve' : h >= 5 && h < 7 ? 'dawn' : 'night';
-}
 
 function hint(g: GameState, t: number): string {
   const here = g.plants.filter((p) => p.sill === g.activeSill);
@@ -21,19 +18,13 @@ function hint(g: GameState, t: number): string {
   if (p.stage === 0 && !p.rootStart) return 'Тапни по стакану, чтобы налить воды 💧';
   if (p.stage === 0) return 'Черенок пускает корни. Это совсем недолго ⏳';
   if (p.stage === 1) return 'Корни есть! Тапни, чтобы посадить в горшок 🪴';
-  if (g.stats.waters < 2) return 'Тап — полить. Долгий тап — карточка растения';
-  if (g.stats.waters < 6) return 'Зажми горшок и потяни: вверх — к стеклу, вниз — в глубину, вбок — на другое место';
+  if (g.stats.waters < 6) return 'Верхний ряд — у стекла, нижний — в глубине. Зажми горшок и перетащи, чтобы поменять место';
   const thirsty = here.filter((x) => x.stage >= 2 && x.moisture < 0.25).length;
   if (thirsty) return `Хотят пить: ${thirsty} 💧`;
   if (g.neighbor && t < g.neighbor.until) return `👵 Соседка поливает ещё ${fmt(g.neighbor.until - t)}`;
   return `${seasonName(t)[0].toUpperCase() + seasonName(t).slice(1)} за окном. Растениям хорошо 🌿`;
 }
 
-export const DECOR_ICON: Record<string, string> = {
-  cat: '🐈', radio: '📻', vase: '🏺', books: '📚', lamp: '💡',
-  plaid: '🧣', pumpkin: '🎃', lantern: '🏮', tangerines: '🍊', tree: '🎄', tulips: '🌷', birdhouse: '🐦', watering_can: '🫖',
-};
-export const DECOR_GLASS = ['cat', 'radio', 'lamp', 'pumpkin', 'lantern', 'tree', 'tulips', 'birdhouse'];
 
 export function SillView() {
   const g = useStore((s) => s.game);
@@ -81,66 +72,30 @@ export function SillView() {
         </button>
       )}
 
-      <div className={`stage tod-${tod}${winter ? ' winter' : ''}`} data-win={sill.window ?? 'E'}>
-        <div className="sky">
-          <div className="sun" />
-          <div className="cloud c1" />
-          <div className="cloud c2" />
-          {(winter || ev?.theme === 'winter') && <div className="snow" />}
-          {ev?.theme === 'autumn' && <div className="fall">{['🍂', '🍁', '🍂', '🍁', '🍂'].map((x, i) => <span key={i} style={{ left: `${8 + i * 19}%`, animationDelay: `${i * 1.7}s` }}>{x}</span>)}</div>}
-          {ev?.theme === 'spring' && <div className="fall petals">{['🌸', '🌸', '🌸', '🌸'].map((x, i) => <span key={i} style={{ left: `${12 + i * 22}%`, animationDelay: `${i * 2.1}s` }}>{x}</span>)}</div>}
-          {decor.includes('garland') && <div className="garland" />}
-        </div>
-        {decor.includes('tulle') && (
-          <>
-            <div className="tulle left" />
-            <div className="tulle right" />
-          </>
-        )}
-        <div className="scroller">
-          {Array.from({ length: SLOTS }, (_, i) => {
-            const p = plantAt(g, sill.id, i);
-            return (
-              <div className="col" data-slot={i} key={i}>
-                <div className="cell glass" data-zone="glass">
-                  {p && p.zone === 'glass' && <Slot plant={p} sill={sill.id} slot={i} />}
-                  {!p && (
-                    <motion.button whileTap={{ scale: 0.92 }} className="empty" onClick={() => (sill.window ? openSheet({ kind: 'picker', slot: i, sill: sill.id }) : openSheet({ kind: 'window', sill: sill.id, then: 'picker', slot: i }))}>
-                      <span>+</span>
-                      <small>свободно</small>
-                    </motion.button>
-                  )}
-                </div>
-                <div className="cell deep" data-zone="deep">
-                  {p && p.zone === 'deep' && <Slot plant={p} sill={sill.id} slot={i} />}
-                </div>
-              </div>
-            );
-          })}
-          {decor.some((d) => DECOR_ICON[d]) && (
-            <div className="col decor">
-              <div className="cell glass">
-                <div className="decor-items">
-                  {decor.filter((d) => DECOR_GLASS.includes(d)).map((d) => (
-                    <span key={d} className={'decor-' + d}>{DECOR_ICON[d]}</span>
-                  ))}
-                </div>
-              </div>
-              <div className="cell deep">
-                <div className="decor-items">
-                  {decor.filter((d) => DECOR_ICON[d] && !DECOR_GLASS.includes(d)).map((d) => (
-                    <span key={d} className={'decor-' + d}>{DECOR_ICON[d]}</span>
-                  ))}
-                </div>
-              </div>
-            </div>
-          )}
-        </div>
-      </div>
+      <SillScene
+        decor={decor}
+        tod={tod}
+        winter={winter}
+        theme={ev?.theme}
+        win={sill.window ?? 'E'}
+        cell={(i) => {
+          const p = plantAt(g, sill.id, i);
+          if (p) return <Slot plant={p} sill={sill.id} slot={i} />;
+          return (
+            <motion.button
+              whileTap={{ scale: 0.92 }}
+              className="empty"
+              onClick={() => (sill.window ? openSheet({ kind: 'picker', slot: i, sill: sill.id }) : openSheet({ kind: 'window', sill: sill.id, then: 'picker', slot: i }))}
+            >
+              <span>+</span>
+              <small>{i < 3 ? 'у стекла' : 'в глубине'}</small>
+            </motion.button>
+          );
+        }}
+      />
 
       <Toolbar sill={sill.id} />
 
-      <p className="legend">☀️ Верхний ряд — {ZONE_NAME.glass} · 🛋 нижний — {ZONE_NAME.deep}</p>
 
       {g.cuttings.length > 0 && (
         <div className="tray">

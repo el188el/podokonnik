@@ -4,9 +4,9 @@ import { STAGE_NAME } from '../game/constants';
 import { canCut, cramped, ctxFor, fmt, isSad, isLightSad, isThirstySad, lightBad, nextStageAt, rootsAt } from '../game/sim';
 import { SHOWOFF_MS } from '../game/constants';
 import { sp } from '../game/species';
-import { feed, mist, move, now, openSheet, plantInPot, say, swap, takeCutting, toast, useStore, water } from '../game/store';
+import { feed, mist, now, openSheet, plantInPot, say, swap, takeCutting, toast, useStore, water } from '../game/store';
 import { canCut as canCutNow } from '../game/sim';
-import type { Plant, Zone } from '../game/types';
+import type { Plant } from '../game/types';
 import { PlantArt } from './art/PlantArt';
 
 const lastEnough: Record<string, number> = {};
@@ -72,11 +72,11 @@ export function Slot({ plant: p, sill, slot }: { plant: Plant; sill: string; slo
     st.current.pressed = false;
     const el = ref.current;
     if (el) {
-      el.classList.remove('press', 'lift', 'to-glass', 'to-deep');
+      el.classList.remove('press', 'lift');
       el.style.removeProperty('--dx');
       el.style.removeProperty('--dy');
     }
-    document.querySelectorAll('.col.target').forEach((c) => c.classList.remove('target'));
+    document.querySelectorAll('.cell.target').forEach((c) => c.classList.remove('target'));
   }
 
   function tap() {
@@ -135,38 +135,27 @@ export function Slot({ plant: p, sill, slot }: { plant: Plant; sill: string; slo
         const el = ref.current!;
         el.style.setProperty('--dx', c.dx + 'px');
         el.style.setProperty('--dy', c.dy + 'px');
-        el.classList.toggle('to-glass', c.dy < -40);
-        el.classList.toggle('to-deep', c.dy > 40);
-        document.querySelectorAll('.col.target').forEach((x) => x.classList.remove('target'));
-        if (Math.abs(c.dx) > 50) {
-          el.style.pointerEvents = 'none';
-          const under = document.elementFromPoint(e.clientX, e.clientY)?.closest('.col');
-          el.style.pointerEvents = '';
-          under?.classList.add('target');
-        }
+        document.querySelectorAll('.cell.target').forEach((x) => x.classList.remove('target'));
+        el.style.pointerEvents = 'none';
+        const under = document.elementFromPoint(e.clientX, e.clientY)?.closest('.cell[data-slot]');
+        el.style.pointerEvents = '';
+        if (under && Number((under as HTMLElement).dataset.slot) !== slot) under.classList.add('target');
       }}
       onPointerUp={(e) => {
         const c = st.current;
-        const { lifted, pressed, dx, dy } = c;
-        let targetSlot = slot;
-        let targetZone: Zone | null = null;
+        const { lifted, pressed } = c;
+        let target = slot;
         if (lifted) {
           const el = ref.current!;
           el.style.pointerEvents = 'none';
-          const under = document.elementFromPoint(e.clientX, e.clientY);
+          const cell = document.elementFromPoint(e.clientX, e.clientY)?.closest('.cell[data-slot]') as HTMLElement | null;
           el.style.pointerEvents = '';
-          const col = under?.closest('.col') as HTMLElement | null;
-          const cell = under?.closest('.cell') as HTMLElement | null;
-          if (col && Math.abs(dx) > 50) targetSlot = Number(col.dataset.slot);
-          if (cell && (Math.abs(dx) > 50 || Math.abs(dy) > 40)) targetZone = cell.dataset.zone as Zone;
-          else if (dy < -40) targetZone = 'glass';
-          else if (dy > 40) targetZone = 'deep';
+          if (cell) target = Number(cell.dataset.slot);
         }
         reset();
         if (lifted) {
-          if (targetSlot !== slot) swap(p.id, sill, targetSlot);
-          if (targetZone && targetZone !== p.zone) move(p.id, targetZone);
-          if (targetSlot === slot && (!targetZone || targetZone === p.zone)) openSheet({ kind: 'card', plant: p.id });
+          if (target !== slot) swap(p.id, sill, target);
+          else openSheet({ kind: 'card', plant: p.id });
         } else if (pressed) tap();
       }}
       onPointerCancel={reset}

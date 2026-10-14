@@ -14,6 +14,7 @@ import { activeEvent, EVENT_TOKENS, eventSeason, tierOf, type GameEvent, type Pa
 import { FORM_BY_ID, FORMS, PRODUCT_BY_ID, RARE_DROP, formsOf } from './products';
 import { replayFriendWaters, type FriendWater } from './social';
 import { SPECIES, sp } from './species';
+import { rowSlots, zoneOfSlot } from './layout';
 import { loadCloud, loadLocal, newPlant, newState, pickNewer, saveCloud, saveLocal, upgrade } from './storage';
 import type { EventProgress, GameState, PendingGift, Plant, QuestKind, Twin, Zone } from './types';
 
@@ -145,14 +146,16 @@ function after(g: GameState) {
 
 const findPlant = (g: GameState, id: string) => g.plants.find((p) => p.id === id);
 export const plantAt = (g: GameState, sill: string, slot: number) => g.plants.find((p) => p.sill === sill && p.slot === slot);
-export function freeSlot(g: GameState, sill = g.activeSill) {
-  for (let i = 0; i < SLOTS; i++) if (!plantAt(g, sill, i)) return i;
+export function freeSlot(g: GameState, sill = g.activeSill, prefer?: Zone) {
+  const order = prefer ? [...rowSlots(prefer), ...rowSlots(prefer === 'glass' ? 'deep' : 'glass')] : Array.from({ length: SLOTS }, (_, i) => i);
+  for (const i of order) if (!plantAt(g, sill, i)) return i;
   return -1;
 }
-function anyFreeSlot(g: GameState): { sill: string; slot: number } | null {
+function anyFreeSlot(g: GameState, spId?: string, t = now()): { sill: string; slot: number } | null {
   const order = [g.activeSill, ...g.sills.map((s) => s.id).filter((id) => id !== g.activeSill)];
   for (const sill of order) {
-    const slot = freeSlot(g, sill);
+    const sl = g.sills.find((s) => s.id === sill)!;
+    const slot = freeSlot(g, sill, spId ? bestZone(spId, sl, t, hasLamp(g, sl)) : undefined);
     if (slot >= 0) return { sill, slot };
   }
   return null;
@@ -486,9 +489,8 @@ export function chooseWindow(sillId: string, side: 'N' | 'E' | 'S' | 'W') {
 export function placeCutting(spId: string, sill: string, slot: number, extra: Partial<Plant> = {}) {
   return mut((g, t) => {
     if (plantAt(g, sill, slot)) return null;
-    const sl = g.sills.find((s) => s.id === sill)!;
     const first = g.plants.length === 0 && g.stats.planted === 0;
-    const p = newPlant({ sp: spId, sill, slot, zone: bestZone(spId, sl, t, hasLamp(g, sl)), quick: first || extra.quick, ...extra }, t);
+    const p = newPlant({ sp: spId, sill, slot, zone: zoneOfSlot(slot), quick: first || extra.quick, ...extra }, t);
     g.plants.push(p);
     discover(g, spId);
     return p.id;
@@ -557,33 +559,45 @@ export function plantInPot(plantId: string) {
   });
 }
 
-export function move(plantId: string, zone: Zone) {
-  mut((g, t) => {
-    const p = findPlant(g, plantId);
-    if (!p || p.zone === zone) return;
-    const ctx = ctxFor(g, p, t);
-    const wasBad = !!lightBad(p, ctx.sill, t, ctx.lamp);
-    p.zone = zone;
-    const bad = lightBad(p, ctx.sill, t, ctx.lamp);
-    if (!bad) p.badLightFor = 0;
-    if (wasBad && !bad) quest(g, 'fixLight');
-    haptic('select');
-    if (p.stage < 2) toast(zone === 'glass' ? 'Переставлено к стеклу ☀️' : 'Переставлено в глубину комнаты 🛋');
-    else toast(bad === 'hot' ? 'Тут жарко на солнце 🥵' : bad === 'dark' ? 'Тут темновато 🌥' : `Переставлено ${zone === 'glass' ? 'к стеклу ☀️' : 'в глубину 🛋'} Тут ему хорошо`);
-  });
+/** Сообщить про свет после перестановки и засчитать задание «переставь к свету». */
+function lightAfterMove(g: GameState, p: Plant, wasBad: boolean, t: number, quiet = false) {
+  const ctx = ctxFor(g, p, t);
+  const bad = lightBad(p, ctx.sill, t, ctx.lamp);
+  if (!bad) p.badLightFor = 0;
+  if (wasBad && !bad) quest(g, 'fixLight');
+  if (quiet) return;
+  if (p.stage < 2) toast(p.zone === 'glass' ? 'Переставлено к стеклу ☀️' : 'Переставлено в глубину комнаты 🛋');
+  else toast(bad === 'hot' ? `${sp(p.sp).name}: тут жарко на солнце 🥵` : bad === 'dark' ? `${sp(p.sp).name}: тут темновато 🌥` : `${sp(p.sp).name}: ${p.zone === 'glass' ? 'у стекла ☀️' : 'в глубине 🛋'} — тут хорошо`);
 }
 
-/** Переставить горшок в другое место (обмен местами). */
+const isBad = (g: GameState, p: Plant, t: number) => { const c = ctxFor(g, p, t); return !!lightBad(p, c.sill, t, c.lamp); };
+
+/** Переставить в другой ряд: на свободное место, а если его нет — поменяться с соседом. */
+export function move(plantId: string, zone: Zone) {
+  const g0 = get().game;
+  const p0 = findPlant(g0, plantId);
+  if (!p0 || p0.zone === zone) return;
+  const free = rowSlots(zone).find((s) => !plantAt(g0, p0.sill, s));
+  swap(plantId, p0.sill, free ?? rowSlots(zone)[0]);
+}
+
+/** Переставить на место slot (если оно занято — растения меняются местами). */
 export function swap(plantId: string, sill: string, slot: number) {
-  mut((g) => {
+  mut((g, t) => {
     const p = findPlant(g, plantId);
     if (!p) return;
     const other = plantAt(g, sill, slot);
     if (other === p) return;
-    if (other) { other.slot = p.slot; other.sill = p.sill; }
+    const pBad = isBad(g, p, t);
+    const oBad = other ? isBad(g, other, t) : false;
+    if (other) { other.slot = p.slot; other.sill = p.sill; other.zone = zoneOfSlot(other.slot); }
     p.slot = slot;
     p.sill = sill;
+    const zoneChanged = p.zone !== zoneOfSlot(slot);
+    p.zone = zoneOfSlot(slot);
     haptic('select');
+    if (zoneChanged) lightAfterMove(g, p, pBad, t);
+    if (other && other.zone !== p.zone) lightAfterMove(g, other, oBad, t, true);
   });
 }
 
@@ -680,11 +694,10 @@ export function plantCutting(cuttingId: string, sill?: string, slot?: number) {
   mut((g, t) => {
     const c = g.cuttings.find((x) => x.id === cuttingId);
     if (!c) return;
-    const place = sill !== undefined && slot !== undefined && !plantAt(g, sill, slot) ? { sill, slot } : anyFreeSlot(g);
+    const place = sill !== undefined && slot !== undefined && !plantAt(g, sill, slot) ? { sill, slot } : anyFreeSlot(g, c.sp, t);
     if (!place) { toast('Все места заняты. Освободи горшок или открой новый подоконник'); return; }
-    const sl = g.sills.find((s) => s.id === place.sill)!;
     g.cuttings = g.cuttings.filter((x) => x.id !== cuttingId);
-    g.plants.push(newPlant({ sp: c.sp, form: c.form, sill: place.sill, slot: place.slot, zone: bestZone(c.sp, sl, t, hasLamp(g, sl)) }, t));
+    g.plants.push(newPlant({ sp: c.sp, form: c.form, sill: place.sill, slot: place.slot, zone: zoneOfSlot(place.slot) }, t));
     collectForm(g, c.form);
     g.activeSill = place.sill;
     discover(g, c.sp);
@@ -741,13 +754,12 @@ export async function claimGiftOnline(gift: PendingGift): Promise<'ok' | 'dup' |
 export function claimGift(gift: PendingGift): 'ok' | 'dup' | 'full' {
   return mut((g, t) => {
     if (g.received.includes(gift.code) || g.sent.some((s) => s.code === gift.code)) return 'dup';
-    const place = anyFreeSlot(g);
+    const place = anyFreeSlot(g, gift.sp, t);
     if (!place) {
       if (!g.pending.some((x) => x.code === gift.code)) g.pending.push(gift);
       return 'full';
     }
-    const sl = g.sills.find((s) => s.id === place.sill)!;
-    const p = newPlant({ sp: gift.sp, form: gift.form, sill: place.sill, slot: place.slot, zone: bestZone(gift.sp, sl, t, hasLamp(g, sl)), quick: true, from: { name: gift.from, note: gift.note, code: gift.code }, claimedAt: t }, t);
+    const p = newPlant({ sp: gift.sp, form: gift.form, sill: place.sill, slot: place.slot, zone: zoneOfSlot(place.slot), quick: true, from: { name: gift.from, note: gift.note, code: gift.code }, claimedAt: t }, t);
     collectForm(g, gift.form);
     g.plants.push(p);
     g.received.push(gift.code);
@@ -942,12 +954,19 @@ export const debug = {
       for (let slot = 0; slot < SLOTS; slot++) {
         if (plantAt(g, sill.id, slot)) continue;
         const s = SPECIES[(i++ + slot) % SPECIES.length];
-        g.plants.push(newPlant({ sp: s.id, sill: sill.id, slot, zone: bestZone(s.id, sill, t, false), stage: 2, rootStart: t, plantedAt: t, moisture: 1 }, t));
+        g.plants.push(newPlant({ sp: s.id, sill: sill.id, slot, zone: zoneOfSlot(slot), stage: 2, rootStart: t, plantedAt: t, moisture: 1 }, t));
         discover(g, s.id);
       }
     });
   },
   rich() { mut((g) => { g.leaves += 1000; addXp(g, 500); }); },
+  decor() {
+    mut((g) => {
+      const sill = g.sills.find((s) => s.id === g.activeSill)!;
+      for (const it of ITEMS) if (it.cat === 'decor') g.owned[it.id] = 1;
+      sill.decor = ['tulle', 'feeder', 'cat', 'radio', 'matryoshka', 'pickles', 'tea', 'books', 'piggy', 'vase', 'carpet', 'clock', 'calendar'];
+    });
+  },
   reset() {
     localStorage.removeItem('podokonnik-v2');
     set({ game: newState(Date.now()), popups: [], sheet: null });

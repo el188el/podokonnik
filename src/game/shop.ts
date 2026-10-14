@@ -1,6 +1,8 @@
 // Магазин за листики. Позже сюда же добавятся товары за Telegram Stars.
 
 export type ShopCat = 'pots' | 'decor' | 'care' | 'packs';
+/** Куда ставится декор: на стекло, на подоконник, на столик или на стену. */
+export type DecorPlace = 'window' | 'sill' | 'table' | 'wall';
 
 export interface ShopItem {
   id: string;
@@ -12,6 +14,7 @@ export interface ShopItem {
   consumable?: boolean;
   months?: number[];  // сезонный товар
   eventOnly?: boolean; // только из сезонного пропуска, в магазине не продаётся
+  place?: DecorPlace;  // где стоит декор
   pack?: string[];    // набор: что входит
   level?: number;
 }
@@ -40,26 +43,49 @@ export const ITEMS: ShopItem[] = [
   { id: 'pot_enamel', cat: 'pots', name: 'Эмалированная кружка', icon: '☕', price: 60, desc: 'Та самая, с синим ободком.' },
 
   // декор (ставится на подоконник)
-  { id: 'tulle', cat: 'decor', name: 'Тюль', icon: '🪟', price: 60, desc: 'Белая занавеска в цветочек.' },
-  { id: 'cat', cat: 'decor', name: 'Кот Барсик', icon: '🐈', price: 120, desc: 'Спит на подоконнике. Растения не трогает. Почти.' },
-  { id: 'radio', cat: 'decor', name: 'Советское радио', icon: '📻', price: 90, desc: '«Маяк» тихонько играет по утрам.' },
-  { id: 'vase', cat: 'decor', name: 'Хрустальная вазочка', icon: '🏺', price: 70, desc: 'Из серванта, для красоты.' },
-  { id: 'books', cat: 'decor', name: 'Стопка книг', icon: '📚', price: 40, desc: 'Справочник цветовода сверху.' },
-  { id: 'lamp', cat: 'decor', name: 'Фитолампа', icon: '💡', price: 150, desc: '+1 к свету на этом подоконнике. Спасение для северных окон и зимы.', level: 3 },
-  { id: 'garland', cat: 'decor', name: 'Гирлянда', icon: '✨', price: 80, desc: 'Новогодний огонёк на окне. Только в декабре и январе.', months: [12, 1] },
+  { id: 'tulle', cat: 'decor', place: 'window', name: 'Тюль', icon: '🪟', price: 60, desc: 'Белая занавеска в цветочек.' },
+  { id: 'cat', cat: 'decor', place: 'sill', name: 'Кот Барсик', icon: '🐈', price: 120, desc: 'Спит на подоконнике. Растения не трогает. Почти.' },
+  { id: 'radio', cat: 'decor', place: 'sill', name: 'Советское радио', icon: '📻', price: 90, desc: '«Маяк» тихонько играет по утрам.' },
+  { id: 'vase', cat: 'decor', place: 'table', name: 'Хрустальная вазочка', icon: '🏺', price: 70, desc: 'Из серванта, для красоты.' },
+  { id: 'books', cat: 'decor', place: 'table', name: 'Стопка книг', icon: '📚', price: 40, desc: 'Справочник цветовода сверху.' },
+  { id: 'lamp', cat: 'decor', place: 'sill', name: 'Фитолампа', icon: '💡', price: 150, desc: '+1 к свету на этом подоконнике. Спасение для северных окон и зимы.', level: 3 },
+  { id: 'garland', cat: 'decor', place: 'window', name: 'Гирлянда', icon: '✨', price: 80, desc: 'Новогодний огонёк на окне. Только в декабре и январе.', months: [12, 1] },
+
+  // ещё декор: окно
+  { id: 'paper_snow', cat: 'decor', place: 'window', name: 'Бумажные снежинки', icon: '❄️', price: 40, desc: 'Вырезанные из салфеток и приклеенные на стекло.', months: [12, 1, 2] },
+  { id: 'feeder', cat: 'decor', place: 'window', name: 'Кормушка за окном', icon: '🐦', price: 90, desc: 'Синички прилетают в гости.' },
+  { id: 'suncatcher', cat: 'decor', place: 'window', name: 'Ловец солнца', icon: '🌈', price: 110, desc: 'Пускает радуги по комнате.', level: 4 },
+  // подоконник
+  { id: 'matryoshka', cat: 'decor', place: 'sill', name: 'Матрёшка', icon: '🪆', price: 70, desc: 'Внутри ещё шесть.' },
+  { id: 'pickles', cat: 'decor', place: 'sill', name: 'Банка огурцов', icon: '🥒', price: 50, desc: 'Бабушкины закатки зреют на окне.' },
+  { id: 'candle', cat: 'decor', place: 'sill', name: 'Свеча', icon: '🕯️', price: 40, desc: 'Для уютных вечеров.' },
+  { id: 'alarm', cat: 'decor', place: 'sill', name: 'Будильник', icon: '⏰', price: 60, desc: 'Звенит, когда пора поливать. Шутка.' },
+  { id: 'cactus_mini', cat: 'decor', place: 'sill', name: 'Кактусёнок', icon: '🌵', price: 30, desc: 'Пластиковый, поливать не надо.' },
+  // столик
+  { id: 'tea', cat: 'decor', place: 'table', name: 'Чашка чая', icon: '☕', price: 30, desc: 'С бергамотом.' },
+  { id: 'piggy', cat: 'decor', place: 'table', name: 'Копилка-свинка', icon: '🐷', price: 80, desc: 'Копит листики.' },
+  { id: 'yarn', cat: 'decor', place: 'table', name: 'Клубок и спицы', icon: '🧶', price: 50, desc: 'Шарф для монстеры почти готов.' },
+  { id: 'magazines', cat: 'decor', place: 'table', name: 'Журналы «Цветоводство»', icon: '📰', price: 40, desc: 'Подшивка за 1987 год.' },
+  { id: 'teapot', cat: 'decor', place: 'table', name: 'Заварочный чайник', icon: '🫖', price: 60, desc: 'В горошек.' },
+  // стена
+  { id: 'carpet', cat: 'decor', place: 'wall', name: 'Ковёр на стене', icon: '🟥', price: 160, desc: 'Тот самый, с узорами. Классика.', level: 3 },
+  { id: 'clock', cat: 'decor', place: 'wall', name: 'Часы с маятником', icon: '🕰️', price: 120, desc: 'Тик-так.' },
+  { id: 'painting', cat: 'decor', place: 'wall', name: 'Картина «Утро в лесу»', icon: '🖼️', price: 140, desc: 'Мишки на поваленном дереве.', level: 5 },
+  { id: 'calendar', cat: 'decor', place: 'wall', name: 'Отрывной календарь', icon: '📅', price: 50, desc: 'С советами садоводу на каждый день.' },
+  { id: 'shelf', cat: 'decor', place: 'wall', name: 'Полочка с безделушками', icon: '🏺', price: 100, desc: 'Слоники, ракушка и фото с моря.', level: 4 },
 
   // эксклюзивы ивентов (выдаются сезонным пропуском)
   { id: 'pot_autumn', cat: 'pots', name: 'Горшок «Осенний»', icon: '🍁', price: 0, desc: 'Ржаво-рыжий горшок с кленовым листом.', eventOnly: true },
   { id: 'pot_snow', cat: 'pots', name: 'Горшок «Снежный»', icon: '⛄', price: 0, desc: 'Голубой, в снежинках.', eventOnly: true },
   { id: 'pot_pastel', cat: 'pots', name: 'Горшок «Пастельный»', icon: '🌸', price: 0, desc: 'Нежно-розовый с мятным ободком.', eventOnly: true },
-  { id: 'plaid', cat: 'decor', name: 'Клетчатый плед', icon: '🧣', price: 0, desc: 'Для осенних вечеров у окна.', eventOnly: true },
-  { id: 'pumpkin', cat: 'decor', name: 'Тыква', icon: '🎃', price: 0, desc: 'Урожай с дачи.', eventOnly: true },
-  { id: 'lantern', cat: 'decor', name: 'Фонарик', icon: '🏮', price: 0, desc: 'Тёплый свет в сумерках.', eventOnly: true },
-  { id: 'tangerines', cat: 'decor', name: 'Мандарины', icon: '🍊', price: 0, desc: 'Запах Нового года.', eventOnly: true },
-  { id: 'tree', cat: 'decor', name: 'Ёлочка', icon: '🎄', price: 0, desc: 'Маленькая, но настоящая.', eventOnly: true },
-  { id: 'tulips', cat: 'decor', name: 'Тюльпаны', icon: '🌷', price: 0, desc: 'Букет в банке.', eventOnly: true },
-  { id: 'birdhouse', cat: 'decor', name: 'Скворечник', icon: '🐦', price: 0, desc: 'Скворцы вернулись!', eventOnly: true },
-  { id: 'watering_can', cat: 'decor', name: 'Лейка-чайник', icon: '🫖', price: 0, desc: 'Бабушкин чайник, теперь лейка.', eventOnly: true },
+  { id: 'plaid', cat: 'decor', place: 'table', name: 'Клетчатый плед', icon: '🧣', price: 0, desc: 'Для осенних вечеров у окна.', eventOnly: true },
+  { id: 'pumpkin', cat: 'decor', place: 'sill', name: 'Тыква', icon: '🎃', price: 0, desc: 'Урожай с дачи.', eventOnly: true },
+  { id: 'lantern', cat: 'decor', place: 'sill', name: 'Фонарик', icon: '🏮', price: 0, desc: 'Тёплый свет в сумерках.', eventOnly: true },
+  { id: 'tangerines', cat: 'decor', place: 'table', name: 'Мандарины', icon: '🍊', price: 0, desc: 'Запах Нового года.', eventOnly: true },
+  { id: 'tree', cat: 'decor', place: 'sill', name: 'Ёлочка', icon: '🎄', price: 0, desc: 'Маленькая, но настоящая.', eventOnly: true },
+  { id: 'tulips', cat: 'decor', place: 'sill', name: 'Тюльпаны', icon: '🌷', price: 0, desc: 'Букет в банке.', eventOnly: true },
+  { id: 'birdhouse', cat: 'decor', place: 'window', name: 'Скворечник', icon: '🐦', price: 0, desc: 'Скворцы вернулись!', eventOnly: true },
+  { id: 'watering_can', cat: 'decor', place: 'table', name: 'Лейка-чайник', icon: '🫖', price: 0, desc: 'Бабушкин чайник, теперь лейка.', eventOnly: true },
 
   // уход
   { id: 'feed', cat: 'care', name: 'Подкормка', icon: '🧪', price: 15, desc: 'Сутки растение растёт в 1,5 раза быстрее.', consumable: true },
@@ -72,8 +98,20 @@ export const ITEMS: ShopItem[] = [
     desc: 'Тюль, кот, советское радио, хрустальная вазочка и горшок-кружка. Выгоднее на 120 листиков.',
     pack: ['tulle', 'cat', 'radio', 'vase', 'pot_enamel'],
   },
+  {
+    id: 'pack_ussr', cat: 'packs', name: '«Квартира 80-х»', icon: '📺', price: 420, level: 5,
+    desc: 'Ковёр на стене, часы с маятником, картина «Утро в лесу», матрёшка и журналы. Выгоднее на 100 листиков.',
+    pack: ['carpet', 'clock', 'painting', 'matryoshka', 'magazines'],
+  },
+  {
+    id: 'pack_cozy', cat: 'packs', name: '«Уютный вечер»', icon: '🕯️', price: 190,
+    desc: 'Свеча, чашка чая, клубок со спицами и кормушка за окном.',
+    pack: ['candle', 'tea', 'yarn', 'feeder'],
+  },
 ];
 
 export const ITEM_BY_ID: Record<string, ShopItem> = Object.fromEntries(ITEMS.map((i) => [i.id, i]));
 export const DECOR_IDS = ITEMS.filter((i) => i.cat === 'decor').map((i) => i.id);
 export const potIdOf = (itemId: string) => itemId.replace(/^pot_/, '');
+
+export const placeOf = (id: string): DecorPlace => ITEM_BY_ID[id]?.place ?? 'sill';

@@ -83,6 +83,7 @@ export function App() {
           <button onClick={debug.cramp}>Тесно</button>
           <button onClick={debug.fill}>Заполнить</button>
           <button onClick={debug.rich}>+1000 🍃</button>
+          <button onClick={debug.decor}>Декор</button>
           <button onClick={debug.reset}>Сброс</button>
         </div>
       )}

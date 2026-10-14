@@ -7,6 +7,7 @@ import { H } from './constants';
 import { makeCode } from './gifts';
 import { stageFromGrowth } from './sim';
 import { sp } from './species';
+import { normalizeLayout } from './layout';
 import type { GameState, Plant, Zone } from './types';
 
 export const SAVE_KEY = 'podokonnik-v2';
@@ -71,6 +72,7 @@ export function upgrade(s: GameState, t: number): GameState {
   out.stats = { ...base.stats, ...s.stats };
   out.settings = { ...base.settings, ...s.settings };
   out.owned = { ...s.owned };
+  normalizeLayout(out.plants);
   return out;
 }
 
@@ -169,5 +171,6 @@ export function fromLegacy(old: LegacyState, t: number): GameState {
     s.plants.push(p);
     if (!s.discovered.includes(lp.sp)) s.discovered.push(lp.sp);
   }
+  normalizeLayout(s.plants);
   return s;
 }
