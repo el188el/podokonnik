@@ -68,6 +68,7 @@ export type Sheet =
   | { kind: 'starter' }
   | { kind: 'twins' }
   | { kind: 'weather' }
+  | { kind: 'login' }
   | { kind: 'doctor'; sp?: string }
   | { kind: 'coop' }
   | { kind: 'album' }
@@ -2201,4 +2202,31 @@ export function startOver() {
   track('start_over', {});
   saveNow();
   toast('🌱 Чистый подоконник. Всё сначала!');
+}
+
+// ─────────────────── один аккаунт на всех платформах ───────────────────
+/**
+ * Вход через Telegram подтверждён. Если в аккаунте Telegram уже есть подоконник —
+ * открываем его (здешний гостевой прогресс откладываем). Если нет — переносим туда здешний.
+ */
+export function finishLogin(r: Extract<api.LoginPoll, { status: 'ok' }>) {
+  if (r.from) {
+    try { localStorage.setItem(`podokonnik-v2:p${r.from}`, localStorage.getItem('podokonnik-v2') ?? ''); } catch { /* ignore */ }
+  }
+  const acc = api.linkedAccount();
+  if (r.save?.state && Array.isArray(r.save.state.plants)) {
+    adoptServer(r.save);
+  } else {
+    pushNow(false, 0);
+  }
+  applyInbox(r.inbox);
+  closeSheet();
+  haptic('success');
+  toast(`✅ Вошли через Telegram${acc ? ` как ${acc.username ? '@' + acc.username : acc.name}` : ''}. Подоконник один на всех устройствах`);
+  track('login_telegram', { platform: platform().kind });
+}
+
+export async function logoutTelegram() {
+  await api.logout();
+  location.reload(); // при входе гостем игра сама отложит прогресс аккаунта и достанет гостевой
 }

@@ -17,6 +17,7 @@ import { Visit } from './Visit';
 import { EventSheet } from './EventSheet';
 import { TwinsSheet } from './TwinsSheet';
 import { WeatherSheet } from './WeatherSheet';
+import { LoginSheet } from './LoginSheet';
 import { DoctorSheet } from './DoctorSheet';
 import { CoopSheet } from './CoopSheet';
 import { AlbumSheet } from './AlbumSheet';
@@ -43,6 +44,7 @@ export function Sheets() {
       {sheet?.kind === 'event' && <EventSheet />}
       {sheet?.kind === 'twins' && <TwinsSheet />}
       {sheet?.kind === 'weather' && <WeatherSheet />}
+      {sheet?.kind === 'login' && <LoginSheet />}
       {sheet?.kind === 'doctor' && <DoctorSheet sp={sheet.sp} />}
       {sheet?.kind === 'coop' && <CoopSheet />}
       {sheet?.kind === 'album' && <AlbumSheet />}

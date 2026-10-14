@@ -734,3 +734,9 @@ svg.big.sad { filter: sepia(0.6) saturate(0.6); }
 .boost-glow { position: absolute; inset: 20% 15% 30%; border-radius: 50%; background: radial-gradient(circle, #ffe9666b, transparent 70%); animation: boost-pulse 1.8s ease-in-out infinite; pointer-events: none; z-index: 0; }
 @keyframes boost-pulse { 0%, 100% { opacity: .5; transform: scale(.95); } 50% { opacity: 1; transform: scale(1.05); } }
 .over-box { background: #eef6fb; border-color: #9cc8e4; }
+
+/* вход через Telegram */
+.login-sheet { display: flex; flex-direction: column; gap: 10px; align-items: center; text-align: center; padding-bottom: 8px; }
+.login-sheet p { margin: 0; }
+.spinner { width: 34px; height: 34px; border-radius: 50%; border: 4px solid #d8eadf; border-top-color: #4caf6a; animation: spin 0.9s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }

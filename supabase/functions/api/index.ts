@@ -3,7 +3,7 @@
 
 import { verifyInitData, signSession, verifySession } from '../_shared/crypto.ts';
 import { db } from '../_shared/db.ts';
-import { BOT_TOKEN, TG_CHANNEL, appLink, env, secret } from '../_shared/env.ts';
+import { BOT_TOKEN, TG_BOT, TG_CHANNEL, appLink, env, secret } from '../_shared/env.ts';
 import { publicView, thirstyCount, VISIT_DAY_LIMIT, VISIT_HOST_LIMIT, VISIT_REWARD, type FriendWater } from '../_shared/game/social.ts';
 import { sp as species } from '../_shared/game/species.ts';
 import type { GameState } from '../_shared/game/types.ts';
@@ -94,10 +94,12 @@ async function auth(b: Body) {
     if (!d) return fail('bad_discord_code', 401);
     discordToken = d.accessToken;
     name = d.name;
-    const { data: ex } = await db.from('players').select('id').eq('discord_id', d.id).maybeSingle();
+    const linked = await linkedPlayer('discord', d.id);
+    const { data: ex } = linked ? { data: { id: linked } } : await db.from('players').select('id').eq('discord_id', d.id).maybeSingle();
     if (ex) {
       playerId = ex.id;
-      await db.from('players').update({ name, tz_offset: tz, last_seen: new Date().toISOString(), platform }).eq('id', playerId);
+      // вошёл в аккаунт Telegram — имя оставляем из Telegram
+      await db.from('players').update({ ...(linked ? {} : { name }), tz_offset: tz, last_seen: new Date().toISOString(), platform }).eq('id', playerId);
     } else {
       const { data, error } = await db.from('players').insert({ discord_id: d.id, name, tz_offset: tz, platform }).select('id').single();
       if (error) return fail('db', 500);
@@ -123,7 +125,8 @@ async function auth(b: Body) {
     const deviceId = str(b.deviceId, 64);
     if (!/^[A-Za-z0-9_-]{16,64}$/.test(deviceId)) return fail('bad_device');
     name = str(b.name, 48);
-    const { data: ex } = await db.from('players').select('id').eq('device_id', deviceId).maybeSingle();
+    const linked = await linkedPlayer('device', deviceId);
+    const { data: ex } = linked ? { data: { id: linked } } : await db.from('players').select('id').eq('device_id', deviceId).maybeSingle();
     if (ex) {
       playerId = ex.id;
       await db.from('players').update({ tz_offset: tz, last_seen: new Date().toISOString(), platform }).eq('id', playerId);
@@ -144,6 +147,7 @@ async function auth(b: Body) {
   return json({
     token: await signSession(playerId, await secret('session')),
     playerId,
+    linked: await linkInfo(playerId),
     serverTime: Date.now(),
     save: await loadSave(playerId),
     inbox: await pendingInbox(playerId),
@@ -637,6 +641,75 @@ async function plusClaim(playerId: string, b: Body) {
   return json({ status: 'ok', from: buyer?.name || 'Друг', plusUntil });
 }
 
+// ─────────────────── вход через Telegram на других платформах ───────────────────
+// Браузер, Android или Discord создают запрос, игрок подтверждает его в боте —
+// и это устройство (или Discord) навсегда входит в его аккаунт Telegram.
+
+const LOGIN_TTL = 10 * 60e3;
+
+async function linkedPlayer(kind: 'device' | 'discord', key: string): Promise<string | null> {
+  const { data } = await db.from('account_links').select('player_id').eq('kind', kind).eq('key', key).maybeSingle();
+  return data?.player_id ?? null;
+}
+
+/** Чей аккаунт Telegram: имя для профиля («Вошли как …»). */
+async function linkInfo(playerId: string) {
+  const { data } = await db.from('players').select('tg_id, username, name').eq('id', playerId).single();
+  return data?.tg_id ? { tg: true, name: data.name, username: data.username ?? undefined } : null;
+}
+
+function loginCode() {
+  const abc = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789';
+  const r = crypto.getRandomValues(new Uint8Array(24));
+  return Array.from(r, (x) => abc[x % abc.length]).join('');
+}
+
+async function loginStart(playerId: string, b: Body) {
+  if (!TG_BOT) return fail('no_bot', 503);
+  const { data: me } = await db.from('players').select('tg_id, discord_id, device_id').eq('id', playerId).single();
+  if (me?.tg_id) return fail('already_telegram');
+  const deviceId = str(b.deviceId, 64);
+  const link = me?.discord_id ? { kind: 'discord', key: String(me.discord_id) }
+    : /^[A-Za-z0-9_-]{16,64}$/.test(deviceId) ? { kind: 'device', key: deviceId } : null;
+  if (!link) return fail('bad_device');
+  const code = loginCode();
+  const { error } = await db.from('login_requests').insert({ code, link_kind: link.kind, link_key: link.key, platform: str(b.platform, 16) || null });
+  if (error) return fail('db', 500);
+  await db.from('login_requests').delete().lt('created_at', new Date(Date.now() - 24 * 3600e3).toISOString());
+  return json({ code, url: `https://t.me/${TG_BOT}?start=login_${code}`, ttl: LOGIN_TTL });
+}
+
+/** Устройство ждёт подтверждения. Когда игрок нажал «Да» в боте — выдаём вход. */
+async function loginPoll(b: Body) {
+  const code = str(b.code, 40);
+  if (!/^[A-Za-z0-9]{20,40}$/.test(code)) return fail('bad_code');
+  const { data: r } = await db.from('login_requests').select('*').eq('code', code).maybeSingle();
+  if (!r || r.used_at || Date.now() - Date.parse(r.created_at) > LOGIN_TTL) return json({ status: 'expired' });
+  if (!r.player_id || !r.confirmed_at) return json({ status: 'wait' });
+  const { data: upd } = await db.from('login_requests').update({ used_at: new Date().toISOString() }).eq('code', code).is('used_at', null).select('code');
+  if (!upd?.length) return json({ status: 'expired' });
+  await db.from('account_links').upsert({ kind: r.link_kind, key: r.link_key, player_id: r.player_id });
+  const playerId = r.player_id as string;
+  return json({
+    status: 'ok',
+    token: await signSession(playerId, await secret('session')),
+    playerId,
+    linked: await linkInfo(playerId),
+    serverTime: Date.now(),
+    save: await loadSave(playerId),
+    inbox: await pendingInbox(playerId),
+    plusUntil: await plusUntil(playerId),
+  });
+}
+
+/** Выйти из аккаунта Telegram на этом устройстве — снова гостевая игра. */
+async function loginUnlink(playerId: string, b: Body) {
+  const deviceId = str(b.deviceId, 64);
+  if (b.discord === true) await db.from('account_links').delete().eq('kind', 'discord').eq('player_id', playerId);
+  else if (deviceId) await db.from('account_links').delete().eq('kind', 'device').eq('key', deviceId).eq('player_id', playerId);
+  return json({ ok: true });
+}
+
 // ─────────────────── оплата ───────────────────
 async function payInvoice(playerId: string, b: Body) {
   const product = PRODUCT_BY_ID[str(b.product, 40)];
@@ -657,6 +730,7 @@ Deno.serve(async (req) => {
     if (req.method !== 'POST') return fail('method', 405);
     const body = (await req.json().catch(() => ({}))) as Body;
     if (route === '/auth') return await auth(body);
+    if (route === '/login/poll') return await loginPoll(body);
 
     const token = req.headers.get('authorization')?.replace(/^Bearer\s+/i, '');
     const playerId = await verifySession(token, await secret('session'));
@@ -688,6 +762,8 @@ Deno.serve(async (req) => {
       case '/contest/vote': return await contestVote(playerId, body);
       case '/story': return await storyUpload(playerId, body);
       case '/plus/claim': return await plusClaim(playerId, body);
+      case '/login/start': return await loginStart(playerId, body);
+      case '/login/unlink': return await loginUnlink(playerId, body);
       default: return fail('not_found', 404);
     }
   } catch (e) {

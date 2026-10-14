@@ -5,6 +5,8 @@ import { AnimatePresence, motion } from 'framer-motion';
 import { useEffect } from 'react';
 import { finishTutorial, openSheet, setTool, setTutorial, TUTORIAL_DONE, useStore } from '../game/store';
 import { Btn } from './kit/kit';
+import { online } from '../net/api';
+import { platform } from '../platform';
 
 interface Step {
   text: string;
@@ -68,6 +70,7 @@ export function Guide() {
           <div className="guide-actions">
             {st.action && <Btn small kind="primary" onClick={st.action.run}>{st.action.label}</Btn>}
             {step < 7 && <button className="guide-skip" onClick={() => finishTutorial(false)}>Пропустить</button>}
+            {step === 0 && online() && platform().kind !== 'telegram' && <button className="guide-skip" onClick={() => openSheet({ kind: 'login' })}>Уже играю в Telegram — войти</button>}
           </div>
         </div>
       </motion.div>

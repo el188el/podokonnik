@@ -4,10 +4,10 @@ import { rankOf, xpToNext } from '../../game/progression';
 import { ITEM_BY_ID, DECOR_IDS } from '../../game/shop';
 import { fmt } from '../../game/sim';
 import { ageDays } from '../../game/age';
-import { isPlus, now, openSheet, setName, setSetting, startOver, toggleDecor, useStore } from '../../game/store';
+import { isPlus, logoutTelegram, now, openSheet, setName, setSetting, startOver, toggleDecor, useStore } from '../../game/store';
 import { platform } from '../../platform';
 import { CONFIG } from '../../config';
-import { online, sendSettings } from '../../net/api';
+import { linkedAccount, online, sendSettings } from '../../net/api';
 import { Bar, Btn, Leaves } from '../kit/kit';
 
 export function Profile() {
@@ -40,6 +40,7 @@ export function Profile() {
         <p className="lvl" onClick={() => openSheet({ kind: 'levels' })}>{rankOf(g.level).icon} {rankOf(g.level).title} · ⭐ Уровень {g.level}{isPlus(g) && <span className="plus-badge"> · 🌟 Садовник+</span>}</p>
         <Bar value={g.xp / xpToNext(g.level)} label={`${g.xp}/${xpToNext(g.level)} опыта`} />
       </section>
+      {online() && <Account />}
 
 
       <section className="panel">
@@ -104,6 +105,37 @@ export function Profile() {
         <StartOver />
       </section>
     </div>
+  );
+}
+
+function Account() {
+  const pf = platform();
+  const acc = linkedAccount();
+  const [sure, setSure] = useState(false);
+  if (pf.kind === 'telegram') {
+    return (
+      <section className="panel">
+        <h3>👤 Аккаунт</h3>
+        <p className="small">Это твой подоконник в Telegram. Он же откроется в браузере, на Android и в Discord — нажми там в профиле «Войти через Telegram».</p>
+        {CONFIG.siteUrl && <Btn onClick={() => pf.openLink(CONFIG.siteUrl)}>🌐 Открыть в браузере</Btn>}
+      </section>
+    );
+  }
+  return (
+    <section className="panel">
+      <h3>👤 Аккаунт</h3>
+      {acc ? (
+        <>
+          <p className="small">✅ Вошли через Telegram как <b>{acc.username ? '@' + acc.username : acc.name}</b>. Подоконник один на всех устройствах.</p>
+          <Btn kind={sure ? 'warn' : 'ghost'} onClick={() => (sure ? logoutTelegram() : setSure(true))}>{sure ? 'Точно выйти? Нажми ещё раз' : 'Выйти из аккаунта'}</Btn>
+        </>
+      ) : (
+        <>
+          <p className="small">Сейчас прогресс хранится только здесь. Войди через Telegram — и подоконник будет один везде: в Telegram, браузере, на Android и в Discord.</p>
+          <Btn kind="primary" onClick={() => openSheet({ kind: 'login' })}>✈️ Войти через Telegram</Btn>
+        </>
+      )}
+    </section>
   );
 }
 

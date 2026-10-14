@@ -42,6 +42,51 @@ interface Update {
     refunded_payment?: { telegram_payment_charge_id: string };
   };
   pre_checkout_query?: { id: string; currency: string; total_amount: number; invoice_payload: string };
+  callback_query?: { id: string; from: { id: number; first_name?: string; last_name?: string; username?: string }; data?: string; message?: { chat: { id: number }; message_id: number } };
+}
+
+const PLATFORM_NAME: Record<string, string> = { web: 'браузере', native: 'телефоне (Android)', discord: 'Discord' };
+const LOGIN_TTL = 10 * 60e3;
+
+/** Запрос на вход с другого устройства: просим подтвердить, чтобы чужая ссылка не увела аккаунт. */
+async function loginAsk(chatId: number, code: string) {
+  const { data: r } = await db.from('login_requests').select('platform, created_at, confirmed_at').eq('code', code).maybeSingle();
+  if (!r || r.confirmed_at || Date.now() - Date.parse(r.created_at) > LOGIN_TTL) {
+    await send(chatId, 'Ссылка для входа устарела. Нажми «Войти через Telegram» в игре ещё раз 🌱');
+    return;
+  }
+  await tg('sendMessage', {
+    chat_id: chatId,
+    parse_mode: 'HTML',
+    text: `🔐 <b>Вход в Подоконник</b> в ${PLATFORM_NAME[r.platform ?? ''] ?? 'другом приложении'}.
+
+Там будет твой подоконник со всеми растениями. Это ты сейчас входишь?
+
+<i>Если ссылку тебе кто-то прислал — нажми «Нет».</i>`,
+    reply_markup: { inline_keyboard: [[{ text: '✅ Да, войти', callback_data: `login:${code}` }, { text: '✖️ Нет', callback_data: `nologin:${code}` }]] },
+  });
+}
+
+async function loginAnswer(q: NonNullable<Update['callback_query']>) {
+  const [act, code] = (q.data ?? '').split(':');
+  const done = (text: string) => Promise.all([
+    tg('answerCallbackQuery', { callback_query_id: q.id }),
+    q.message ? tg('editMessageText', { chat_id: q.message.chat.id, message_id: q.message.message_id, text, parse_mode: 'HTML' }) : null,
+  ]);
+  if (!code || !/^[A-Za-z0-9]{20,40}$/.test(code)) return done('Ссылка недействительна.');
+  if (act === 'nologin') {
+    await db.from('login_requests').delete().eq('code', code).is('confirmed_at', null);
+    return done('Вход отменён. Твой подоконник в безопасности 🌿');
+  }
+  const { data: r } = await db.from('login_requests').select('created_at, confirmed_at').eq('code', code).maybeSingle();
+  if (!r || r.confirmed_at || Date.now() - Date.parse(r.created_at) > LOGIN_TTL) return done('Ссылка для входа устарела. Попробуй ещё раз из игры.');
+  // аккаунт Telegram: если игрок ещё ни разу не открывал игру здесь — заводим
+  const name = [q.from.first_name, q.from.last_name].filter(Boolean).join(' ').slice(0, 48);
+  let { data: p } = await db.from('players').select('id').eq('tg_id', q.from.id).maybeSingle();
+  if (!p) ({ data: p } = await db.from('players').insert({ tg_id: q.from.id, name, username: q.from.username ?? null, platform: 'telegram' }).select('id').single());
+  if (!p) return done('Не получилось войти, попробуй ещё раз.');
+  await db.from('login_requests').update({ player_id: p.id, confirmed_at: new Date().toISOString() }).eq('code', code).is('confirmed_at', null);
+  return done('✅ Готово! Возвращайся в игру — вход выполнен, подоконник уже там.');
 }
 
 async function handle(u: Update) {
@@ -49,6 +94,11 @@ async function handle(u: Update) {
     const q = u.pre_checkout_query;
     const err = await checkPreCheckout(q.invoice_payload, q.currency, q.total_amount);
     await tg('answerPreCheckoutQuery', err ? { pre_checkout_query_id: q.id, ok: false, error_message: err } : { pre_checkout_query_id: q.id, ok: true });
+    return;
+  }
+  if (u.callback_query) {
+    if (/^(no)?login:/.test(u.callback_query.data ?? '')) await loginAnswer(u.callback_query);
+    else await tg('answerCallbackQuery', { callback_query_id: u.callback_query.id });
     return;
   }
   const m = u.message;
@@ -66,7 +116,9 @@ async function handle(u: Update) {
   }
   if (!m?.text || m.chat.type !== 'private') return;
   const [cmd, arg] = m.text.trim().split(/\s+/, 2);
-  if (cmd === '/start') {
+  if (cmd === '/start' && arg?.startsWith('login_')) {
+    await loginAsk(m.chat.id, arg.slice(6));
+  } else if (cmd === '/start') {
     const param = arg && /^[A-Za-z0-9_-]{1,512}$/.test(arg) ? arg : undefined;
     const text = param?.startsWith('g') ? `${WELCOME}\n\n🎁 Тебе прислали черенок! Открой игру, чтобы забрать его.` : WELCOME;
     await send(m.chat.id, text, { text: param?.startsWith('g') ? '🎁 Забрать черенок' : '🪴 Открыть подоконник', url: appLink(param) });

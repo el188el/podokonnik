@@ -76,7 +76,7 @@ jobs:
           SECRET=$(printf 'podokonnik:webhook' | openssl dgst -sha256 -hmac "$BOT_TOKEN" -hex | sed 's/.* //' | cut -c1-48)
           API="https://api.telegram.org/bot$BOT_TOKEN"
           curl -sf "$API/setWebhook" -H 'Content-Type: application/json' \
-            -d "{\"url\":\"https://$REF.supabase.co/functions/v1/bot\",\"secret_token\":\"$SECRET\",\"allowed_updates\":[\"message\",\"pre_checkout_query\"]}" > /dev/null
+            -d "{\"url\":\"https://$REF.supabase.co/functions/v1/bot\",\"secret_token\":\"$SECRET\",\"allowed_updates\":[\"message\",\"pre_checkout_query\",\"callback_query\"]}" > /dev/null
           curl -sf "$API/setMyCommands" -H 'Content-Type: application/json' \
             -d '{"commands":[{"command":"start","description":"Открыть подоконник"},{"command":"notify","description":"Вкл/выкл напоминания"},{"command":"help","description":"Как играть"},{"command":"paysupport","description":"Помощь с покупками"},{"command":"terms","description":"Условия покупок"}]}' > /dev/null
           curl -sf "$API/setChatMenuButton" -H 'Content-Type: application/json' \

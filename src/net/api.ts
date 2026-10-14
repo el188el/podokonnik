@@ -14,7 +14,10 @@ interface NetState {
   playerId?: string;
   owner?: string;   // аккаунт платформы (tg…), чьё сохранение лежит на устройстве
   version: number;
+  linked?: LinkedAccount | null; // вошли через Telegram (на сайте, Android, в Discord)
 }
+
+export interface LinkedAccount { tg: boolean; name: string; username?: string }
 
 export interface InboxItem {
   id: number;
@@ -98,7 +101,7 @@ export function accountSwitch(): { from?: string; to: string } | null {
 /** Вход: в Telegram — по подписанным initData, в браузере — как гость по id устройства. */
 export async function login(name: string): Promise<{ save: ServerSave | null; inbox: InboxItem[]; switched?: string }> {
   const pf = platform();
-  const r = await call<{ token: string; playerId: string; save: ServerSave | null; inbox: InboxItem[]; discordToken?: string }>(
+  const r = await call<{ token: string; playerId: string; save: ServerSave | null; inbox: InboxItem[]; discordToken?: string; linked?: LinkedAccount | null }>(
     '/auth',
     {
       initData: pf.kind === 'telegram' ? pf.initData : undefined,
@@ -116,10 +119,52 @@ export async function login(name: string): Promise<{ save: ServerSave | null; in
   if (switched) net.version = 0;
   net.token = r.token;
   net.playerId = r.playerId;
+  net.linked = r.linked ?? null;
   if (pf.user) net.owner = pf.user.id;
   saveNet();
   pf.afterLogin?.(r);
   return { save: r.save, inbox: r.inbox ?? [], switched };
+}
+
+/** Аккаунт Telegram, в который вошли на этом устройстве (не в самом Telegram). */
+export const linkedAccount = () => net.linked ?? null;
+
+/** Начать вход через Telegram: ссылка на бота, где игрок подтвердит вход. */
+export async function loginStart(): Promise<{ code: string; url: string } | null> {
+  try {
+    return await call<{ code: string; url: string }>('/login/start', { deviceId: net.deviceId, platform: platform().kind });
+  } catch {
+    return null;
+  }
+}
+
+export type LoginPoll =
+  | { status: 'wait' | 'expired' }
+  | { status: 'ok'; playerId: string; save: ServerSave | null; inbox: InboxItem[]; from?: string };
+
+/** Подтвердил ли игрок вход в боте. При успехе устройство уже вошло в его аккаунт. */
+export async function loginPoll(code: string): Promise<LoginPoll> {
+  try {
+    const r = await call<{ status: 'wait' | 'expired' | 'ok'; token?: string; playerId?: string; save?: ServerSave | null; inbox?: InboxItem[]; linked?: LinkedAccount | null }>('/login/poll', { code }, { auth: false });
+    if (r.status !== 'ok' || !r.token || !r.playerId) return { status: r.status === 'ok' ? 'wait' : r.status };
+    const from = net.playerId;
+    net.token = r.token;
+    net.playerId = r.playerId;
+    net.linked = r.linked ?? null;
+    net.version = 0;
+    saveNet();
+    return { status: 'ok', playerId: r.playerId, save: r.save ?? null, inbox: r.inbox ?? [], from };
+  } catch {
+    return { status: 'wait' };
+  }
+}
+
+/** Выйти из аккаунта Telegram на этом устройстве: дальше снова гостевая игра. */
+export async function logout() {
+  await call('/login/unlink', { deviceId: net.deviceId, discord: platform().kind === 'discord' }).catch(() => null);
+  net.token = undefined;
+  net.linked = null;
+  saveNet();
 }
 
 export type SyncResult =
