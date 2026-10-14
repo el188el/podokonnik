@@ -14,7 +14,7 @@ import { freshAgeMarks } from './age';
 import { D, FEED_MS, H, MAX_CUTTINGS, MIST_MS, NEIGHBOR_COOLDOWN, NEIGHBOR_FREE_DAYS, SLOTS, STAGE_NAME } from './constants';
 import { giftLink, makeCode } from './gifts';
 import { XP, levelReward, unlocksAt, xpToNext, SILL_UNLOCK } from './progression';
-import { QUEST_BONUS, bumpQuest, rollDay, streakReward } from './quests';
+import { QUEST_BONUS, WEEKLY_CHEST, bumpQuest, bumpWeekly, rollDay, rollWeek, streakReward, weeklyVisit } from './quests';
 import { ITEM_BY_ID, ITEMS, potIdOf } from './shop';
 import { advance, badLight, bestZone, canCut, cramped, ctxFor, hasLamp, type SimEvent } from './sim';
 import { activeEvent, EVENT_TOKENS, eventSeason, tierOf, type GameEvent, type PassReward } from './events';
@@ -25,7 +25,7 @@ import { rowSlots, zoneOfSlot } from './layout';
 import { BREED_COOLDOWN, canBreed, crossHue, hueOf } from './breeding';
 import { ROUND_REWARD, STARTER, roundInfo, starterLeft } from './onboarding';
 import { loadCloud, loadLocal, newPlant, newState, pickNewer, saveCloud, saveLocal, upgrade } from './storage';
-import type { Cutting, EventProgress, GameState, PendingGift, Plant, QuestKind, Twin, Zone } from './types';
+import type { Cutting, EventProgress, GameState, PendingGift, Plant, QuestKind, Twin, WeeklyKind, Zone } from './types';
 
 // ─────────────────── UI-события: тосты, окна наград ───────────────────
 export type Popup =
@@ -160,8 +160,21 @@ function addXp(g: GameState, n: number) {
   }
 }
 
+const WEEKLY_FROM_DAILY: Partial<Record<QuestKind, WeeklyKind>> = { water: 'water', plant: 'plant', gift: 'gift', cut: 'cut', mist: 'mist', feed: 'feed' };
+
 function quest(g: GameState, kind: QuestKind, by = 1) {
   if (bumpQuest(g, kind, by).length) toast('Задание выполнено: забери награду 🎯');
+  const w = WEEKLY_FROM_DAILY[kind];
+  if (w) weekly(g, w, by);
+}
+
+function weekly(g: GameState, kind: WeeklyKind, by = 1) {
+  if (bumpWeekly(g, kind, by).length) toast('🏆 Большое задание недели выполнено! Забери награду');
+}
+
+function rollWeekly(g: GameState, t: number) {
+  rollWeek(g, t);
+  if (weeklyVisit(g, t).length) toast('🏆 Большое задание недели выполнено! Забери награду');
 }
 
 function after(g: GameState) {
@@ -202,6 +215,7 @@ function handleEvents(g: GameState, ev: SimEvent[], quiet: boolean) {
         g.stats.adults += 1;
         if (!g.grownAdult.includes(p.sp)) g.grownAdult.push(p.sp);
         discover(g, p.sp);
+        weekly(g, 'adult');
         if (!quiet) toast(`${s.name}: совсем взрослое! Можно взять черенок ✂️`);
       } else {
         addXp(g, XP.stage);
@@ -214,6 +228,7 @@ function handleEvents(g: GameState, ev: SimEvent[], quiet: boolean) {
     } else if (e.kind === 'bloom') {
       g.stats.blooms += 1;
       p.bloomedOnce = true;
+      weekly(g, 'bloom');
       addXp(g, XP.bloom);
       if (!quiet) { toast(`${s.name} зацвело! 🌸`); haptic('success'); }
     }
@@ -392,6 +407,7 @@ function applyInbox(items: api.InboxItem[]) {
         const r = Number(it.payload.reward) || 0;
         g.leaves += r;
         eventToken(g, 'friendWater', now());
+        weekly(g, 'friendWater');
         toast(`Спасибо от ${String(it.payload.host ?? 'друга')}: +${r} 🍃`);
       }
     }
@@ -485,6 +501,7 @@ export async function boot() {
     popup({ kind: 'away', report });
   }
   checkAges(g, t);
+  rollWeekly(g, t);
   if (fresh && g.streak.claimedDay !== g.streak.day && g.plants.length) popup({ kind: 'streak', count: g.streak.count, reward: streakReward(g.streak.count) * (isPlus(g) ? 2 : 1) });
   after(g);
   scheduleSave();
@@ -521,6 +538,7 @@ export function tick() {
   const ev = advance(g, t);
   handleEvents(g, ev, false);
   checkAges(g, t);
+  rollWeekly(g, t);
   if (rollDay(g, t, isPlus(g, t)) && g.plants.length && g.streak.claimedDay !== g.streak.day) {
     popup({ kind: 'streak', count: g.streak.count, reward: streakReward(g.streak.count) * (isPlus(g) ? 2 : 1) });
   }
@@ -996,6 +1014,40 @@ export function claimQuestBonus() {
     g.owned.feed = (g.owned.feed ?? 0) + 1;
     haptic('success');
     toast(`Все задания дня! +${QUEST_BONUS} 🍃 и подкормка 🧪`);
+  });
+}
+
+export function claimWeekly(id: string) {
+  mut((g) => {
+    const q = g.weekly?.list.find((x) => x.id === id);
+    if (!q || q.claimed || q.progress < q.target) return;
+    q.claimed = true;
+    g.leaves += q.reward * (isPlus(g) ? 2 : 1);
+    addXp(g, XP.quest * 3);
+    track('weekly_claim', { kind: q.kind });
+    haptic('success');
+    toast(`🏆 +${q.reward * (isPlus(g) ? 2 : 1)} 🍃`);
+  });
+}
+
+/** Сундук недели: все три больших задания — листики и редкий черенок. */
+export function claimWeeklyChest() {
+  mut((g, t) => {
+    const w = g.weekly;
+    if (!w || w.chest || !w.list.length || !w.list.every((q) => q.claimed)) return;
+    w.chest = true;
+    g.leaves += WEEKLY_CHEST;
+    const pool = FORMS.filter((f) => !f.event);
+    const f = pool[Math.floor(Math.random() * pool.length)];
+    if (f && g.cuttings.length < MAX_CUTTINGS) {
+      g.cuttings.push({ id: makeCode(8), sp: f.sp, form: f.id, at: t });
+      discover(g, f.sp);
+      toast(`🎁 Сундук недели: +${WEEKLY_CHEST} 🍃 и редкий черенок «${f.name}»!`);
+    } else {
+      g.leaves += 100;
+      toast(`🎁 Сундук недели: +${WEEKLY_CHEST + 100} 🍃`);
+    }
+    haptic('success');
   });
 }
 

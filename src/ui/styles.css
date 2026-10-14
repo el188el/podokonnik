@@ -537,3 +537,4 @@ svg.big.sad { filter: sepia(0.6) saturate(0.6); }
 .podium-item .shot { width: auto; }
 .mood-line { margin: 6px 0 0; font-size: 13px; color: #4b5d58; }
 .bubble.pop { white-space: normal; max-width: 150px; text-align: center; line-height: 1.2; }
+.weekly { background: linear-gradient(#fffaf0, #fff); }

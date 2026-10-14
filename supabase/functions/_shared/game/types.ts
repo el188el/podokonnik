@@ -132,6 +132,17 @@ export interface PendingGift {
   code: string;
 }
 
+export type WeeklyKind = 'water' | 'plant' | 'gift' | 'cut' | 'mist' | 'adult' | 'bloom' | 'friendWater' | 'days' | 'feed';
+
+export interface WeeklyQuest {
+  id: string;
+  kind: WeeklyKind;
+  target: number;
+  progress: number;
+  reward: number;
+  claimed: boolean;
+}
+
 export interface QuestState {
   id: string;
   kind: QuestKind;
@@ -192,6 +203,7 @@ export interface GameState {
   settings: { sound: boolean; haptics: boolean; quietFrom: number; quietTo: number; notify?: boolean; place?: Place | null };
   weather?: Weather;    // последняя сводка погоды за окном
   contest?: { week: string; entered: boolean; votes: number }; // награды конкурса за неделю
+  weekly?: { week: string; list: WeeklyQuest[]; chest: boolean; days: string[] }; // большие задания недели
   inboxSeen?: number[]; // обработанные награды с сервера
   plusUntil?: number;   // «Садовник+» активен до
   events?: Record<string, EventProgress>; // прогресс ивентов по сезонам (autumn-2026)

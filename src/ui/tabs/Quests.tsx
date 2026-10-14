@@ -1,6 +1,7 @@
 import { ACHIEVEMENTS } from '../../game/achievements';
-import { QUEST_BONUS, QUEST_ICON, QUEST_TEXT, STREAK_REWARDS } from '../../game/quests';
-import { claimQuest, claimQuestBonus, useStore } from '../../game/store';
+import { QUEST_BONUS, QUEST_ICON, QUEST_TEXT, STREAK_REWARDS, WEEKLY_CHEST, WEEKLY_ICON, WEEKLY_TEXT, weekLeftMs } from '../../game/quests';
+import { approx } from '../../game/sim';
+import { claimQuest, claimQuestBonus, claimWeekly, claimWeeklyChest, now, useStore } from '../../game/store';
 import { Bar, Btn } from '../kit/kit';
 
 export function Quests() {
@@ -52,6 +53,36 @@ export function Quests() {
           </Btn>
         )}
       </section>
+
+      {g.weekly && g.weekly.list.length > 0 && (
+        <section className="panel weekly">
+          <h3>🏆 На неделю <small className="muted">· ещё {approx(weekLeftMs(now()))}</small></h3>
+          {g.weekly.list.map((q) => (
+            <div key={q.id} className="quest">
+              <span className="qicon">{WEEKLY_ICON[q.kind]}</span>
+              <div className="qbody">
+                <b>{WEEKLY_TEXT[q.kind](q.target)}</b>
+                <Bar value={q.progress / q.target} label={`${q.progress}/${q.target}`} />
+              </div>
+              {q.claimed ? (
+                <span className="owned">✓</span>
+              ) : (
+                <Btn small kind={q.progress >= q.target ? 'gold' : 'soft'} disabled={q.progress < q.target} onClick={() => claimWeekly(q.id)}>
+                  +{q.reward} 🍃
+                </Btn>
+              )}
+            </div>
+          ))}
+          {(() => {
+            const all = g.weekly!.list.every((q) => q.claimed);
+            return (
+              <Btn kind={all && !g.weekly!.chest ? 'gold' : 'soft'} disabled={!all || g.weekly!.chest} onClick={claimWeeklyChest}>
+                {g.weekly!.chest ? '✓ Сундук недели открыт' : `🎁 Сундук недели: +${WEEKLY_CHEST} 🍃 и редкий черенок`}
+              </Btn>
+            );
+          })()}
+        </section>
+      )}
 
       <section className="panel">
         <h3>Достижения · {g.achievements.length}/{ACHIEVEMENTS.length}</h3>
