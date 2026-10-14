@@ -36,7 +36,7 @@ async function plusUntil(playerId: string) {
 }
 
 async function loadSave(playerId: string) {
-  const { data } = await db.from('saves').select('state, version').eq('player_id', playerId).maybeSingle();
+  const { data } = await db.from('saves').select('state, version, device').eq('player_id', playerId).maybeSingle();
   return data;
 }
 
@@ -155,6 +155,7 @@ async function auth(b: Body) {
 async function sync(playerId: string, b: Body) {
   const state = b.state as Record<string, unknown> | undefined;
   const version = Number(b.version) || 0;
+  const device = str(b.device, 64) || null;
   if (!state || typeof state !== 'object' || Array.isArray(state)) return fail('bad_state');
   if (JSON.stringify(state).length > MAX_STATE) return fail('too_big', 413);
   // Сохранения с перемоткой времени (панель ?debug) на сервер не попадают.
@@ -166,13 +167,13 @@ async function sync(playerId: string, b: Body) {
 
   const cur = await loadSave(playerId);
   if (!cur) {
-    const { error } = await db.from('saves').insert({ player_id: playerId, state, version: 1 });
+    const { error } = await db.from('saves').insert({ player_id: playerId, state, version: 1, device });
     if (error) return json({ conflict: true, save: await loadSave(playerId), serverTime: Date.now() });
     return json({ version: 1, serverTime: Date.now(), inbox: await pendingInbox(playerId) });
   }
   if (cur.version !== version) return json({ conflict: true, save: cur, serverTime: Date.now(), inbox: await pendingInbox(playerId) });
   const { data } = await db.from('saves')
-    .update({ state, version: version + 1, updated_at: new Date().toISOString() })
+    .update({ state, version: version + 1, device, updated_at: new Date().toISOString() })
     .eq('player_id', playerId).eq('version', version).select('version');
   if (!data?.length) return json({ conflict: true, save: await loadSave(playerId), serverTime: Date.now() });
   return json({ version: version + 1, serverTime: Date.now(), inbox: await pendingInbox(playerId), plusUntil: await plusUntil(playerId) });

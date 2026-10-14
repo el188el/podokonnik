@@ -373,13 +373,32 @@ export async function pushNow(keepalive = false, force?: number) {
   pushing = true;
   lastPush = Date.now();
   try {
-    const r = await api.push(get().game, { keepalive, force });
-    if (r.kind === 'conflict') adoptServer(r.save, 'Подтянули прогресс с другого устройства ☁️');
+    let r = await api.push(get().game, { keepalive, force });
+    if (r.kind === 'conflict') {
+      if (keepLocal(get().game, r.save)) {
+        // на сервере наше же (или более старое) сохранение — свежие действия не теряем
+        api.adoptVersion(r.save.version);
+        r = await api.push(get().game, { keepalive });
+        if (r.kind === 'conflict') adoptServer(r.save, 'Подтянули прогресс с другого устройства ☁️');
+      } else adoptServer(r.save, 'Подтянули прогресс с другого устройства ☁️');
+    }
     if (r.kind !== 'skip') applyInbox(r.inbox);
     syncPlus();
   } catch { /* нет сети — попробуем позже */ } finally {
     pushing = false;
   }
+}
+
+/**
+ * Чьё сохранение оставить при расхождении версий. Своё — если на сервере сохранение
+ * этого же устройства (ответ на прошлую отправку просто потерялся) или если здесь
+ * играли позже, чем на другом устройстве.
+ */
+function keepLocal(local: GameState, save: api.ServerSave) {
+  const mine = (local.lastSeen ?? 0);
+  const theirs = Number(save.state?.lastSeen) || 0;
+  if (save.device && save.device === api.deviceId()) return mine >= theirs;
+  return mine > theirs + 60e3;
 }
 
 const score = (g: GameState) => g.level * 1e6 + g.xp + g.plants.length * 10 + g.stats.waters;
@@ -547,6 +566,7 @@ async function connect(local: GameState): Promise<{ state: GameState; force?: nu
       return { state: local, force: save.version, inbox };
     }
     if (save.version > known) {
+      if (keepLocal(local, save)) return { state: local, force: save.version, inbox };
       api.adoptVersion(save.version);
       return { state: upgrade(save.state, Date.now()), inbox };
     }

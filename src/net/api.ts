@@ -24,6 +24,7 @@ export interface InboxItem {
 export interface ServerSave {
   state: GameState;
   version: number;
+  device?: string | null; // с какого устройства записано
 }
 
 let net: NetState = loadNet();
@@ -36,6 +37,7 @@ export const online = () => !!CONFIG.apiUrl;
 export const serverSkew = () => skew;
 export const playerId = () => net.playerId;
 export const knownVersion = () => net.version;
+export const deviceId = () => net.deviceId;
 
 function loadNet(): NetState {
   try {
@@ -108,7 +110,7 @@ export type SyncResult =
 export async function push(state: GameState, opts: { keepalive?: boolean; force?: number } = {}): Promise<SyncResult> {
   if (!net.token || state.offset) return { kind: 'skip' };
   const version = opts.force ?? net.version;
-  const r = await call<{ version?: number; conflict?: boolean; save?: ServerSave; inbox?: InboxItem[] }>('/sync', { state, version }, { keepalive: opts.keepalive });
+  const r = await call<{ version?: number; conflict?: boolean; save?: ServerSave; inbox?: InboxItem[] }>('/sync', { state, version, device: net.deviceId }, { keepalive: opts.keepalive });
   if (r.conflict && r.save) return { kind: 'conflict', save: r.save, inbox: r.inbox ?? [] };
   if (r.version) {
     net.version = r.version;

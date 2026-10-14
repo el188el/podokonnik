@@ -19,7 +19,7 @@ function bubbleFor(p: Plant, t: number, flash?: { text: string; until: number })
   if (flash && flash.until > Date.now()) return { text: flash.text, cls: 'pop' };
   if (p.stage === 0 && p.rootStart) {
     const r = rootsAt(p)!;
-    return { text: `🌱 корни через ${fmt(r - t)}`, cls: 'timer' };
+    return { text: `🌱 ${fmt(Math.max(0, r - t))}`, cls: '' };
   }
   if (p.stage === 0) return { text: 'Налей воды 💧', cls: '' };
   if (p.stage === 1) return { text: 'Посади меня 🪴', cls: 'ready' };
@@ -168,7 +168,7 @@ export function Slot({ plant: p, sill, slot }: { plant: Plant; sill: string; slo
       onPointerCancel={reset}
     >
       {bubble && (
-        <motion.div key={bubble.text} className={`bubble ${bubble.cls}`} initial={{ scale: 0.6, opacity: 0 }} animate={{ scale: 1, opacity: 1 }}>
+        <motion.div key={bubble.text.startsWith('🌱 ') ? 'roots' : bubble.text} className={`bubble ${bubble.cls}`} initial={{ scale: 0.6, opacity: 0 }} animate={{ scale: 1, opacity: 1 }}>
           {bubble.text}
         </motion.div>
       )}
