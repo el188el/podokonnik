@@ -4,7 +4,8 @@ export const MIN = 60e3;
 export const H = 60 * MIN;
 export const D = 24 * H;
 
-export const SLOTS = 6;
+/** Мест на подоконнике со столиком (без подвесных кашпо): по 4 в ряду. */
+export const SLOTS = 8;
 /** Подвесные кашпо над окном: места 6–8 (появляются после покупки). */
 export const HANG_SLOTS = [6, 7, 8];
 export const MIST_MS = 12 * H;

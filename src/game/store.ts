@@ -15,7 +15,7 @@ import { freshAgeMarks } from './age';
 import { CARE_TASK_REWARD } from './calendar';
 import { BOX_PRICE, rollBox, type BoxPrize } from './box';
 import { SHELVES, shelfDone } from './album';
-import { D, FEED_MS, H, HANG_SLOTS, MAX_CUTTINGS, MIST_MS, NEIGHBOR_COOLDOWN, NEIGHBOR_FREE_DAYS, SLOTS, STAGE_NAME } from './constants';
+import { D, FEED_MS, H, HANG_SLOTS, MAX_CUTTINGS, MIST_MS, NEIGHBOR_COOLDOWN, NEIGHBOR_FREE_DAYS, STAGE_NAME } from './constants';
 import { giftLink, makeCode } from './gifts';
 import { XP, levelReward, unlocksAt, xpToNext, SILL_UNLOCK } from './progression';
 import { QUEST_BONUS, WEEKLY_CHEST, dayKey, bumpQuest, bumpWeekly, rollDay, rollWeek, streakReward, weeklyVisit } from './quests';
@@ -25,7 +25,7 @@ import { activeEvent, EVENT_TOKENS, eventSeason, tierOf, type GameEvent, type Pa
 import { FORM_BY_ID, FORMS, PRODUCT_BY_ID, RARE_DROP, formsOf } from './products';
 import { replayFriendWaters, type FriendWater } from './social';
 import { SPECIES, sp } from './species';
-import { rowSlots, zoneOfSlot } from './layout';
+import { DEEP_ROW, EXTRA_PLACES, GLASS_ROW, rowSlots, zoneOfSlot } from './layout';
 import { BREED_COOLDOWN, canBreed, crossHue, hueOf } from './breeding';
 import { FIRST_CHEST, FIRST_YOUNG_H, ROUND_REWARD, STARTER, firstChest, roundInfo, starterLeft } from './onboarding';
 import { loadCloud, loadLocal, newPlant, newState, pickNewer, saveCloud, saveLocal, upgrade } from './storage';
@@ -191,10 +191,31 @@ function after(g: GameState) {
 
 const findPlant = (g: GameState, id: string) => g.plants.find((p) => p.id === id);
 export const plantAt = (g: GameState, sill: string, slot: number) => g.plants.find((p) => p.sill === sill && p.slot === slot);
+/** Открыто ли место: четвёртые места — с уровня или после покупки, кашпо — если повешены. */
+export function placeOpen(g: GameState, sill: string, slot: number) {
+  if (HANG_SLOTS.includes(slot)) return !!g.sills.find((s) => s.id === sill)?.decor.includes('hangers') && (g.owned.hangers ?? 0) > 0;
+  const x = EXTRA_PLACES[slot];
+  return !x || g.level >= x.level || (g.places ?? []).includes(slot);
+}
+
 export function freeSlot(g: GameState, sill = g.activeSill, prefer?: Zone) {
-  const order = prefer ? [...rowSlots(prefer), ...rowSlots(prefer === 'glass' ? 'deep' : 'glass')] : Array.from({ length: SLOTS }, (_, i) => i);
-  for (const i of order) if (!plantAt(g, sill, i)) return i;
+  const order = prefer ? [...rowSlots(prefer), ...rowSlots(prefer === 'glass' ? 'deep' : 'glass')] : [...GLASS_ROW, ...DEEP_ROW];
+  for (const i of order) if (placeOpen(g, sill, i) && !plantAt(g, sill, i)) return i;
   return -1;
+}
+
+/** Купить четвёртое место в ряду раньше, чем оно откроется уровнем. */
+export function buyPlace(slot: number) {
+  mut((g) => {
+    const x = EXTRA_PLACES[slot];
+    if (!x || (g.places ?? []).includes(slot) || g.level >= x.level) return;
+    if (g.leaves < x.price) { toast(`Нужно ${x.price} 🍃`); return; }
+    g.leaves -= x.price;
+    g.places = [...(g.places ?? []), slot];
+    track('place_buy', { slot });
+    haptic('success');
+    toast(`🪴 Открыто ${x.name} — на всех подоконниках!`);
+  });
 }
 function anyFreeSlot(g: GameState, spId?: string, t = now()): { sill: string; slot: number } | null {
   const order = [g.activeSill, ...g.sills.map((s) => s.id).filter((id) => id !== g.activeSill)];
@@ -613,7 +634,7 @@ export function chooseWindow(sillId: string, side: 'N' | 'E' | 'S' | 'W') {
 /** Поставить черенок в стакан на подоконник. */
 export function placeCutting(spId: string, sill: string, slot: number, extra: Partial<Plant> = {}) {
   return mut((g, t) => {
-    if (plantAt(g, sill, slot)) return null;
+    if (plantAt(g, sill, slot) || !placeOpen(g, sill, slot)) return null;
     const first = g.plants.length === 0 && g.stats.planted === 0;
     const p = newPlant({ sp: spId, sill, slot, zone: zoneOfSlot(slot), quick: first || extra.quick, ...extra }, t);
     g.plants.push(p);
@@ -708,7 +729,7 @@ export function move(plantId: string, zone: Zone) {
   const g0 = get().game;
   const p0 = findPlant(g0, plantId);
   if (!p0 || p0.zone === zone) return;
-  const free = rowSlots(zone).find((s) => !plantAt(g0, p0.sill, s));
+  const free = rowSlots(zone).find((s) => placeOpen(g0, p0.sill, s) && !plantAt(g0, p0.sill, s));
   swap(plantId, p0.sill, free ?? rowSlots(zone)[0]);
 }
 
@@ -717,6 +738,7 @@ export function swap(plantId: string, sill: string, slot: number) {
   mut((g, t) => {
     const p = findPlant(g, plantId);
     if (!p) return;
+    if (!placeOpen(g, sill, slot)) { toast('Это место ещё закрыто 🔒'); return; }
     const other = plantAt(g, sill, slot);
     if (other === p) return;
     const pBad = isBad(g, p, t);
@@ -825,7 +847,7 @@ export function plantCutting(cuttingId: string, sill?: string, slot?: number) {
   mut((g, t) => {
     const c = g.cuttings.find((x) => x.id === cuttingId);
     if (!c) return;
-    const place = sill !== undefined && slot !== undefined && !plantAt(g, sill, slot) ? { sill, slot } : anyFreeSlot(g, c.sp, t);
+    const place = sill !== undefined && slot !== undefined && !plantAt(g, sill, slot) && placeOpen(g, sill, slot) ? { sill, slot } : anyFreeSlot(g, c.sp, t);
     if (!place) { toast('Все места заняты. Освободи горшок или открой новый подоконник'); return; }
     g.cuttings = g.cuttings.filter((x) => x.id !== cuttingId);
     g.plants.push(newPlant({ sp: c.sp, form: c.form, hue: c.hue, sill: place.sill, slot: place.slot, zone: zoneOfSlot(place.slot) }, t));
@@ -1156,8 +1178,8 @@ export const debug = {
     mut((g, t) => {
       const sill = g.sills.find((s) => s.id === g.activeSill)!;
       let i = 0;
-      for (let slot = 0; slot < SLOTS; slot++) {
-        if (plantAt(g, sill.id, slot)) continue;
+      for (const slot of [...GLASS_ROW, ...DEEP_ROW]) {
+        if (plantAt(g, sill.id, slot) || !placeOpen(g, sill.id, slot)) continue;
         const s = SPECIES[(i++ + slot) % SPECIES.length];
         g.plants.push(newPlant({ sp: s.id, sill: sill.id, slot, zone: zoneOfSlot(slot), stage: 2, rootStart: t, plantedAt: t, moisture: 1 }, t));
         discover(g, s.id);

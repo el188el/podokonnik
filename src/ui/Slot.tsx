@@ -29,8 +29,8 @@ function bubbleFor(p: Plant, t: number, flash?: { text: string; until: number })
   if (bad === 'hot') return { text: isLightSad(p) ? 'Жарко на солнце 🥵' : 'Жарковато', cls: '' };
   if (bad === 'dark') return { text: isLightSad(p) ? 'Темновато… 🌥' : 'Темновато', cls: '' };
   if (cramped(p, t)) return { text: 'Тесно в горшке 🪴', cls: '' };
-  if (p.from && !p.showoffDone && t - (p.claimedAt ?? p.createdAt) >= SHOWOFF_MS) return { text: '📸 Покажи дарителю', cls: 'ready' };
-  if (canCut(p, t)) return { text: '✂️ Черенок готов', cls: 'ready' };
+  if (p.from && !p.showoffDone && t - (p.claimedAt ?? p.createdAt) >= SHOWOFF_MS) return { text: '📸 Покажи', cls: 'ready' };
+  if (canCut(p, t)) return { text: '✂️ Черенок', cls: 'ready' };
   return null;
 }
 

@@ -220,6 +220,7 @@ export interface GameState {
   plusGifts?: { code: string; at: number; sent?: boolean }[]; // купленные подписки в подарок
   box?: string;          // день, когда открывали ящик-сюрприз
   firstChest?: boolean;  // сундучок первого часа забран
+  places?: number[];     // купленные заранее места (9, 10)
   tutorial: number;
 }
 

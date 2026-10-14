@@ -3,7 +3,7 @@
 // на подоконнике, на столе и на стене.
 
 import type { ReactNode } from 'react';
-import { ROW } from '../game/layout';
+import { DEEP_ROW, GLASS_ROW, HANG_ROW } from '../game/layout';
 import { ITEM_BY_ID, placeOf } from '../game/shop';
 import type { Sky } from '../game/weather';
 
@@ -38,7 +38,7 @@ export function SillScene({ decor, tod, winter, sky, theme, win = 'E', cell, han
     <div className={`scene tod-${tod}${winter ? ' winter' : ''}${sky ? ' sky-' + sky : ''}${hang ? ' has-hang' : ''} ${className}`} data-win={win} data-wp={wallpaper}>
       {hang && (
         <div className="hang-row">
-          {[6, 7, 8].map((i) => (
+          {HANG_ROW.map((i) => (
             <div className="cell hang" data-slot={i} data-zone="glass" key={i}>{hangCell!(i)}</div>
           ))}
         </div>
@@ -81,15 +81,15 @@ export function SillScene({ decor, tod, winter, sky, theme, win = 'E', cell, han
       {/* ─── ряды с горшками ─── */}
       <div className="rows">
         <div className="row row-glass">
-          {Array.from({ length: ROW }, (_, i) => (
+          {GLASS_ROW.map((i) => (
             <div className="cell glass" data-slot={i} data-zone="glass" key={i}>{cell(i)}</div>
           ))}
           <div className="ledge-decor">{sillD.map((d, i) => <span key={d} className={'deco deco-' + d} style={{ left: LEDGE_POS[i] }}>{icon(d)}</span>)}</div>
         </div>
         <div className="ledge" />
         <div className="row row-deep">
-          {Array.from({ length: ROW }, (_, i) => (
-            <div className="cell deep" data-slot={ROW + i} data-zone="deep" key={i}>{cell(ROW + i)}</div>
+          {DEEP_ROW.map((i) => (
+            <div className="cell deep" data-slot={i} data-zone="deep" key={i}>{cell(i)}</div>
           ))}
           <div className="ledge-decor">{tableD.map((d, i) => <span key={d} className={'deco deco-' + d} style={{ left: LEDGE_POS[i] }}>{icon(d)}</span>)}</div>
         </div>

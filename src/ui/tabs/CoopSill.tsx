@@ -4,6 +4,7 @@ import { motion } from 'framer-motion';
 import { useEffect, useMemo, useState } from 'react';
 import { CONFIG, tgAppLink } from '../../config';
 import { WINDOWS } from '../../game/constants';
+import { DEEP_ROW, GLASS_ROW, zoneOfSlot } from '../../game/layout';
 import { COOP_SILL, coopAdvance, type CoopAction } from '../../game/coop';
 import { approx, canCut, fmt, isSad, need, rootsAt, type Ctx } from '../../game/sim';
 import { sp } from '../../game/species';
@@ -113,7 +114,7 @@ export function CoopSill({ coop }: { coop: CoopView }) {
             return (
               <motion.button whileTap={{ scale: 0.92 }} className="empty" onClick={() => (g.cuttings.length ? setPlanting(i) : toast('Нет черенков в запасе — возьми у своего растения ✂️'))}>
                 <span>+</span>
-                <small>{i < 3 ? 'у стекла' : 'в глубине'}</small>
+                <small>{zoneOfSlot(i) === 'glass' ? 'у стекла' : 'в глубине'}</small>
               </motion.button>
             );
           }
@@ -162,7 +163,7 @@ export function CoopSill({ coop }: { coop: CoopView }) {
           <div className="actions">
             {selected.stage >= 2 && <Btn small onClick={() => act({ kind: 'water', plant: selected.id, insist: true })}>💧 Полить</Btn>}
             <Btn small onClick={() => {
-              const other = selected.zone === 'glass' ? [3, 4, 5] : [0, 1, 2];
+              const other = selected.zone === 'glass' ? DEEP_ROW : GLASS_ROW;
               const free = other.find((s) => !at(s)) ?? other[0];
               act({ kind: 'move', plant: selected.id, slot: free });
             }}>{selected.zone === 'glass' ? '↓ В глубину' : '↑ К стеклу'}</Btn>

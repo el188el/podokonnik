@@ -7,7 +7,7 @@ import { track } from '../../net/track';
 import { platform } from '../../platform';
 import { PlantArt } from '../art/PlantArt';
 import { Btn } from '../kit/kit';
-import { layoutRows } from '../../game/layout';
+import { layoutRows, rowCell } from '../../game/layout';
 import { SillScene, timeOfDay } from '../SillScene';
 
 
@@ -81,7 +81,7 @@ export function Visit({ id, name }: { id: string; name: string }) {
         tod={timeOfDay(Date.now())}
         win={s?.window ?? 'E'}
         cell={(slot) => {
-          const p = (slot < 3 ? rows.glass : rows.deep)[slot % 3];
+          const p = rowCell(rows, slot);
           if (!p) return null;
           return (
             <button className={'slot guest' + (p.sad ? ' sad' : '')} onClick={() => (p.thirsty ? pour(p.id) : toast(p.stage < 2 ? 'Черенок пускает корни в стакане 🌱' : 'Ему хорошо, поливать не нужно 🌿'))}>

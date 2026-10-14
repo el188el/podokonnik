@@ -2,8 +2,7 @@
 // Хранится на сервере, любое действие проходит через coopAct — одинаково
 // на клиенте (для предпросмотра) и на сервере (решающее слово).
 
-import { SLOTS } from './constants';
-import { zoneOfSlot } from './layout';
+import { GLASS_ROW, DEEP_ROW, zoneOfSlot } from './layout';
 import { hueOf } from './breeding';
 import { FORM_BY_ID, RARE_DROP, formsOf } from './products';
 import { advance, canCut } from './sim';
@@ -13,6 +12,8 @@ import type { GameState, Plant, WindowSide } from './types';
 export const COOP_MAX_MEMBERS = 4;
 export const COOP_MAX_PER_PLAYER = 2;
 export const COOP_SILL = 'coop';
+/** На общем подоконнике сразу открыты все 8 мест. */
+export const COOP_SLOTS = [...GLASS_ROW, ...DEEP_ROW];
 
 export interface CoopLog {
   at: number;
@@ -93,7 +94,7 @@ export function coopAct(c: CoopState, a: CoopAction, who: string, t: number, id 
     return { ok: true, effect: 'window' };
   }
   if (a.kind === 'plant') {
-    if (!Number.isInteger(a.slot) || a.slot < 0 || a.slot >= SLOTS || plantAt(c, a.slot)) return { ok: false, reason: 'busy' };
+    if (!COOP_SLOTS.includes(a.slot) || plantAt(c, a.slot)) return { ok: false, reason: 'busy' };
     const s = sp(a.cutting.sp);
     if (s.id !== a.cutting.sp) return { ok: false, reason: 'bad' };
     c.plants.push({
@@ -132,7 +133,7 @@ export function coopAct(c: CoopState, a: CoopAction, who: string, t: number, id 
       return { ok: true, effect: 'misted' };
     }
     case 'move': {
-      if (!Number.isInteger(a.slot) || a.slot < 0 || a.slot >= SLOTS) return { ok: false, reason: 'bad' };
+      if (!COOP_SLOTS.includes(a.slot)) return { ok: false, reason: 'bad' };
       const other = plantAt(c, a.slot);
       if (other && other.id !== p.id) {
         other.slot = p.slot;

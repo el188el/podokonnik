@@ -595,3 +595,22 @@ svg.big.sad { filter: sepia(0.6) saturate(0.6); }
 .sale { background: #e0574f; color: #fff; border-radius: 8px; padding: 1px 6px; font-size: 12px; margin-left: 6px; }
 .gift-code { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-top: 6px; }
 .name-ideas { justify-content: center; margin: 8px 0; }
+
+/* по 4 места в ряду */
+.scene { --cellh: 158px; }
+.scene .row { grid-template-columns: repeat(4, 1fr); }
+.scene .slot .art { width: min(94px, 100%); height: 134px; }
+.scene .empty { width: 70px; height: 74px; border-radius: 18px; }
+.scene .empty span { font-size: 28px; }
+.scene .empty small { font-size: 9.5px; text-align: center; line-height: 1.1; }
+.scene .empty.locked { border-style: solid; border-color: #d9c9b0; background: #ffffff88; color: #a08a6b; cursor: pointer; }
+.scene .empty.locked span { font-size: 22px; }
+.scene .bubble { max-width: 96px; font-size: 10.5px; }
+.scene .label b { font-size: 10.5px; }
+.scene .label span { font-size: 9px; }
+.scene .label .meter { width: 44px; }
+.scene .hang-row { grid-template-columns: repeat(3, 1fr); }
+@media (min-width: 600px) {
+  .scene { --cellh: 196px; }
+  .scene .slot .art { width: 120px; height: 171px; }
+}

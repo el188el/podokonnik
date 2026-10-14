@@ -3,7 +3,7 @@
 // окно публикации сторис, в остальных местах — делимся картинкой как файлом.
 
 import { createElement } from 'react';
-import { layoutRows } from '../game/layout';
+import { HANG_ROW, layoutRows } from '../game/layout';
 import { plural } from '../game/sim';
 import { sp } from '../game/species';
 import { toast, useStore } from '../game/store';
@@ -81,7 +81,7 @@ async function toBlob(c: HTMLCanvasElement) {
 export async function sillCard(): Promise<Blob | null> {
   const g = useStore.getState().game;
   const sill = g.sills.find((s) => s.id === g.activeSill) ?? g.sills[0];
-  const here = g.plants.filter((p) => p.sill === sill.id && p.slot < 6);
+  const here = g.plants.filter((p) => p.sill === sill.id && !HANG_ROW.includes(p.slot));
   const c = document.createElement('canvas');
   c.width = W;
   c.height = H;
@@ -96,12 +96,12 @@ export async function sillCard(): Promise<Blob | null> {
   x.fillStyle = '#f2e3cd';
   x.fillRect(40, top + rowH + 46, W - 80, rowH - 40);
   ledge(x, top + 2 * rowH);
-  const cellW = (W - 120) / 3;
+  const cellW = (W - 120) / 4;
   for (const [ri, row] of [rows.glass, rows.deep].entries()) {
     for (const [i, p] of row.entries()) {
       if (!p) continue;
       const img = await plantImage(p);
-      const w = 330, h = 470;
+      const w = 260, h = 371;
       x.drawImage(img, 60 + cellW * i + (cellW - w) / 2, top + ri * rowH + rowH - h + (ri ? 20 : 0), w, h);
     }
   }

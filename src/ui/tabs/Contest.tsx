@@ -1,7 +1,7 @@
 // Конкурс «Подоконник недели»: выставь свой подоконник и отдай 3 сердечка лучшим.
 
 import { useCallback, useEffect, useState } from 'react';
-import { layoutRows } from '../../game/layout';
+import { layoutRows, rowCell } from '../../game/layout';
 import { fmt } from '../../game/sim';
 import { CONTEST_ENTRY_REWARD, CONTEST_PRIZES, CONTEST_VOTE_REWARD } from '../../game/contest';
 import { enterContest, now, useStore, voteContest } from '../../game/store';
@@ -23,7 +23,7 @@ export function ShotScene({ shot }: { shot: api.ContestEntry['shot'] }) {
         tod="day"
         win={shot.sill.window ?? 'E'}
         cell={(slot) => {
-          const p = (slot < 3 ? rows.glass : rows.deep)[slot % 3];
+          const p = rowCell(rows, slot);
           if (!p) return null;
           return (
             <div className="slot guest">

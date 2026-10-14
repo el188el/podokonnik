@@ -13,3 +13,30 @@ describe('раскладка и подвесные кашпо', () => {
     expect(p.slot).toBe(7);
   });
 });
+
+describe('четвёртые места в ряду', () => {
+  it('9 — у стекла, 10 — на столе, ряды по 4', async () => {
+    const { layoutRows, rowCell, zoneOfSlot } = await import('./layout');
+    expect(zoneOfSlot(9)).toBe('glass');
+    expect(zoneOfSlot(10)).toBe('deep');
+    const a = newPlant({ sp: 'aloe', sill: 'room', slot: 9, zone: 'glass' }, 0);
+    const b = newPlant({ sp: 'aloe', sill: 'room', slot: 10, zone: 'deep' }, 0);
+    const rows = layoutRows([a, b]);
+    expect(rowCell(rows, 9)).toBe(a);
+    expect(rowCell(rows, 10)).toBe(b);
+  });
+
+  it('места открываются уровнем или покупкой', async () => {
+    const { placeOpen } = await import('./store');
+    const { newState } = await import('./storage');
+    const g = newState(0);
+    expect(placeOpen(g, 'room', 2)).toBe(true);
+    expect(placeOpen(g, 'room', 9)).toBe(false);
+    g.level = 4;
+    expect(placeOpen(g, 'room', 9)).toBe(true);
+    expect(placeOpen(g, 'room', 10)).toBe(false);
+    g.places = [10];
+    expect(placeOpen(g, 'room', 10)).toBe(true);
+    expect(placeOpen(g, 'room', 6)).toBe(false);
+  });
+});
