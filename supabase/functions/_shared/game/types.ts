@@ -103,6 +103,7 @@ export interface Plant {
   bloomedOnce?: boolean;
   lowestHealth: number; // для достижения «Спасатель»
   from?: { name: string; note: number; code: string };
+  line?: Ancestor[];    // родословная: от чьих растений этот черенок
   claimedAt?: number;
   showoffDone?: boolean;
   ageSeen?: number;     // последняя отпразднованная отметка возраста (дней)
@@ -132,7 +133,11 @@ export interface Cutting {
   seed?: boolean;      // семечко от гибридизации
   at: number;
   fromPlant?: string;
+  line?: Ancestor[];
 }
+
+/** Предок в родословной черенка: чьё растение, с какого года, как его звали, было ли оно реликвией. */
+export interface Ancestor { n: string; y: number; k?: string; h?: 1 }
 
 export interface PendingGift {
   sp: string;
@@ -141,6 +146,7 @@ export interface PendingGift {
   from: string;
   note: number;
   code: string;
+  line?: Ancestor[];
 }
 
 export type ProblemKind = 'rot' | 'gnats' | 'mite' | 'aphid' | 'mealybug' | 'mildew' | 'burn' | 'leggy';

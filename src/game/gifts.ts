@@ -7,6 +7,7 @@ import { NOTES } from './constants';
 import { FORM_BY_ID } from './products';
 import { hueOf } from './breeding';
 import { SPECIES_BY_ID } from './species';
+import { cleanLine, packLine } from './lineage';
 import type { PendingGift } from './types';
 
 const ALPHA = 'abcdefghijkmnpqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ23456789';
@@ -26,16 +27,17 @@ const unb64url = (s: string) => {
 
 export function encodeGift(g: PendingGift): string {
   const arr: unknown[] = [g.sp, g.from, g.note, g.code];
-  if (g.form || g.hue) arr.push(g.form ?? 0);
-  if (g.hue) arr.push(g.hue);
+  if (g.form || g.hue || g.line?.length) arr.push(g.form ?? 0);
+  if (g.hue || g.line?.length) arr.push(g.hue ?? 0);
+  if (g.line?.length) arr.push(packLine(g.line));
   return 'g' + b64url(JSON.stringify(arr));
 }
 
 export function decodeGift(param: string | null | undefined): (PendingGift & { ok: boolean }) | null {
   if (!param || param[0] !== 'g') return null;
   try {
-    const [spId, from, note, code, form, hue] = JSON.parse(unb64url(param.slice(1)));
-    return validate({ sp: String(spId), from: String(from), note: Number(note), code: String(code), form: form ? String(form) : undefined, hue: hue ? String(hue) : undefined });
+    const [spId, from, note, code, form, hue, line] = JSON.parse(unb64url(param.slice(1)));
+    return validate({ sp: String(spId), from: String(from), note: Number(note), code: String(code), form: form ? String(form) : undefined, hue: hue ? String(hue) : undefined, line: cleanLine(line) });
   } catch {
     return { sp: '', from: '', note: 0, code: '', ok: false };
   }
@@ -53,7 +55,7 @@ function validate(g: PendingGift) {
   const ok = !!SPECIES_BY_ID[g.sp] && /^[A-Za-z0-9]{8,32}$/.test(g.code) && !!from;
   const form = g.form && FORM_BY_ID[g.form]?.sp === g.sp ? g.form : undefined;
   const hue = g.hue && hueOf(g.sp, g.hue) ? g.hue : undefined;
-  return { sp: g.sp, from, note, code: g.code, ok, ...(form ? { form } : {}), ...(hue ? { hue } : {}) };
+  return { sp: g.sp, from, note, code: g.code, ok, ...(form ? { form } : {}), ...(hue ? { hue } : {}), ...(g.line?.length ? { line: g.line } : {}) };
 }
 
 /** Ссылка на подарок: в Telegram — прямо в мини-апп, иначе — на страницу с красивым превью. */

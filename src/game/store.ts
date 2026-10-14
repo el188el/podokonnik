@@ -33,6 +33,7 @@ import { SPECIES, sp } from './species';
 import { DEEP_ROW, EXTRA_PLACES, GLASS_ROW, rowSlots, zoneOfSlot } from './layout';
 import { BREED_COOLDOWN, canBreed, crossHue, hueOf } from './breeding';
 import { FIRST_CHEST, FIRST_YOUNG_H, ROUND_REWARD, STARTER, firstChest, roundInfo, starterLeft } from './onboarding';
+import { childLine } from './lineage';
 import { loadCloud, loadLocal, newPlant, newState, pickNewer, saveCloud, saveLocal, switchLocal, upgrade } from './storage';
 import type { Cutting, EventProgress, GameState, PendingGift, Plant, QuestKind, Twin, WeeklyKind, Zone } from './types';
 
@@ -969,7 +970,7 @@ export function takeCutting(plantId: string) {
       form = options[Math.floor(Math.random() * options.length)].id;
       toast(`✨ Редкость! Черенок оказался формой «${FORM_BY_ID[form].name}»`);
     }
-    const c = { id: makeCode(8), sp: p.sp, at: t, fromPlant: p.id, ...(form ? { form } : {}), ...(p.hue ? { hue: p.hue } : {}) };
+    const c = { id: makeCode(8), sp: p.sp, at: t, fromPlant: p.id, line: childLine(p, g.name, t), ...(form ? { form } : {}), ...(p.hue ? { hue: p.hue } : {}) };
     g.cuttings.push(c);
     g.stats.cuts += 1;
     mastery(g, p.sp, 'cut');
@@ -988,7 +989,7 @@ export function plantCutting(cuttingId: string, sill?: string, slot?: number) {
     const place = sill !== undefined && slot !== undefined && !plantAt(g, sill, slot) && placeOpen(g, sill, slot) ? { sill, slot } : anyFreeSlot(g, c.sp, t);
     if (!place) { toast('Все места заняты. Освободи горшок или открой новый подоконник'); return; }
     g.cuttings = g.cuttings.filter((x) => x.id !== cuttingId);
-    g.plants.push(newPlant({ sp: c.sp, form: c.form, hue: c.hue, sill: place.sill, slot: place.slot, zone: zoneOfSlot(place.slot) }, t));
+    g.plants.push(newPlant({ sp: c.sp, form: c.form, hue: c.hue, sill: place.sill, slot: place.slot, zone: zoneOfSlot(place.slot), ...(c.line ? { line: c.line } : {}) }, t));
     collectHue(g, c.sp, c.hue);
     collectForm(g, c.form);
     g.activeSill = place.sill;
@@ -1002,7 +1003,9 @@ export function giftCutting(cuttingId: string, from: string, note: number) {
     const c = g.cuttings.find((x) => x.id === cuttingId);
     if (!c) return null;
     g.name = from;
-    const gift: PendingGift = { sp: c.sp, from, note, code: makeCode(), ...(c.form ? { form: c.form } : {}), ...(c.hue ? { hue: c.hue } : {}) };
+    // подпись дарителя: если черенок срезан до того, как игрок назвался, — ставим имя сейчас
+    const line = c.line?.map((a, i, arr) => (i === arr.length - 1 && a.n === 'Садовник' && from ? { ...a, n: from.slice(0, 24) } : a));
+    const gift: PendingGift = { sp: c.sp, from, note, code: makeCode(), ...(c.form ? { form: c.form } : {}), ...(c.hue ? { hue: c.hue } : {}), ...(line?.length ? { line } : {}) };
     g.cuttings = g.cuttings.filter((x) => x.id !== cuttingId);
     g.sent.push({ code: gift.code, sp: c.sp, at: t });
     g.stats.giftsSent += 1;
@@ -1068,7 +1071,7 @@ export function claimGift(gift: PendingGift): 'ok' | 'dup' | 'full' {
       return 'full';
     }
     collectHue(g, gift.sp, gift.hue);
-    const p = newPlant({ sp: gift.sp, form: gift.form, hue: gift.hue, sill: place.sill, slot: place.slot, zone: zoneOfSlot(place.slot), quick: true, from: { name: gift.from, note: gift.note, code: gift.code }, claimedAt: t }, t);
+    const p = newPlant({ sp: gift.sp, form: gift.form, hue: gift.hue, sill: place.sill, slot: place.slot, zone: zoneOfSlot(place.slot), quick: true, from: { name: gift.from, note: gift.note, code: gift.code }, ...(gift.line ? { line: gift.line } : {}), claimedAt: t }, t);
     collectForm(g, gift.form);
     g.plants.push(p);
     g.received.push(gift.code);

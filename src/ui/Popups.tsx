@@ -1,4 +1,5 @@
 import { motion } from 'framer-motion';
+import { Lineage } from './sheets/PlantCard';
 import type { PendingGift } from '../game/types';
 import { NOTES } from '../game/constants';
 import { STREAK_REWARDS } from '../game/quests';
@@ -177,6 +178,7 @@ function GiftCard({ gift, full }: { gift: PendingGift & { ok: boolean }; full: b
       </motion.div>
       <h2>{gift.from} дарит тебе черенок {s.gen}</h2>
       {NOTES[gift.note] && <p className="note">«{NOTES[gift.note]}»</p>}
+      {gift.line?.length ? <Lineage line={gift.line} title="🌳 У черенка есть родословная" /> : null}
       {full ? (
         <>
           <div className="soon">Подоконник занят. Освободи место — подарок подождёт.</div>

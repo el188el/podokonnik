@@ -18,6 +18,8 @@ import { weatherAt } from '../../game/weather';
 import { Bar, Btn } from '../kit/kit';
 import { shareShowoff, shareThanks } from '../share';
 import { sharePlantStory } from '../story';
+import { genName, isHeirloom } from '../../game/lineage';
+import type { Ancestor } from '../../game/types';
 
 export function PlantCard({ id }: { id: string }) {
   const g = useStore((s) => s.game);
@@ -113,6 +115,10 @@ export function PlantCard({ id }: { id: string }) {
         </div>
       </div>
 
+      {isHeirloom(p, t) && (
+        <div className="heirloom">🏺 <b>Семейная реликвия</b><span>Год у тебя на подоконнике. Черенки от него — «потомки реликвии» с родословной.</span></div>
+      )}
+      {p.line?.length ? <Lineage line={p.line} /> : null}
       {potted && (() => {
         const m = moodOf(p, t, ctx);
         return <p className="mood-line">{m.icon} <b>{m.label}</b> · <i>«{chatter(p, t, ctx, weatherAt(g, t), (p.id.charCodeAt(0) + Math.floor(t / 600e3)) % 17 / 17)}»</i></p>;
@@ -300,6 +306,20 @@ export function PlantCard({ id }: { id: string }) {
         </Btn>
         <Btn kind="ghost" onClick={closeSheet}>Закрыть</Btn>
       </div>
+    </div>
+  );
+}
+
+/** Родословная: от чьих растений этот черенок — мама, бабушка, прабабушка… */
+export function Lineage({ line, title = '🌳 Родословная' }: { line: Ancestor[]; title?: string }) {
+  return (
+    <div className="lineage">
+      <b>{title}</b>
+      <ol>
+        {[...line].reverse().map((a, i) => (
+          <li key={i}><span className="gen">{genName(i)}</span> {a.k ? `«${a.k}» ` : ''}у {a.n}, {a.y}{a.h ? ' 🏺' : ''}</li>
+        ))}
+      </ol>
     </div>
   );
 }
