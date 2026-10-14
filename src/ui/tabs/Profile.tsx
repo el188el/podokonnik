@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { WINDOWS } from '../../game/constants';
-import { xpToNext } from '../../game/progression';
+import { rankOf, xpToNext } from '../../game/progression';
 import { ITEM_BY_ID, DECOR_IDS } from '../../game/shop';
 import { fmt } from '../../game/sim';
 import { ageDays } from '../../game/age';
@@ -37,7 +37,7 @@ export function Profile() {
       <section className="panel">
         <label className="lbl" htmlFor="nm">Как тебя зовут</label>
         <input id="nm" className="inp" maxLength={24} value={name} placeholder="Имя для подарков" onChange={(e) => setN(e.target.value)} onBlur={() => setName(name)} />
-        <p className="lvl">⭐ Уровень {g.level}{isPlus(g) && <span className="plus-badge"> · 🌟 Садовник+</span>}</p>
+        <p className="lvl" onClick={() => openSheet({ kind: 'levels' })}>{rankOf(g.level).icon} {rankOf(g.level).title} · ⭐ Уровень {g.level}{isPlus(g) && <span className="plus-badge"> · 🌟 Садовник+</span>}</p>
         <Bar value={g.xp / xpToNext(g.level)} label={`${g.xp}/${xpToNext(g.level)} опыта`} />
       </section>
 

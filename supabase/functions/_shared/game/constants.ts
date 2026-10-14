@@ -44,4 +44,7 @@ export const SILL_NAMES: Record<string, string> = {
   room: 'Комната',
   kitchen: 'Кухня',
   balcony: 'Балкон',
+  bedroom: 'Спальня',
+  loggia: 'Лоджия',
+  veranda: 'Веранда',
 };

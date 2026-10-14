@@ -629,3 +629,22 @@ svg.big.sad { filter: sepia(0.6) saturate(0.6); }
 .pendulum { transform-origin: 17px 33px; animation: pend 2s ease-in-out infinite; }
 @keyframes pend { 0%, 100% { transform: rotate(9deg); } 50% { transform: rotate(-9deg); } }
 .shop-decor { max-width: 100%; height: auto; max-height: 80px; margin: 6px auto; display: block; }
+
+/* путь садовода */
+.rank-head { display: flex; align-items: center; gap: 12px; margin-bottom: 8px; }
+.rank-head h2 { margin: 0; }
+.rank-head > div { display: flex; flex-direction: column; }
+.rank-icon { font-size: 44px; }
+.ranks-row { display: flex; justify-content: space-between; margin: 10px 0; }
+.rank-chip { display: flex; flex-direction: column; align-items: center; font-size: 22px; filter: grayscale(1); opacity: 0.45; }
+.rank-chip.got { filter: none; opacity: 1; }
+.rank-chip small { font-size: 10px; color: var(--muted, #7a8a85); }
+.level-road { display: flex; flex-direction: column; gap: 6px; margin: 8px 0; max-height: 52vh; overflow-y: auto; padding-right: 4px; }
+.road-step { display: flex; gap: 10px; align-items: flex-start; background: var(--soft); border-radius: 14px; padding: 8px 10px; }
+.road-step.done { opacity: 0.55; }
+.road-step.next { box-shadow: 0 0 0 2px var(--green); background: #e6f5ea; }
+.road-lvl { width: 30px; height: 30px; flex: none; border-radius: 50%; background: #fff; display: flex; align-items: center; justify-content: center; font-weight: 800; color: var(--green); }
+.road-body { display: flex; flex-direction: column; font-size: 13px; gap: 1px; }
+.road-rank { color: #a87408; }
+.lvl { cursor: pointer; }
+.mastery { background: #fff8e6; border-radius: 14px; padding: 8px 10px; margin: 8px 0; display: flex; flex-direction: column; gap: 4px; }

@@ -8,8 +8,9 @@ import {
 import type { WindowSide } from '../../game/types';
 import { formsOf } from '../../game/products';
 import { hueOf, PALETTES } from '../../game/breeding';
+import { MASTERY, masteryPoints, masteryStars } from '../../game/mastery';
 import { PlantArt } from '../art/PlantArt';
-import { Btn, Safe, Sheet } from '../kit/kit';
+import { Bar, Btn, Safe, Sheet } from '../kit/kit';
 import { shareGift } from '../share';
 import { PlantCard } from './PlantCard';
 import { Visit } from './Visit';
@@ -20,6 +21,7 @@ import { DoctorSheet } from './DoctorSheet';
 import { CoopSheet } from './CoopSheet';
 import { AlbumSheet } from './AlbumSheet';
 import { NameSheet } from './NameSheet';
+import { LevelsSheet } from './LevelsSheet';
 import { StarterSheet } from './StarterSheet';
 
 export function Sheets() {
@@ -42,6 +44,7 @@ export function Sheets() {
       {sheet?.kind === 'coop' && <CoopSheet />}
       {sheet?.kind === 'album' && <AlbumSheet />}
       {sheet?.kind === 'name' && <NameSheet plant={sheet.plant} />}
+      {sheet?.kind === 'levels' && <LevelsSheet />}
       {sheet?.kind === 'starter' && <StarterSheet />}
       </Safe>
     </Sheet>
@@ -203,6 +206,18 @@ function Herb({ id }: { id: string }) {
               {s.bloom && <tr><td>🌸 Цветение</td><td>{s.bloom.months ? s.bloom.months.map((m) => ['янв', 'фев', 'мар', 'апр', 'май', 'июн', 'июл', 'авг', 'сен', 'окт', 'ноя', 'дек'][m - 1]).join(', ') : 'круглый год'}{s.bloom.needsRest ? ' — после зимнего покоя' : ''}</td></tr>}
             </tbody>
           </table>
+          {(() => {
+            const pts = masteryPoints(g, id);
+            const st = masteryStars(pts);
+            const next = MASTERY[st];
+            return (
+              <div className="mastery">
+                <b className="small">Мастерство: {st ? MASTERY.slice(0, st).map((m) => m.icon).join(' ') : 'пока нет'}</b>
+                {next && <Bar value={pts / next.points} label={`${pts}/${next.points} до ${next.icon} ${next.name}`} />}
+                <span className="muted small">Взрослое растение — 3 очка, цветение — 2, черенок — 1. За каждую звезду — листики и опыт.</span>
+              </div>
+            );
+          })()}
           <ul className="facts">{s.facts.map((f) => <li key={f}>{f}</li>)}</ul>
           <Btn small kind="soft" onClick={() => openSheet({ kind: 'doctor', sp: id })}>🩺 Что-то не так с настоящим растением?</Btn>
           {PALETTES[id] && (

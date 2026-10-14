@@ -1,6 +1,7 @@
 import { DIFFICULTY_LABEL, SPECIES } from '../../game/species';
 import { openSheet, useStore, visitHerbarium } from '../../game/store';
 import { SHELVES, shelfProgress, shelvesReady } from '../../game/album';
+import { MASTERY, masteryPoints, masteryStars } from '../../game/mastery';
 import { PlantArt } from '../art/PlantArt';
 
 export function Herbarium() {
@@ -29,7 +30,7 @@ export function Herbarium() {
                 <button key={s.id} className="pick" onClick={() => { openSheet({ kind: 'herb', sp: s.id }); visitHerbarium(); }}>
                   <PlantArt sp={s.id} stage={4} seed="herb" className={known ? '' : 'unknown'} noPot />
                   <b>{known ? s.name : '???'}</b>
-                  <span className="muted small">{g.grownAdult.includes(s.id) ? '🏅 выращено' : known ? 'открыто' : `с ${s.unlockLevel} ур.`}</span>
+                  <span className="muted small">{masteryStars(masteryPoints(g, s.id)) ? MASTERY.slice(0, masteryStars(masteryPoints(g, s.id))).map((m) => m.icon).join('') : g.grownAdult.includes(s.id) ? '🏅 выращено' : known ? 'открыто' : `с ${s.unlockLevel} ур.`}</span>
                 </button>
               );
             })}

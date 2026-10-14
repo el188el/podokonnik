@@ -63,7 +63,7 @@ export function App() {
   return (
     <div className="app">
       <header className="topbar">
-        <div className="lvlbadge" onClick={() => setTab('profile')}>
+        <div className="lvlbadge" onClick={() => openSheet({ kind: 'levels' })}>
           <b>{g.level}</b>
           <div className="xp"><div style={{ width: `${(g.xp / xpToNext(g.level)) * 100}%` }} /></div>
         </div>

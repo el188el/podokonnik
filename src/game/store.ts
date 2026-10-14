@@ -12,12 +12,13 @@ import { CONTEST_ENTRY_REWARD, CONTEST_VOTE_REWARD, weekKey } from './contest';
 import { platform } from '../platform';
 import { ACHIEVEMENTS, checkAchievements } from './achievements';
 import { freshAgeMarks } from './age';
+import { addMastery, type MasteryKind } from './mastery';
 import { CARE_TASK_REWARD } from './calendar';
 import { BOX_PRICE, rollBox, type BoxPrize } from './box';
 import { SHELVES, shelfDone } from './album';
 import { D, FEED_MS, H, HANG_SLOTS, MAX_CUTTINGS, MIST_MS, NEIGHBOR_COOLDOWN, NEIGHBOR_FREE_DAYS, STAGE_NAME } from './constants';
 import { giftLink, makeCode } from './gifts';
-import { XP, levelReward, unlocksAt, xpToNext, SILL_UNLOCK } from './progression';
+import { XP, levelPerks, levelReward, unlocksAt, xpToNext, SILL_UNLOCK } from './progression';
 import { QUEST_BONUS, WEEKLY_CHEST, dayKey, bumpQuest, bumpWeekly, rollDay, rollWeek, streakReward, weeklyVisit } from './quests';
 import { ITEM_BY_ID, ITEMS, placeOf, potIdOf } from './shop';
 import { advance, badLight, bestZone, canCut, cramped, ctxFor, hasLamp, stageMarks, type SimEvent } from './sim';
@@ -67,6 +68,7 @@ export type Sheet =
   | { kind: 'coop' }
   | { kind: 'album' }
   | { kind: 'name'; plant: string }
+  | { kind: 'levels' }
   | null;
 
 export type Tab = 'sill' | 'shop' | 'friends' | 'herbarium' | 'quests' | 'profile';
@@ -163,6 +165,7 @@ function addXp(g: GameState, n: number) {
     g.level += 1;
     const reward = levelReward(g.level);
     g.leaves += reward;
+    givePerks(g, g.level);
     popup({ kind: 'level', level: g.level, reward, unlocks: unlocksAt(g.level) });
     track('level_up', { level: g.level });
   }
@@ -170,10 +173,49 @@ function addXp(g: GameState, n: number) {
 
 const WEEKLY_FROM_DAILY: Partial<Record<QuestKind, WeeklyKind>> = { water: 'water', plant: 'plant', gift: 'gift', cut: 'cut', mist: 'mist', feed: 'feed' };
 
+/** Особые награды «Пути садовода» за уровень. */
+function givePerks(g: GameState, level: number) {
+  for (const p of levelPerks(level)) {
+    if (p.leaves) g.leaves += p.leaves;
+    if (p.feed) g.owned.feed = (g.owned.feed ?? 0) + p.feed;
+    if (p.item) {
+      g.owned[p.item] = 1;
+      // декор сразу ставим на текущий подоконник
+      const sill = g.sills.find((s) => s.id === g.activeSill) ?? g.sills[0];
+      if (ITEM_BY_ID[p.item]?.cat === 'decor' && sill && !g.sills.some((s) => s.decor.includes(p.item!))) {
+        if (placeOf(p.item) === 'wallpaper') sill.decor = sill.decor.filter((d) => placeOf(d) !== 'wallpaper');
+        sill.decor.push(p.item);
+      }
+    }
+    if (p.form) {
+      const f = FORM_BY_ID[p.form];
+      if (f) { g.cuttings.push({ id: makeCode(8), sp: f.sp, form: f.id, at: Date.now() }); discover(g, f.sp); }
+    }
+  }
+  g.perksTo = Math.max(g.perksTo ?? 0, level);
+}
+
+/** Награды за уже пройденные уровни (для тех, кто прокачался до «Пути садовода»). */
+function catchUpPerks(g: GameState) {
+  if (g.perksTo === undefined) g.perksTo = 1;
+  if (g.perksTo >= g.level) return;
+  for (let l = g.perksTo + 1; l <= g.level; l++) givePerks(g, l);
+  toast(`🎁 Путь садовода: награды за уровни до ${g.level} уже у тебя!`);
+}
+
 function quest(g: GameState, kind: QuestKind, by = 1) {
   if (bumpQuest(g, kind, by).length) toast('Задание выполнено: забери награду 🎯');
   const w = WEEKLY_FROM_DAILY[kind];
   if (w) weekly(g, w, by);
+}
+
+function mastery(g: GameState, spId: string, kind: MasteryKind) {
+  for (const m of addMastery(g, spId, kind)) {
+    g.leaves += m.leaves;
+    addXp(g, m.xp);
+    toast(`${m.icon} Мастерство «${sp(spId).name}»: ${m.name}! +${m.leaves} 🍃`);
+    track('mastery', { sp: spId, star: m.name });
+  }
 }
 
 function weekly(g: GameState, kind: WeeklyKind, by = 1) {
@@ -245,6 +287,7 @@ function handleEvents(g: GameState, ev: SimEvent[], quiet: boolean) {
         if (!g.grownAdult.includes(p.sp)) g.grownAdult.push(p.sp);
         discover(g, p.sp);
         weekly(g, 'adult');
+        mastery(g, p.sp, 'adult');
         if (!quiet) toast(`${s.name}: совсем взрослое! Можно взять черенок ✂️`);
       } else {
         addXp(g, XP.stage);
@@ -259,6 +302,7 @@ function handleEvents(g: GameState, ev: SimEvent[], quiet: boolean) {
       p.bloomedOnce = true;
       if (!(g.bloomed ?? []).includes(p.sp)) g.bloomed = [...(g.bloomed ?? []), p.sp];
       weekly(g, 'bloom');
+      mastery(g, p.sp, 'bloom');
       addXp(g, XP.bloom);
       if (!quiet) { toast(`${s.name} зацвело! 🌸`); haptic('success'); }
     }
@@ -544,6 +588,7 @@ export async function boot() {
   }
   checkAges(g, t);
   rollWeekly(g, t);
+  catchUpPerks(g);
   if (fresh && g.streak.claimedDay !== g.streak.day && g.plants.length) popup({ kind: 'streak', count: g.streak.count, reward: streakReward(g.streak.count) * (isPlus(g) ? 2 : 1) });
   after(g);
   scheduleSave();
@@ -835,6 +880,7 @@ export function takeCutting(plantId: string) {
     const c = { id: makeCode(8), sp: p.sp, at: t, fromPlant: p.id, ...(form ? { form } : {}), ...(p.hue ? { hue: p.hue } : {}) };
     g.cuttings.push(c);
     g.stats.cuts += 1;
+    mastery(g, p.sp, 'cut');
     addXp(g, XP.cut);
     eventToken(g, 'cut', t);
     quest(g, 'cut');
@@ -1017,7 +1063,7 @@ export function unlockSill(id: string) {
     if (g.level < u.level) { toast(`Откроется на ${u.level} уровне`); return false; }
     if (g.leaves < u.price) { toast('Не хватает листиков 🍃'); return false; }
     g.leaves -= u.price;
-    g.sills.push({ id, name: id === 'kitchen' ? 'Кухня' : 'Балкон', window: null, decor: [] });
+    g.sills.push({ id, name: u.name, window: null, decor: [] });
     g.activeSill = id;
     toast('Новый подоконник! Выбери, куда смотрит окно 🪟');
     return true;
@@ -1362,7 +1408,7 @@ function grantTester(g: GameState, t: number) {
   for (const it of ITEMS) g.owned[it.id] = it.consumable ? (g.owned[it.id] ?? 0) + 10 : 1;
   g.owned.pot_gold = 1;
   for (const id of ['kitchen', 'balcony']) {
-    if (!g.sills.some((s) => s.id === id)) g.sills.push({ id, name: id === 'kitchen' ? 'Кухня' : 'Балкон', window: null, decor: [] });
+    if (!g.sills.some((s) => s.id === id)) g.sills.push({ id, name: SILL_UNLOCK[id].name, window: null, decor: [] });
   }
   for (const f of FORMS) g.cuttings.push({ id: makeCode(8), sp: f.sp, form: f.id, at: t });
   const e = activeEvent(t);

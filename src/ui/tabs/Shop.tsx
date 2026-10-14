@@ -117,10 +117,10 @@ export function Shop() {
             const has = g.sills.some((s) => s.id === id);
             return (
               <div key={id} className="row-item">
-                <div className="ricon">{id === 'kitchen' ? '🍳' : '🌇'}</div>
+                <div className="ricon">{u.icon}</div>
                 <div className="rtext">
-                  <b>{id === 'kitchen' ? 'Подоконник на кухне' : 'Балкон'}</b>
-                  <span className="muted small">Ещё 6 мест для растений и своё окно со своим светом.</span>
+                  <b>{u.name}</b>
+                  <span className="muted small">{u.desc} Ещё 6–8 мест для растений.</span>
                 </div>
                 {has ? <span className="owned">✓ есть</span> : g.level < u.level ? <Btn small disabled>🔒 {u.level} ур.</Btn> : (
                   <Btn small kind="primary" disabled={g.leaves < u.price} onClick={() => unlockSill(id)}>{u.price} 🍃</Btn>

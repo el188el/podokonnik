@@ -221,6 +221,8 @@ export interface GameState {
   box?: string;          // день, когда открывали ящик-сюрприз
   firstChest?: boolean;  // сундучок первого часа забран
   places?: number[];     // купленные заранее места (9, 10)
+  perksTo?: number;      // до какого уровня выданы награды «Пути садовода»
+  mastery?: Record<string, { pts: number; stars: number }>; // мастерство видов
   tutorial: number;
 }
 
