@@ -32,6 +32,7 @@ export function App() {
   const tab = useStore((s) => s.tab);
   const g = useStore((s) => s.game);
   const toasts = useStore((s) => s.toasts);
+  const coopOn = useStore((s) => s.coopOn);
   const questsReady = g.quests.list.some((q) => !q.claimed && q.progress >= q.target);
 
   // подарок по ссылке: ?g=… (веб), startapp (Telegram) или старый формат ?gift=…
@@ -69,7 +70,7 @@ export function App() {
           <b>{g.level}</b>
           <div className="xp"><div style={{ width: `${(g.xp / xpToNext(g.level)) * 100}%` }} /></div>
         </div>
-        <div className="title">Подоконник</div>
+        {tab === 'sill' ? <SillPicker /> : <div className="title">Подоконник</div>}
         <div className="money">
           {g.streak.count > 0 && <span className="streak">🔥{g.streak.count}</span>}
           <span className="leaves">{g.leaves} 🍃</span>
@@ -77,7 +78,7 @@ export function App() {
         </div>
       </header>
 
-      <main className="content">
+      <main className={'content' + (tab === 'sill' && !coopOn ? ' fixed' : '')}>
         <Safe key={tab} label={tab}>
         {tab === 'sill' && <SillView />}
         {tab === 'shop' && <Shop />}
@@ -126,5 +127,18 @@ export function App() {
         </AnimatePresence>
       </div>
     </div>
+  );
+}
+
+/** В шапке — какой подоконник открыт; по нажатию — выбрать другой. */
+function SillPicker() {
+  const g = useStore((s) => s.game);
+  const coop = useStore((s) => s.coops?.find((c) => c.id === s.coopOn));
+  const sill = g.sills.find((s) => s.id === g.activeSill) ?? g.sills[0];
+  return (
+    <button className="sill-picker" onClick={() => openSheet({ kind: 'sills' })}>
+      <span>{coop ? `💞 ${coop.state.name}` : `🪟 ${sill.name}`}</span>
+      <i>▾</i>
+    </button>
   );
 }

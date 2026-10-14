@@ -740,3 +740,62 @@ svg.big.sad { filter: sepia(0.6) saturate(0.6); }
 .login-sheet p { margin: 0; }
 .spinner { width: 34px; height: 34px; border-radius: 50%; border: 4px solid #d8eadf; border-top-color: #4caf6a; animation: spin 0.9s linear infinite; }
 @keyframes spin { to { transform: rotate(360deg); } }
+
+/* ─── главный экран без прокрутки ─── */
+.content.fixed { overflow: hidden; padding-bottom: 0; }
+.sillview.fit { height: 100%; min-height: 0; }
+.sillview.fit .sillbar { flex: none; padding: 8px 12px 0; flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; }
+.sillview.fit .guide { flex: none; }
+.scene-fit { flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column; justify-content: center; overflow: hidden; }
+.scene-fit .scene { margin: 6px 10px 0; flex: none; }
+.scene .slot .art { height: calc(var(--cellh) - 24px); width: min(calc((var(--cellh) - 24px) * 0.7), 100%); }
+.sillview.fit .toolbar { flex: none; margin: 6px 12px 6px; }
+.sillview.fit .tool-hint { margin: 4px 0 0; font-size: 12px; }
+
+/* переключатель подоконника в шапке */
+.sill-picker { display: flex; align-items: center; gap: 4px; max-width: 46vw; border: 0; background: var(--soft); border-radius: 14px; padding: 6px 10px; font: inherit; font-weight: 800; color: inherit; cursor: pointer; }
+.sill-picker span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.sill-picker i { font-style: normal; font-size: 12px; opacity: 0.6; }
+.sills-sheet h3 { margin: 14px 0 6px; }
+.sill-row { width: 100%; border: 0; text-align: left; font: inherit; color: inherit; cursor: pointer; }
+.sill-row.on { box-shadow: inset 0 0 0 2px var(--green, #4caf6a); }
+.sill-here { font-weight: 800; color: #3d8b56; }
+.sills-sheet .linkish { display: block; margin: 14px auto 0; }
+
+/* событие слева, важное — справа */
+.info-grid { flex: none; display: grid; grid-template-columns: 1.15fr 1fr; grid-auto-rows: minmax(40px, auto); gap: 6px; margin: 8px 12px 0; }
+.info-grid.no-event { grid-template-columns: 1fr 1fr; }
+.event-card { grid-row: span 2; position: relative; display: flex; flex-direction: column; justify-content: center; align-items: flex-start; gap: 1px; border: 0; border-radius: 16px; padding: 8px 10px 8px 46px; text-align: left; font: inherit; color: inherit; box-shadow: 0 2px 0 #0001; cursor: pointer; min-width: 0; }
+.event-card.theme-autumn { background: linear-gradient(135deg, #ffe0b8, #ffc98a); }
+.event-card.theme-winter { background: linear-gradient(135deg, #e3f1ff, #c9e2fb); }
+.event-card.theme-spring { background: linear-gradient(135deg, #ffe3ef, #e1f6e9); }
+.event-card.theme-summer { background: linear-gradient(135deg, #fff3b8, #d6f2c4); }
+.event-card .ec-icon { position: absolute; left: 10px; top: 50%; transform: translateY(-50%); font-size: 26px; }
+.event-card b { font-size: 14px; line-height: 1.15; }
+.event-card small { font-size: 11.5px; opacity: 0.75; }
+.event-card .eb-ready { position: absolute; right: 6px; top: 6px; font-size: 10px; }
+.tile { border: 0; border-radius: 14px; background: #fff; padding: 6px 8px; font: inherit; font-size: 12.5px; font-weight: 700; line-height: 1.2; text-align: left; color: inherit; box-shadow: 0 2px 0 var(--line); min-width: 0; cursor: pointer; }
+.tile.orders { background: #fff6dc; color: #7a5a14; }
+.tile.ready { background: linear-gradient(90deg, #fff1c9, #fff); box-shadow: 0 2px 0 #f0d58a; }
+.tile.round { background: #eef4ff; color: #3b5a9a; }
+.tile.done { opacity: 0.6; }
+.tile:disabled { cursor: default; }
+
+/* черенки в запасе — одной полоской */
+.tray.compact { flex: none; display: flex; align-items: center; gap: 8px; margin: 6px 12px 0; padding: 4px 8px; border-radius: 16px; }
+.tray.compact .tray-list { flex: 1; gap: 4px; scrollbar-width: none; }
+.tray.compact .cutting { padding: 2px; min-width: 44px; }
+.tray.compact .cutting svg.mini { width: 36px; height: 44px; }
+.tray-pots { display: flex; flex-direction: column; align-items: center; border: 0; background: var(--soft); border-radius: 12px; padding: 2px 8px; font-size: 18px; cursor: pointer; }
+.tray-pots small { font-size: 10px; font-weight: 700; }
+.twins-banner.ready { background: #e6f4ff; }
+.topbar .money { white-space: nowrap; flex-wrap: nowrap; }
+.topbar .money .streak, .topbar .money .leaves { white-space: nowrap; }
+.sill-picker { max-width: 38vw; font-size: 15px; padding: 5px 9px; }
+.scene-fit .scene .slot .art { min-height: 0; }
+@media (max-width: 380px) {
+  .topbar { padding: 8px 8px; gap: 4px; }
+  .topbar .lvlbadge .xp { width: 34px; }
+  .topbar .money { gap: 4px; }
+  .sill-picker { max-width: 34vw; font-size: 14px; }
+}

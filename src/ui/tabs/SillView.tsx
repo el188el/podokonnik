@@ -1,83 +1,30 @@
 import { motion } from 'framer-motion';
 import { WINDOWS } from '../../game/constants';
 import { activeEvent, eventSeason, tierOf } from '../../game/events';
-import { isWinter, seasonName, fmt } from '../../game/sim';
+import { isWinter, fmt } from '../../game/sim';
 import { sp } from '../../game/species';
-import { now, openSheet, plantAt, setActiveSill, setTool, showCoop, showGift, useStore, waterAll, type Tool } from '../../game/store';
-import { loggedIn } from '../../net/api';
+import { now, openSheet, plantAt, setTool, showGift, useStore, waterAll, type Tool } from '../../game/store';
 import { CoopSill } from './CoopSill';
 import { canFulfil } from '../../game/orders';
 import { FallingTokens } from '../FallingTokens';
-import { useEffect } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react';
 import { chatter } from '../../game/mood';
 import { ctxFor } from '../../game/sim';
 import { claimFirstChest, petCat, placeOpen, say } from '../../game/store';
 import { zoneOfSlot } from '../../game/layout';
-import type { GameState } from '../../game/types';
 import { PlantArt } from '../art/PlantArt';
 import { Slot } from '../Slot';
 import { Guide } from '../Guide';
 import { firstChest, roundInfo, starterDone, starterLeft } from '../../game/onboarding';
 import { TUTORIAL_DONE } from '../../game/store';
 import { SillScene, timeOfDay } from '../SillScene';
-import { SKY, isDim, isSunny, tempText, weatherAt } from '../../game/weather';
+import { SKY, tempText, weatherAt } from '../../game/weather';
 import { platform } from '../../platform';
-import { shareSillStory } from '../story';
 
-
-function hint(g: GameState, t: number): string {
-  const here = g.plants.filter((p) => p.sill === g.activeSill);
-  if (!g.plants.length && !g.cuttings.length) return 'Тапни по свободному месту и выбери первое растение';
-  if (!here.length) return 'Здесь пока пусто. Посади черенок из запаса или купи в магазине';
-  const p = here.find((x) => x.stage <= 1) ?? here[0];
-  if (p.stage === 0 && !p.rootStart) return 'Тапни по стакану, чтобы налить воды 💧';
-  if (p.stage === 0) return 'Черенок пускает корни. Это совсем недолго ⏳';
-  if (p.stage === 1) return 'Корни есть! Тапни, чтобы посадить в горшок 🪴';
-  if (g.stats.waters < 6) return 'Верхний ряд — у стекла, нижний — в глубине. Зажми горшок и перетащи, чтобы поменять место';
-  const thirsty = here.filter((x) => x.stage >= 2 && x.moisture < 0.25).length;
-  if (thirsty) return `Хотят пить: ${thirsty} 💧`;
-  if (g.neighbor && t < g.neighbor.until) return `👵 Соседка поливает ещё ${fmt(g.neighbor.until - t)}`;
-  const w = weatherAt(g, t);
-  if (w && g.settings.place) {
-    const head = `${SKY[w.sky].icon} ${g.settings.place.city}: ${SKY[w.sky].name}, ${tempText(w.temp)}.`;
-    if (isDim(w)) return `${head} У стекла сегодня мягкий свет`;
-    if (isSunny(w)) return `${head} Светолюбивые растут быстрее ☀️`;
-    return head;
-  }
-  return `${seasonName(t)[0].toUpperCase() + seasonName(t).slice(1)} за окном. Растениям хорошо 🌿`;
-}
-
-
-/** Переключатель: свои подоконники и общие. */
-function SillSwitch() {
-  const g = useStore((s) => s.game);
-  const coops = useStore((s) => s.coops) ?? [];
-  const coopOn = useStore((s) => s.coopOn);
-  const canCoop = loggedIn() && g.tutorial >= TUTORIAL_DONE;
-  if (g.sills.length < 2 && !coops.length && !canCoop) return null;
-  return (
-    <div className="chips sill-switch">
-      {g.sills.map((s) => (
-        <button key={s.id} className={'chip' + (!coopOn && s.id === g.activeSill ? ' on' : '')} onClick={() => { showCoop(null); setActiveSill(s.id); }}>
-          {s.name}
-        </button>
-      ))}
-      {coops.map((c) => (
-        <button key={c.id} className={'chip coop-chip' + (coopOn === c.id ? ' on' : '')} onClick={() => showCoop(c.id)}>💞 {c.state.name}</button>
-      ))}
-      {canCoop && coops.length < 2 && <button className="chip" onClick={() => openSheet({ kind: 'coop' })}>💞 +{coops.length ? '' : ' Общий'}</button>}
-    </div>
-  );
-}
 
 export function SillView() {
   const coop = useStore((s) => s.coops?.find((c) => c.id === s.coopOn));
-  return (
-    <>
-      <SillSwitch />
-      {coop ? <CoopSill coop={coop} /> : <OwnSill />}
-    </>
-  );
+  return coop ? <CoopSill coop={coop} /> : <OwnSill />;
 }
 
 /** Время от времени одно из растений что-нибудь говорит. */
@@ -113,7 +60,6 @@ function OwnSill() {
   const evp = ev ? g.events?.[eventSeason(ev, t)] : undefined;
   const evReady = ev && evp ? ev.tiers.some((n, i) => evp.tokens >= n && (!evp.free.includes(i) || (evp.premium && !evp.prem.includes(i)))) : false;
   const w = weatherAt(g, t);
-  const twinsDue = (g.twins ?? []).filter((x) => !x.lastWater || t >= x.lastWater + x.every * 86400e3).length;
 
   const cellAt = (i: number) => {
     const p = plantAt(g, sill.id, i);
@@ -138,8 +84,25 @@ function OwnSill() {
     );
   };
 
+  // плитки справа от события: что сейчас важно
+  const tiles: { key: string; cls: string; text: string; onClick?: () => void; disabled?: boolean }[] = [];
+  if (g.pending.length) tiles.push({ key: 'pending', cls: 'ready', text: `🎁 Черенок от ${g.pending[0].from} ждёт места`, onClick: () => showGift({ ...g.pending[0], ok: true }) });
+  const chest = firstChest(g, t);
+  if (chest) tiles.push({ key: 'chest', cls: chest.ready ? 'ready' : '', text: `🎁 Сундучок · ${chest.ready ? 'открыть!' : fmt(chest.left)}`, onClick: claimFirstChest, disabled: !chest.ready });
+  if (g.tutorial >= TUTORIAL_DONE && (g.orders?.list.length ?? 0) > 0) {
+    const can = g.orders!.list.some((o) => canFulfil(g, o).ok);
+    tiles.push({ key: 'orders', cls: 'orders' + (can ? ' ready' : ''), text: `📋 Соседи просят: ${g.orders!.list.length}${can ? ' ✓' : ''}`, onClick: () => openSheet({ kind: 'orders' }) });
+  }
+  if (g.tutorial >= TUTORIAL_DONE && !starterDone(g)) {
+    const n = starterLeft(g, t).length;
+    tiles.push({ key: 'starter', cls: n ? 'ready' : '', text: `🎁 Подарки новичка · ${n ? `забрать (${n})` : 'завтра'}`, onClick: () => openSheet({ kind: 'starter' }) });
+  }
+  const round = g.tutorial >= TUTORIAL_DONE ? roundInfo(g, t) : null;
+  if (round) tiles.push({ key: 'round', cls: 'round' + (round.done ? ' done' : ''), text: `${round.label === 'утренний' ? '🌅' : '🌙'} Обход ${round.done ? '✓' : `${round.checked}/${round.total} · +15 🍃`}` });
+  const shown = tiles.slice(0, ev ? 2 : 4);
+
   return (
-    <div className="sillview">
+    <div className="sillview fit">
       <div className="sillbar">
         <button className="chip win" onClick={() => openSheet({ kind: 'window', sill: sill.id })}>
           🪟 {sill.window ? WINDOWS[sill.window].short : 'Окно?'}
@@ -150,87 +113,85 @@ function OwnSill() {
           </button>
         )}
         {neighbor && <button className="chip" onClick={() => openSheet({ kind: 'neighbor' })}>👵 соседка</button>}
-        <button className={'chip' + (twinsDue ? ' alert' : '')} onClick={() => openSheet({ kind: 'twins' })}>🏠 Настоящие{twinsDue ? ` 💧${twinsDue}` : ''}</button>
         {(g.owned.pot ?? 0) === 0 && <button className="chip alert" onClick={() => openSheet({ kind: 'pots' })} aria-label="Горшки">🪴 0</button>}
-        {g.plants.some((p) => p.sill === sill.id && p.stage >= 2) && (
-          <button className="chip" onClick={() => shareSillStory()} aria-label="Поделиться подоконником">📸</button>
-        )}
       </div>
-      {ev && (
-        <button className={`event-banner theme-${ev.theme}`} onClick={() => openSheet({ kind: 'event' })}>
-          <span className="eb-icon">{ev.token}</span>
-          <span className="eb-text"><b>{ev.title}</b><small>уровень {tierOf(ev, evp?.tokens ?? 0)}/{ev.tiers.length} · {evp?.tokens ?? 0} {ev.token}</small></span>
-          {evReady ? <span className="eb-ready">Награда!</span> : <span className="eb-go">›</span>}
-        </button>
-      )}
-      {g.tutorial < TUTORIAL_DONE ? <Guide /> : <p className="hint">{hint(g, t)}</p>}
 
-      {g.tutorial >= TUTORIAL_DONE && (g.orders?.list.length ?? 0) > 0 && (
-        <button className={'mini-banner orders-banner' + (g.orders!.list.some((o) => canFulfil(g, o).ok) ? ' ready' : '')} onClick={() => openSheet({ kind: 'orders' })}>
-          📋 Соседи просят: {g.orders!.list.length}{g.orders!.list.some((o) => canFulfil(g, o).ok) ? ' · можно помочь!' : ''}
-        </button>
-      )}
-      {(() => {
-        const c = firstChest(g, t);
-        if (!c) return null;
-        return (
-          <button className={'mini-banner starter-banner' + (c.ready ? ' ready' : '')} disabled={!c.ready} onClick={claimFirstChest}>
-            🎁 Сундучок первого часа · {c.ready ? 'открыть!' : `через ${fmt(c.left)}`}
-          </button>
-        );
-      })()}
-      {g.tutorial >= TUTORIAL_DONE && !starterDone(g) && (
-        <button className={'mini-banner starter-banner' + (starterLeft(g, t).length ? ' ready' : '')} onClick={() => openSheet({ kind: 'starter' })}>
-          🎁 Подарки новичка · {starterLeft(g, t).length ? `забрать (${starterLeft(g, t).length})` : 'завтра новый'}
-        </button>
-      )}
-      {(() => {
-        const r = roundInfo(g, t);
-        if (!r || g.tutorial < TUTORIAL_DONE) return null;
-        return (
-          <div className={'mini-banner round-banner' + (r.done ? ' done' : '')}>
-            {r.label === 'утренний' ? '🌅' : '🌙'} {r.done ? `${r.label[0].toUpperCase() + r.label.slice(1)} обход сделан ✓` : `${r.label[0].toUpperCase() + r.label.slice(1)} обход: загляни к каждому растению ${r.checked}/${r.total} · +15 🍃`}
-          </div>
-        );
-      })()}
-
-      {g.pending.length > 0 && (
-        <button className="pending" onClick={() => showGift({ ...g.pending[0], ok: true })}>
-          🎁 Черенок {sp(g.pending[0].sp).gen} от {g.pending[0].from} ждёт свободного места
-        </button>
+      {g.tutorial < TUTORIAL_DONE ? <Guide /> : (ev || shown.length > 0) && (
+        <div className={'info-grid' + (ev ? '' : ' no-event')}>
+          {ev && (
+            <button className={`event-card theme-${ev.theme}`} onClick={() => openSheet({ kind: 'event' })}>
+              <span className="ec-icon">{ev.token}</span>
+              <b>{ev.title}</b>
+              <small>ур. {tierOf(ev, evp?.tokens ?? 0)}/{ev.tiers.length} · {evp?.tokens ?? 0} {ev.token}</small>
+              {evReady && <span className="eb-ready">Награда!</span>}
+            </button>
+          )}
+          {shown.map((x) => (
+            <button key={x.key} className={'tile ' + x.cls} onClick={x.onClick} disabled={x.disabled || !x.onClick}>{x.text}</button>
+          ))}
+        </div>
       )}
 
-      <SillScene
-        decor={decor}
-        tod={tod}
-        winter={winter}
-        sky={w?.sky}
-        theme={ev?.theme}
-        win={sill.window ?? 'E'}
-        hangCell={cellAt}
-        cell={cellAt}
-        onCat={petCat}
-      />
+      <SceneFit hang={!!decor.includes('hangers')}>
+        {(style) => (
+          <SillScene
+            style={style}
+            decor={decor}
+            tod={tod}
+            winter={winter}
+            sky={w?.sky}
+            theme={ev?.theme}
+            win={sill.window ?? 'E'}
+            hangCell={cellAt}
+            cell={cellAt}
+            onCat={petCat}
+          />
+        )}
+      </SceneFit>
 
       <FallingTokens />
-      <Toolbar sill={sill.id} />
-
-
       {g.cuttings.length > 0 && (
-        <div className="tray">
-          <div className="tray-title">✂️ Черенки в запасе <button className="linkish" onClick={() => openSheet({ kind: 'pots' })}>🪴 горшков: {g.owned.pot ?? 0}</button></div>
+        <div className="tray compact">
+          <button className="tray-pots" onClick={() => openSheet({ kind: 'pots' })}>🪴<small>{g.owned.pot ?? 0}</small></button>
           <div className="tray-list">
             {g.cuttings.map((c) => (
-              <button key={c.id} className="cutting" onClick={() => openSheet({ kind: 'send', cutting: c.id })}>
+              <button key={c.id} className="cutting" onClick={() => openSheet({ kind: 'send', cutting: c.id })} aria-label={sp(c.sp).name}>
                 <PlantArt sp={c.sp} form={c.form} hue={c.hue} stage={0} noPot className="mini" />
-                <span>{c.seed ? '🌰 ' : ''}{sp(c.sp).name}</span>
               </button>
             ))}
           </div>
         </div>
       )}
+      <Toolbar sill={sill.id} />
     </div>
   );
+}
+
+/**
+ * Подоконник занимает всё оставшееся место: высоту рядов считаем по размеру экрана,
+ * чтобы главный экран не прокручивался.
+ */
+function SceneFit({ hang, children }: { hang: boolean; children: (style: CSSProperties) => ReactNode }) {
+  const ref = useRef<HTMLDivElement>(null);
+  const [cellh, setCellh] = useState(150);
+  useLayoutEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const fit = () => {
+      const scene = el.querySelector<HTMLElement>('.scene');
+      if (!scene) return;
+      const cur = parseFloat(getComputedStyle(scene).getPropertyValue('--cellh')) || 150;
+      // всё, кроме двух рядов (рамка, подоконник, столик, кашпо), не зависит от высоты ряда
+      const overhead = scene.offsetHeight - 2 * cur;
+      const next = Math.max(78, Math.min(200, Math.floor((el.clientHeight - 8 - overhead) / 2)));
+      setCellh((c) => (Math.abs(c - next) > 1 ? next : c));
+    };
+    const ro = new ResizeObserver(fit);
+    ro.observe(el);
+    fit();
+    return () => ro.disconnect();
+  }, [hang]);
+  return <div className="scene-fit" ref={ref}>{children({ ['--cellh' as string]: `${cellh}px` })}</div>;
 }
 
 const TOOLS: [Tool, string, string][] = [
@@ -260,13 +221,12 @@ function Toolbar({ sill }: { sill: string }) {
       {thirsty >= 2 && (
         <button className="water-all" onClick={() => waterAll(sill)}>💧 Полить всех, кто хочет пить ({thirsty})</button>
       )}
-      <p className="tool-hint">
+      {tool !== 'look' && <p className="tool-hint">
         {tool === 'water' && '💧 В руке лейка: тап по растению — полить. Тапни лейку ещё раз, чтобы убрать'}
         {tool === 'mist' && '💦 В руке опрыскиватель. Не все растения это любят! Тапни ещё раз, чтобы убрать'}
         {tool === 'feed' && '🧪 Тап — подкормить: сутки растёт в 1,5 раза быстрее. Тапни ещё раз, чтобы убрать'}
         {tool === 'cut' && '✂️ Тап по взрослому растению — взять черенок. Тапни ещё раз, чтобы убрать'}
-        {tool === 'look' && 'Тап по растению — карточка. Возьми лейку или другой инструмент, чтобы ухаживать быстро'}
-      </p>
+      </p>}
     </div>
   );
 }

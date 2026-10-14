@@ -69,6 +69,7 @@ export type Sheet =
   | { kind: 'twins' }
   | { kind: 'weather' }
   | { kind: 'login' }
+  | { kind: 'sills' }
   | { kind: 'doctor'; sp?: string }
   | { kind: 'coop' }
   | { kind: 'album' }

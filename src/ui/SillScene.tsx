@@ -2,7 +2,7 @@
 // и столик в глубине комнаты (нижний ряд, 3 места). Декор — на стекле,
 // на подоконнике, на столе и на стене.
 
-import { useState, type ReactNode } from 'react';
+import { useState, type CSSProperties, type ReactNode } from 'react';
 import { DEEP_ROW, GLASS_ROW, HANG_ROW } from '../game/layout';
 import { ITEM_BY_ID, placeOf } from '../game/shop';
 import { DecorArt, hasDecorArt } from './art/DecorArt';
@@ -21,6 +21,7 @@ export interface SceneProps {
   className?: string;
   /** Нажали на кота — погладить. */
   onCat?: () => void;
+  style?: CSSProperties;
 }
 
 const icon = (id: string) => ITEM_BY_ID[id]?.icon ?? '';
@@ -44,7 +45,7 @@ function Deco({ id, left, onCat }: { id: string; left: string; onCat?: () => voi
   );
 }
 
-export function SillScene({ decor, tod, winter, sky, theme, win = 'E', cell, hangCell, className = '', onCat }: SceneProps) {
+export function SillScene({ decor, tod, winter, sky, theme, win = 'E', cell, hangCell, className = '', onCat, style }: SceneProps) {
   const at = (place: string) => decor.filter((d) => placeOf(d) === place);
   const windowD = at('window');
   const sillD = at('sill').slice(0, 5);
@@ -56,7 +57,7 @@ export function SillScene({ decor, tod, winter, sky, theme, win = 'E', cell, han
   const hang = !!hangCell && decor.includes('hangers');
 
   return (
-    <div className={`scene tod-${tod}${winter ? ' winter' : ''}${sky ? ' sky-' + sky : ''}${hang ? ' has-hang' : ''} ${className}`} data-win={win} data-wp={wallpaper}>
+    <div className={`scene tod-${tod}${winter ? ' winter' : ''}${sky ? ' sky-' + sky : ''}${hang ? ' has-hang' : ''} ${className}`} data-win={win} data-wp={wallpaper} style={style}>
       {hang && (
         <div className="hang-row">
           {HANG_ROW.map((i) => (

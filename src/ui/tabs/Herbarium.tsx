@@ -1,11 +1,13 @@
 import { DIFFICULTY_LABEL, SPECIES } from '../../game/species';
-import { openSheet, useStore, visitHerbarium } from '../../game/store';
+import { now, openSheet, useStore, visitHerbarium } from '../../game/store';
 import { SHELVES, shelfProgress, shelvesReady } from '../../game/album';
 import { MASTERY, masteryPoints, masteryStars } from '../../game/mastery';
 import { PlantArt } from '../art/PlantArt';
 
 export function Herbarium() {
   const g = useStore((s) => s.game);
+  const t = now();
+  const twinsDue = (g.twins ?? []).filter((x) => !x.lastWater || t >= x.lastWater + x.every * 86400e3).length;
   return (
     <div className="tab">
       <div className="tab-head">
@@ -15,6 +17,9 @@ export function Herbarium() {
         </span>
       </div>
       <p className="muted small">Всё о видах, которые ты открыл(а): как поливать, где ставить и как вырастить такое же дома.</p>
+      <button className={'mini-banner twins-banner' + (twinsDue ? ' ready' : '')} onClick={() => openSheet({ kind: 'twins' })}>
+        🏠 Настоящие растения · {(g.twins ?? []).length ? `${(g.twins ?? []).length}${twinsDue ? ` · полить ${twinsDue} 💧` : ''}` : 'двойники твоих цветов'}
+      </button>
       <button className={'mini-banner album-banner' + (shelvesReady(g).length ? ' ready' : '')} onClick={() => openSheet({ kind: 'album' })}>
         📒 Альбом редкостей · {SHELVES.reduce((n, s) => n + shelfProgress(g, s)[0], 0)}/{SHELVES.reduce((n, s) => n + s.items.length, 0)}
         {shelvesReady(g).length ? ' · награда!' : ''}
