@@ -114,3 +114,37 @@ supabase/functions/    api (вход, синхронизация, подарки
 supabase/tests/        тесты: подпись Telegram, токены, напоминания (deno test supabase/tests)
 ```
 Логика растений общая с игрой: `npm run sync:shared` копирует её в `supabase/functions/_shared/game`.
+
+## Реклама за награду (Adsgram)
+
+1. Зарегистрируйся на [adsgram.ai](https://adsgram.ai), добавь платформу Telegram Mini App (бот),
+   создай блок **Rewarded video**.
+2. GitHub → Settings → Secrets and variables → Actions → **Variables**: `VITE_ADSGRAM_BLOCK` = номер блока.
+3. Перезапусти «Сборка и публикация».
+
+Появится «🎬 Ролик за награду» в магазине (+20 🍃, до 5 в день) и «Ролик — и корни сразу» у черенка.
+
+## Аналитика
+
+Игра отправляет на сервер короткие события (вход, вкладки, покупки, подарки, ивенты) —
+без личных данных. Сводка: напиши боту **/stats** (работает только для `TG_ADMIN_ID`):
+игроки, новые, DAU/WAU/MAU, удержание D1/D7, звёзды за 7 и 30 дней, платформы, топ событий.
+Сырые данные — таблица `analytics_events` в Supabase.
+
+## Discord Activity
+
+1. [discord.com/developers](https://discord.com/developers/applications) → New Application.
+2. **OAuth2**: скопируй Client ID и Client Secret; добавь Redirect `https://127.0.0.1`.
+3. **Activities → URL Mappings**:
+   - `/` → `el188el.github.io/podokonnik`
+   - `/sb` → `<SUPABASE_PROJECT_REF>.supabase.co/functions/v1`
+4. **Activities → Settings**: включи Activities.
+5. GitHub → Variables: `VITE_DISCORD_CLIENT_ID`; Secrets: `DISCORD_CLIENT_SECRET`.
+6. Перезапусти «Сервер (Supabase и бот)» и «Сборка и публикация».
+
+В Discord игра открывается в голосовом канале, вход — по аккаунту Discord, «Пригласить друга» —
+окно приглашения Discord. Покупки за звёзды там недоступны.
+
+## Android
+
+См. [docs/MOBILE.md](docs/MOBILE.md): APK для проверки, подпись и публикация в RuStore / Google Play.

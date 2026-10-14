@@ -78,6 +78,20 @@ async function handle(u: Update) {
       if (ADMIN) await send(ADMIN, `🆘 Поддержка от ${m.from?.first_name ?? ''} (@${m.from?.username ?? '-'}, id ${m.chat.id}):\n${text.slice(0, 1000).replace(/</g, '&lt;')}`);
       await send(m.chat.id, 'Спасибо! Мы получили сообщение и ответим здесь, в этом чате 🌿');
     }
+  } else if (cmd === '/stats' && ADMIN && m.chat.id === ADMIN) {
+    const { data } = await db.rpc('admin_stats');
+    const st = (data ?? {}) as Record<string, unknown>;
+    const obj = (o: unknown) => Object.entries((o ?? {}) as Record<string, number>).map(([k, v]) => `${k}: ${v}`).join(', ') || '—';
+    await send(m.chat.id, [
+      '📊 <b>Подоконник</b>',
+      `Игроков: <b>${st.players}</b> (сегодня +${st.new_today}, за неделю +${st.new_7d})`,
+      `Активные: день ${st.dau} · неделя ${st.wau} · месяц ${st.mau}`,
+      `Удержание: D1 ${st.d1 ?? '—'}% · D7 ${st.d7 ?? '—'}%`,
+      `Звёзды: 7 дней ${st.stars_7d} ⭐ · 30 дней ${st.stars_30d} ⭐ · покупателей ${st.buyers_30d}`,
+      `Садовник+: ${st.plus_active}`,
+      `Платформы: ${obj(st.platforms)}`,
+      `События за неделю: ${obj(st.top_events)}`,
+    ].join('\n'));
   } else if (cmd === '/terms') {
     await send(m.chat.id, TERMS);
   } else if (cmd === '/help') {

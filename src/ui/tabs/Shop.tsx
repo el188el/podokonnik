@@ -5,7 +5,8 @@ import { DIFFICULTY_LABEL, SPECIES } from '../../game/species';
 import { FORM_BY_ID, PRODUCTS } from '../../game/products';
 import { fmt } from '../../game/sim';
 import { activeEvent } from '../../game/events';
-import { buyItem, buySpecies, buyStars, isPlus, now, openSheet, unlockSill, useStore } from '../../game/store';
+import { adsLeft, buyItem, buySpecies, buyStars, isPlus, now, openSheet, unlockSill, useStore, watchAd } from '../../game/store';
+import { adsAvailable } from '../../net/ads';
 import { tgAppLink } from '../../config';
 import { platform } from '../../platform';
 import { PlantArt } from '../art/PlantArt';
@@ -181,6 +182,14 @@ function StarsShop() {
           );
         })}
       </div>
+
+      {adsAvailable() && (
+        <div className="row-item ad-row">
+          <div className="ricon">🎬</div>
+          <div className="rtext"><b>Ролик за награду</b><span className="muted small">Короткое видео — и +20 🍃. Осталось сегодня: {adsLeft(g)}</span></div>
+          <Btn small kind="primary" disabled={adsLeft(g) <= 0 || busy === 'ad'} onClick={async () => { setBusy('ad'); await watchAd({ kind: 'leaves' }); setBusy(''); }}>Смотреть</Btn>
+        </div>
+      )}
 
       <h3>🍃 Листики</h3>
       <div className="list">

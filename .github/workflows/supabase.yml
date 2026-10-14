@@ -53,11 +53,15 @@ jobs:
       - name: Секреты функций
         env:
           TG_ADMIN_ID: ${{ vars.TG_ADMIN_ID }}
+          DISCORD_CLIENT_ID: ${{ vars.VITE_DISCORD_CLIENT_ID }}
+          DISCORD_CLIENT_SECRET: ${{ secrets.DISCORD_CLIENT_SECRET }}
         run: |
           set -- TELEGRAM_BOT_TOKEN="$BOT_TOKEN" SITE_URL="$SITE_URL"
           [ -n "$TG_BOT" ] && set -- "$@" TG_BOT="$TG_BOT"
           [ -n "$TG_APP" ] && set -- "$@" TG_APP="$TG_APP"
           [ -n "$TG_ADMIN_ID" ] && set -- "$@" TG_ADMIN_ID="$TG_ADMIN_ID"
+          [ -n "$DISCORD_CLIENT_ID" ] && set -- "$@" DISCORD_CLIENT_ID="$DISCORD_CLIENT_ID"
+          [ -n "$DISCORD_CLIENT_SECRET" ] && set -- "$@" DISCORD_CLIENT_SECRET="$DISCORD_CLIENT_SECRET"
           supabase secrets set --project-ref "$REF" "$@"
 
       - name: Функции

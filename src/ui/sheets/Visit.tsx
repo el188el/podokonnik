@@ -4,6 +4,7 @@ import { SLOTS } from '../../game/constants';
 import type { PublicView } from '../../game/social';
 import { closeSheet, pushNow, toast } from '../../game/store';
 import * as api from '../../net/api';
+import { track } from '../../net/track';
 import { platform } from '../../platform';
 import { PlantArt } from '../art/PlantArt';
 import { Btn } from '../kit/kit';
@@ -39,6 +40,7 @@ export function Visit({ id, name }: { id: string; name: string }) {
     try {
       const r = await api.visitWater(id, plantId);
       if (r.status === 'ok') {
+        track('friend_water', {});
         setLeft(r.watersLeft ?? left - 1);
         toast(`💧 Полито! ${view.name} будет рад(а)`);
         pushNow(); // заодно заберём награду +5 🍃

@@ -1,5 +1,7 @@
 import { create } from 'zustand';
 import * as api from '../net/api';
+import { ADS_PER_DAY, showRewardedAd } from '../net/ads';
+import { track } from '../net/track';
 import { platform } from '../platform';
 import { ACHIEVEMENTS, checkAchievements } from './achievements';
 import { D, FEED_MS, H, MAX_CUTTINGS, MIST_MS, NEIGHBOR_COOLDOWN, NEIGHBOR_FREE_DAYS, SLOTS, STAGE_NAME } from './constants';
@@ -56,7 +58,11 @@ interface Store {
   toasts: Toast[];
   flash: Record<string, { text: string; until: number }>;
   fx: Record<string, { kind: 'water' | 'mist' | 'grow' | 'feed'; at: number }>;
+  tool: Tool;
 }
+
+/** Инструмент в руке: что произойдёт по тапу на растение. */
+export type Tool = 'water' | 'mist' | 'feed' | 'cut' | 'look';
 
 const initial = newState(Date.now());
 export const useStore = create<Store>(() => ({
@@ -68,6 +74,7 @@ export const useStore = create<Store>(() => ({
   toasts: [],
   flash: {},
   fx: {},
+  tool: 'water',
 }));
 
 const get = () => useStore.getState();
@@ -98,7 +105,8 @@ export const popup = (p: Popup) => set((s) => ({ popups: [...s.popups, p] }));
 export const closePopup = () => set((s) => ({ popups: s.popups.slice(1) }));
 export const openSheet = (sheet: Sheet) => set({ sheet });
 export const closeSheet = () => set({ sheet: null });
-export const setTab = (tab: Tab) => set({ tab, sheet: null });
+export const setTab = (tab: Tab) => { set({ tab, sheet: null }); track('tab_open', { tab }); };
+export const setTool = (tool: Tool) => set({ tool });
 
 const haptic = (k: Parameters<ReturnType<typeof platform>['haptic']>[0]) => {
   if (get().game.settings.haptics) platform().haptic(k);
@@ -123,6 +131,7 @@ function addXp(g: GameState, n: number) {
     const reward = levelReward(g.level);
     g.leaves += reward;
     popup({ kind: 'level', level: g.level, reward, unlocks: unlocksAt(g.level) });
+    track('level_up', { level: g.level });
   }
 }
 
@@ -206,6 +215,7 @@ export function saveNow() {
   g.lastSeen = now();
   const savedAt = saveLocal(g);
   schedulePush();
+  if (platform().kind === 'native') import('../platform/native').then((m) => m.scheduleReminders(get().game, now())).catch(() => {});
   const cloud = platform().cloud;
   if (!cloud) return;
   const wait = Math.max(0, 15e3 - (Date.now() - lastCloud));
@@ -345,8 +355,10 @@ export async function buyStars(productId: string): Promise<boolean> {
     return false;
   }
   try {
+    track('purchase_open', { product: productId });
     const link = await api.payInvoice(productId);
     const st = await pf.pay(link);
+    track('purchase_result', { product: productId, status: st });
     if (st === 'paid' || st === 'pending') {
       toast(st === 'paid' ? 'Оплата прошла! Покупка уже в пути ✨' : 'Ждём подтверждения оплаты…');
       for (const ms of [1500, 4000, 9000, 20000]) setTimeout(() => pushNow(), ms);
@@ -535,6 +547,7 @@ export function plantInPot(plantId: string) {
     p.moisture = 1;
     p.health = 100;
     g.stats.planted += 1;
+    track('plant_in_pot', { sp: p.sp, n: g.stats.planted });
     addXp(g, XP.plant);
     eventToken(g, 'plant', t);
     quest(g, 'plant');
@@ -574,11 +587,16 @@ export function swap(plantId: string, sill: string, slot: number) {
   });
 }
 
-export function mist(plantId: string) {
+export function mist(plantId: string, insist = true) {
   return mut((g, t) => {
     const p = findPlant(g, plantId);
     if (!p || p.stage < 2) return false;
     const s = sp(p.sp);
+    if (s.mist === 'no' && !insist) {
+      say(p.id, 'Меня нельзя опрыскивать! 🙅', 2600);
+      haptic('warning');
+      return false;
+    }
     if (s.mist === 'no') {
       p.health = Math.max(5, p.health - 10);
       say(p.id, 'Ай! Пятна на листьях 😣');
@@ -599,12 +617,12 @@ export function mist(plantId: string) {
   });
 }
 
-export function feed(plantId: string) {
-  mut((g, t) => {
+export function feed(plantId: string): boolean {
+  return mut((g, t) => {
     const p = findPlant(g, plantId);
-    if (!p || p.stage < 2) return;
+    if (!p || p.stage < 2) return false;
     if ((g.owned.feed ?? 0) <= 0) {
-      if (g.leaves < ITEM_BY_ID.feed.price) { toast('Не хватает листиков на подкормку 🍃'); return; }
+      if (g.leaves < ITEM_BY_ID.feed.price) { toast('Не хватает листиков на подкормку 🍃'); return false; }
       g.leaves -= ITEM_BY_ID.feed.price;
     } else g.owned.feed -= 1;
     p.feedUntil = Math.max(t, p.feedUntil ?? 0) + FEED_MS;
@@ -612,6 +630,7 @@ export function feed(plantId: string) {
     quest(g, 'feed');
     fx(p.id, 'feed');
     toast('Подкормлено! Сутки растёт в 1,5 раза быстрее 🧪');
+    return true;
   });
 }
 
@@ -682,6 +701,7 @@ export function giftCutting(cuttingId: string, from: string, note: number) {
     g.cuttings = g.cuttings.filter((x) => x.id !== cuttingId);
     g.sent.push({ code: gift.code, sp: c.sp, at: t });
     g.stats.giftsSent += 1;
+    track('gift_sent', { sp: c.sp });
     addXp(g, XP.giftSent);
     eventToken(g, 'gift', t);
     quest(g, 'gift');
@@ -733,6 +753,7 @@ export function claimGift(gift: PendingGift): 'ok' | 'dup' | 'full' {
     g.received.push(gift.code);
     g.pending = g.pending.filter((x) => x.code !== gift.code);
     g.stats.giftsGot += 1;
+    track('gift_claimed', { sp: gift.sp });
     g.activeSill = place.sill;
     discover(g, gift.sp);
     addXp(g, XP.giftGot);
@@ -754,6 +775,7 @@ export function buyItem(id: string) {
     const ids = it.pack ?? [id];
     for (const x of ids) g.owned[x] = (g.owned[x] ?? 0) + 1;
     g.stats.bought += 1;
+    track('buy_item', { item: id });
     quest(g, 'buy');
     haptic('success');
     if (it.cat === 'decor' || it.pack) {
@@ -990,6 +1012,7 @@ export function claimTier(i: number, premium: boolean) {
     const list = premium ? st.prem : st.free;
     if (list.includes(i) || (premium && !st.premium)) return;
     list.push(i);
+    track('event_claim', { event: e.id, tier: i + 1, premium });
     const r = (premium ? e.premium : e.free)[i];
     giveReward(g, r, t);
     haptic('success');
@@ -1002,6 +1025,7 @@ export function addTwin(spId: string, nick: string, every: number) {
   mut((g, t) => {
     g.twins = [...(g.twins ?? []), { id: makeCode(8), sp: spId, nick: nick.trim().slice(0, 20) || sp(spId).name, every: Math.max(1, Math.min(30, every)), createdAt: t, waters: 0, streak: 0, notify: true }];
     discover(g, spId);
+    track('twin_add', { sp: spId });
     toast('Двойник создан! Отмечай полив настоящего растения — и он будет расти здесь 🏠');
   });
 }
@@ -1059,4 +1083,42 @@ function grantTester(g: GameState, t: number) {
     st.tokens = Math.max(st.tokens, e.tiers[e.tiers.length - 1]);
   }
   toast('🧪 Тестовый режим: Садовник+ на год, 5000 🍃, 12 уровень, весь декор, все редкие формы и пропуск ивента');
+}
+
+/** Полить всех на подоконнике, у кого подсохла земля. */
+export function waterAll(sillId: string) {
+  const ids = get().game.plants.filter((p) => p.sill === sillId && p.stage >= 2 && p.moisture < 0.5).map((p) => p.id);
+  for (const id of ids) water(id);
+  if (ids.length) toast(`💧 Полито растений: ${ids.length}`);
+  return ids.length;
+}
+
+// ─────────────────── ролики за награду ───────────────────
+export function adsLeft(g: GameState, t = now()) {
+  const day = new Date(t).toDateString();
+  return g.ads?.day === day ? Math.max(0, ADS_PER_DAY - g.ads.count) : ADS_PER_DAY;
+}
+
+/** Посмотреть ролик за награду: листики или мгновенные корни у черенка. */
+export async function watchAd(reward: { kind: 'leaves' } | { kind: 'root'; plant: string }) {
+  if (adsLeft(get().game) <= 0) { toast('На сегодня ролики закончились — приходи завтра 🌙'); return false; }
+  track('ad_open', { reward: reward.kind });
+  const ok = await showRewardedAd();
+  if (!ok) { toast('Ролик не досмотрен — награды нет'); return false; }
+  track('ad_watched', { reward: reward.kind });
+  mut((g, t) => {
+    const day = new Date(t).toDateString();
+    g.ads = g.ads?.day === day ? { day, count: g.ads.count + 1 } : { day, count: 1 };
+    if (reward.kind === 'leaves') {
+      g.leaves += 20;
+      toast('Спасибо, что посмотрел(а)! +20 🍃');
+    } else {
+      const p = findPlant(g, reward.plant);
+      if (p && p.stage === 0) {
+        p.rootStart = t - 24 * H;
+        toast('🌱 Корни выросли мгновенно!');
+      }
+    }
+  });
+  return true;
 }

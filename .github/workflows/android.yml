@@ -1,0 +1,67 @@
+name: Android-приложение
+
+# Запуск вручную: Actions → «Android-приложение» → Run workflow.
+# Всегда собирает APK для проверки на телефоне; если заданы секреты ключа —
+# ещё и подписанный AAB для RuStore / Google Play (см. docs/MOBILE.md).
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Версия (например 1.0.1)'
+        required: false
+        default: '1.0.0'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    env:
+      HAS_KEY: ${{ secrets.ANDROID_KEYSTORE_BASE64 != '' }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+      - run: npm ci
+      - run: npm run build
+        env:
+          VITE_SITE_URL: ${{ vars.VITE_SITE_URL }}
+          VITE_TG_BOT: ${{ vars.VITE_TG_BOT }}
+          VITE_TG_APP: ${{ vars.VITE_TG_APP }}
+          VITE_API_URL: ${{ vars.SUPABASE_PROJECT_REF && format('https://{0}.supabase.co/functions/v1', vars.SUPABASE_PROJECT_REF) || '' }}
+      - run: npx cap sync android
+      - name: Номер версии
+        run: |
+          V="${{ github.event.inputs.version || '1.0.0' }}"
+          sed -i "s/versionName \".*\"/versionName \"$V\"/; s/versionCode [0-9]*/versionCode ${{ github.run_number }}/" android/app/build.gradle
+      - name: APK для проверки
+        working-directory: android
+        run: ./gradlew assembleDebug --no-daemon
+      - uses: actions/upload-artifact@v4
+        with:
+          name: podokonnik-debug-apk
+          path: android/app/build/outputs/apk/debug/*.apk
+      - name: Подписанный AAB для магазинов
+        if: env.HAS_KEY == 'true'
+        env:
+          KEYSTORE: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        working-directory: android
+        run: |
+          echo "$KEYSTORE" | base64 -d > "$RUNNER_TEMP/release.jks"
+          export ANDROID_KEYSTORE_PATH="$RUNNER_TEMP/release.jks"
+          ./gradlew bundleRelease assembleRelease --no-daemon
+      - uses: actions/upload-artifact@v4
+        if: env.HAS_KEY == 'true'
+        with:
+          name: podokonnik-release
+          path: |
+            android/app/build/outputs/bundle/release/*.aab
+            android/app/build/outputs/apk/release/*.apk

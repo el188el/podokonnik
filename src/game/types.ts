@@ -180,6 +180,7 @@ export interface GameState {
   plusUntil?: number;   // «Садовник+» активен до
   events?: Record<string, EventProgress>; // прогресс ивентов по сезонам (autumn-2026)
   twins?: Twin[];       // двойники настоящих растений
+  ads?: { day: string; count: number }; // ролики за награду сегодня
   forms?: string[];     // собранные редкие формы
   tutorial: number;
 }

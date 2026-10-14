@@ -3,7 +3,7 @@ import { SLOTS, WINDOWS, ZONE_NAME } from '../../game/constants';
 import { activeEvent, eventSeason, tierOf } from '../../game/events';
 import { isWinter, seasonName, fmt } from '../../game/sim';
 import { sp } from '../../game/species';
-import { now, openSheet, plantAt, setActiveSill, showGift, useStore } from '../../game/store';
+import { now, openSheet, plantAt, setActiveSill, setTool, showGift, useStore, waterAll, type Tool } from '../../game/store';
 import type { GameState } from '../../game/types';
 import { PlantArt } from '../art/PlantArt';
 import { Slot } from '../Slot';
@@ -138,6 +138,8 @@ export function SillView() {
         </div>
       </div>
 
+      <Toolbar sill={sill.id} />
+
       <p className="legend">☀️ Верхний ряд — {ZONE_NAME.glass} · 🛋 нижний — {ZONE_NAME.deep}</p>
 
       {g.cuttings.length > 0 && (
@@ -153,6 +155,44 @@ export function SillView() {
           </div>
         </div>
       )}
+    </div>
+  );
+}
+
+const TOOLS: [Tool, string, string][] = [
+  ['water', '💧', 'Лейка'],
+  ['mist', '💦', 'Опрыскать'],
+  ['feed', '🧪', 'Подкормка'],
+  ['cut', '✂️', 'Черенок'],
+  ['look', '🔍', 'Осмотр'],
+];
+
+function Toolbar({ sill }: { sill: string }) {
+  const tool = useStore((s) => s.tool);
+  const g = useStore((s) => s.game);
+  const potted = g.plants.filter((p) => p.sill === sill && p.stage >= 2);
+  if (!potted.length) return null;
+  const thirsty = potted.filter((p) => p.moisture < 0.5).length;
+  return (
+    <div className="toolbar">
+      <div className="tools">
+        {TOOLS.map(([k, icon, label]) => (
+          <button key={k} className={'tool' + (tool === k ? ' on' : '')} onClick={() => setTool(k)} aria-pressed={tool === k}>
+            <span>{icon}</span>
+            <small>{k === 'feed' ? `${label} ${g.owned.feed ?? 0}` : label}</small>
+          </button>
+        ))}
+      </div>
+      {thirsty >= 2 && (
+        <button className="water-all" onClick={() => waterAll(sill)}>💧 Полить всех, кто хочет пить ({thirsty})</button>
+      )}
+      <p className="tool-hint">
+        {tool === 'water' && 'Тап — полить. Долгий тап — карточка, потяни — переставить'}
+        {tool === 'mist' && 'Тап — опрыскать. Не все растения это любят!'}
+        {tool === 'feed' && 'Тап — подкормить: сутки растёт в 1,5 раза быстрее'}
+        {tool === 'cut' && 'Тап по взрослому растению — взять черенок'}
+        {tool === 'look' && 'Тап — открыть карточку растения'}
+      </p>
     </div>
   );
 }

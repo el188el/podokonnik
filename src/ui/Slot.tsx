@@ -4,7 +4,8 @@ import { STAGE_NAME } from '../game/constants';
 import { canCut, cramped, ctxFor, fmt, isSad, isLightSad, isThirstySad, lightBad, nextStageAt, rootsAt } from '../game/sim';
 import { SHOWOFF_MS } from '../game/constants';
 import { sp } from '../game/species';
-import { move, now, openSheet, plantInPot, say, swap, useStore, water } from '../game/store';
+import { feed, mist, move, now, openSheet, plantInPot, say, swap, takeCutting, toast, useStore, water } from '../game/store';
+import { canCut as canCutNow } from '../game/sim';
 import type { Plant, Zone } from '../game/types';
 import { PlantArt } from './art/PlantArt';
 
@@ -81,10 +82,27 @@ export function Slot({ plant: p, sill, slot }: { plant: Plant; sill: string; slo
   function tap() {
     if (p.stage === 1) return plantInPot(p.id);
     if (p.stage === 0 && p.rootStart) return say(p.id, 'Пускаю корни… 🌱', 1600);
-    const insist = Date.now() - (lastEnough[p.id] ?? 0) < 1800;
-    const r = water(p.id, insist);
+    const tool = useStore.getState().tool;
+    if (tool === 'look') return openSheet({ kind: 'card', plant: p.id });
+    if (p.stage === 0) return water(p.id); // в стакан можно только налить воды
+    const again = Date.now() - (lastEnough[p.id] ?? 0) < 1800;
+    if (tool === 'mist') {
+      const ok = mist(p.id, again);
+      if (!ok && sp(p.sp).mist === 'no' && !again) lastEnough[p.id] = Date.now();
+      else delete lastEnough[p.id];
+      return;
+    }
+    if (tool === 'feed') return feed(p.id);
+    if (tool === 'cut') {
+      if (!canCutNow(p, now())) return say(p.id, p.stage < 4 ? 'Я ещё маленькое ✂️' : 'Черенок пока не готов', 1800);
+      const c = takeCutting(p.id);
+      if (c) openSheet({ kind: 'send', cutting: c });
+      return;
+    }
+    const r = water(p.id, again);
     if (r === 'enough') lastEnough[p.id] = Date.now();
     else delete lastEnough[p.id];
+    if (r === 'enough' && !again) toast('Земля ещё влажная. Тапни ещё раз, если всё равно хочешь полить');
   }
 
   return (
@@ -185,7 +203,12 @@ export function Slot({ plant: p, sill, slot }: { plant: Plant; sill: string; slo
         </div>
       )}
       <div className="label">
-        <b>{p.from ? '🎁 ' : ''}{p.nick || s.name}</b>
+        {p.stage >= 2 && (
+          <i className="meter" title="влажность">
+            <i style={{ width: `${Math.min(100, p.moisture * 100)}%`, background: p.moisture > 1 ? '#d9822b' : p.moisture < 0.25 ? '#e0574f' : '#4aa3df' }} />
+          </i>
+        )}
+        <b>{p.from ? '🎁 ' : ''}{p.form ? '✨ ' : ''}{p.nick || s.name}</b>
         <span>{etaFor(p, t)}</span>
       </div>
     </div>

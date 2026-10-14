@@ -35,6 +35,12 @@ export interface Platform {
   cloud: CloudStore | null;
   /** Оплата счёта (Telegram Stars). В браузере недоступна. */
   pay(url: string): Promise<PayResult>;
+  /** Код входа Discord (обменивается на сервере). */
+  authCode?: string;
+  /** Вызывается после входа на сервер (Discord: авторизовать SDK токеном). */
+  afterLogin?(r: { discordToken?: string }): void;
+  /** Позвать друзей в игру средствами платформы (Discord: окно приглашения). */
+  invite?(): Promise<boolean>;
 }
 
 export type PayResult = 'paid' | 'cancelled' | 'failed' | 'pending' | 'unsupported';
@@ -179,7 +185,7 @@ function telegram(tg: TgWebApp): Platform {
 }
 
 // ─────────────────── Веб / Discord / нативное ───────────────────
-function web(kind: PlatformKind): Platform {
+export function web(kind: PlatformKind): Platform {
   const q = new URLSearchParams(location.search);
   return {
     kind,
@@ -204,6 +210,12 @@ function web(kind: PlatformKind): Platform {
 }
 
 let current: Platform | null = null;
+export const setPlatform = (p: Platform) => { current = p; };
+export const inDiscord = () => {
+  const q = new URLSearchParams(location.search);
+  return q.has('frame_id') && q.has('instance_id');
+};
+export const inNative = () => !!window.Capacitor?.isNativePlatform?.();
 
 export function initPlatform(): Platform {
   if (current) return current;
@@ -211,7 +223,7 @@ export function initPlatform(): Platform {
   const q = new URLSearchParams(location.search);
   if (tg && tg.initData) current = telegram(tg);
   // Discord Activity запускается в iframe с frame_id; SDK подключим, когда будет client_id приложения.
-  else if (q.has('frame_id') && q.has('instance_id')) current = web('discord');
+  else if (q.has('frame_id') && q.has('instance_id')) current = web('discord'); // настоящий — в initDiscord()
   else if (window.Capacitor?.isNativePlatform?.()) current = web('native');
   else current = web('web');
   return current;

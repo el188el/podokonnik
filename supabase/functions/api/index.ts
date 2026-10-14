@@ -3,7 +3,7 @@
 
 import { verifyInitData, signSession, verifySession } from '../_shared/crypto.ts';
 import { db } from '../_shared/db.ts';
-import { BOT_TOKEN, appLink, secret } from '../_shared/env.ts';
+import { BOT_TOKEN, appLink, env, secret } from '../_shared/env.ts';
 import { publicView, thirstyCount, VISIT_DAY_LIMIT, VISIT_HOST_LIMIT, VISIT_REWARD, type FriendWater } from '../_shared/game/social.ts';
 import { sp as species } from '../_shared/game/species.ts';
 import type { GameState } from '../_shared/game/types.ts';
@@ -51,6 +51,28 @@ async function linkReferrer(playerId: string, referrer: string, newName: string)
   }
 }
 
+/** Discord Activity: обмен кода авторизации на токен и профиль. */
+async function discordLogin(code: string): Promise<{ id: string; name: string; accessToken: string } | null> {
+  const clientId = env('DISCORD_CLIENT_ID');
+  const secret = env('DISCORD_CLIENT_SECRET');
+  if (!clientId || !secret) return null;
+  try {
+    const r = await fetch('https://discord.com/api/oauth2/token', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: new URLSearchParams({ client_id: clientId, client_secret: secret, grant_type: 'authorization_code', code }),
+    });
+    const tok = await r.json();
+    if (!tok.access_token) return null;
+    const u = await (await fetch('https://discord.com/api/users/@me', { headers: { Authorization: `Bearer ${tok.access_token}` } })).json();
+    if (!u.id) return null;
+    return { id: String(u.id), name: String(u.global_name || u.username || 'Садовник').slice(0, 48), accessToken: tok.access_token };
+  } catch (e) {
+    console.warn('discord', e);
+    return null;
+  }
+}
+
 async function auth(b: Body) {
   const tz = Number.isFinite(Number(b.tz)) ? Math.max(-720, Math.min(840, Math.round(Number(b.tz)))) : 180;
   let playerId: string;
@@ -59,7 +81,25 @@ async function auth(b: Body) {
   let start = str(b.start, 512);
 
   const initData = str(b.initData, 4096);
-  if (initData) {
+  const discordCode = str(b.discordCode, 256);
+  const platform = ['telegram', 'web', 'discord', 'native'].includes(str(b.platform, 16)) ? str(b.platform, 16) : null;
+  let discordToken: string | undefined;
+  if (discordCode) {
+    const d = await discordLogin(discordCode);
+    if (!d) return fail('bad_discord_code', 401);
+    discordToken = d.accessToken;
+    name = d.name;
+    const { data: ex } = await db.from('players').select('id').eq('discord_id', d.id).maybeSingle();
+    if (ex) {
+      playerId = ex.id;
+      await db.from('players').update({ name, tz_offset: tz, last_seen: new Date().toISOString(), platform }).eq('id', playerId);
+    } else {
+      const { data, error } = await db.from('players').insert({ discord_id: d.id, name, tz_offset: tz, platform }).select('id').single();
+      if (error) return fail('db', 500);
+      playerId = data.id;
+      isNew = true;
+    }
+  } else if (initData) {
     const v = await verifyInitData(initData, BOT_TOKEN);
     if (!v) return fail('bad_init_data', 401);
     start = v.startParam ?? start;
@@ -67,9 +107,9 @@ async function auth(b: Body) {
     const { data: ex } = await db.from('players').select('id').eq('tg_id', v.user.id).maybeSingle();
     if (ex) {
       playerId = ex.id;
-      await db.from('players').update({ name, username: v.user.username ?? null, tz_offset: tz, last_seen: new Date().toISOString() }).eq('id', playerId);
+      await db.from('players').update({ name, username: v.user.username ?? null, tz_offset: tz, last_seen: new Date().toISOString(), platform }).eq('id', playerId);
     } else {
-      const { data, error } = await db.from('players').insert({ tg_id: v.user.id, name, username: v.user.username ?? null, tz_offset: tz }).select('id').single();
+      const { data, error } = await db.from('players').insert({ tg_id: v.user.id, name, username: v.user.username ?? null, tz_offset: tz, platform }).select('id').single();
       if (error) return fail('db', 500);
       playerId = data.id;
       isNew = true;
@@ -81,9 +121,9 @@ async function auth(b: Body) {
     const { data: ex } = await db.from('players').select('id').eq('device_id', deviceId).maybeSingle();
     if (ex) {
       playerId = ex.id;
-      await db.from('players').update({ tz_offset: tz, last_seen: new Date().toISOString() }).eq('id', playerId);
+      await db.from('players').update({ tz_offset: tz, last_seen: new Date().toISOString(), platform }).eq('id', playerId);
     } else {
-      const { data, error } = await db.from('players').insert({ device_id: deviceId, name, tz_offset: tz }).select('id').single();
+      const { data, error } = await db.from('players').insert({ device_id: deviceId, name, tz_offset: tz, platform }).select('id').single();
       if (error) return fail('db', 500);
       playerId = data.id;
       isNew = true;
@@ -103,6 +143,7 @@ async function auth(b: Body) {
     save: await loadSave(playerId),
     inbox: await pendingInbox(playerId),
     plusUntil: await plusUntil(playerId),
+    ...(discordToken ? { discordToken } : {}),
   });
 }
 
@@ -277,6 +318,22 @@ async function visitWater(playerId: string, b: Body) {
   return json({ status: 'ok', watersLeft: await visitsLeft(playerId, host) });
 }
 
+// ─────────────────── аналитика ───────────────────
+async function trackEvents(playerId: string, b: Body) {
+  const list = Array.isArray(b.events) ? b.events.slice(0, 50) : [];
+  const now = Date.now();
+  const rows = list
+    .filter((e): e is { name: string; props?: Record<string, unknown>; at?: number } => !!e && typeof (e as { name?: unknown }).name === 'string')
+    .filter((e) => /^[a-z_]{2,40}$/.test(e.name))
+    .map((e) => {
+      const at = Number(e.at);
+      const props = e.props && typeof e.props === 'object' && JSON.stringify(e.props).length < 500 ? e.props : {};
+      return { player_id: playerId, name: e.name, props, at: new Date(Number.isFinite(at) && Math.abs(now - at) < 7 * 86400e3 ? at : now).toISOString() };
+    });
+  if (rows.length) await db.from('analytics_events').insert(rows);
+  return json({ ok: true, n: rows.length });
+}
+
 // ─────────────────── оплата ───────────────────
 async function payInvoice(playerId: string, b: Body) {
   const product = PRODUCT_BY_ID[str(b.product, 40)];
@@ -311,6 +368,7 @@ Deno.serve(async (req) => {
       case '/visit': return await visit(playerId, body);
       case '/visit/water': return await visitWater(playerId, body);
       case '/pay/invoice': return await payInvoice(playerId, body);
+      case '/track': return await trackEvents(playerId, body);
       default: return fail('not_found', 404);
     }
   } catch (e) {

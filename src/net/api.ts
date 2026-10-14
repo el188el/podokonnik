@@ -80,10 +80,12 @@ async function call<T>(path: string, body: unknown, opts: { auth?: boolean; keep
 /** Вход: в Telegram — по подписанным initData, в браузере — как гость по id устройства. */
 export async function login(name: string): Promise<{ save: ServerSave | null; inbox: InboxItem[] }> {
   const pf = platform();
-  const r = await call<{ token: string; playerId: string; save: ServerSave | null; inbox: InboxItem[] }>(
+  const r = await call<{ token: string; playerId: string; save: ServerSave | null; inbox: InboxItem[]; discordToken?: string }>(
     '/auth',
     {
       initData: pf.kind === 'telegram' ? pf.initData : undefined,
+      discordCode: pf.authCode,
+      platform: pf.kind,
       deviceId: net.deviceId,
       name,
       tz: -new Date().getTimezoneOffset(),
@@ -94,6 +96,7 @@ export async function login(name: string): Promise<{ save: ServerSave | null; in
   net.token = r.token;
   net.playerId = r.playerId;
   saveNet();
+  pf.afterLogin?.(r);
   return { save: r.save, inbox: r.inbox ?? [] };
 }
 
@@ -165,4 +168,15 @@ export async function visit(id: string): Promise<{ view: PublicView | null; wate
 
 export async function visitWater(id: string, plantId: string): Promise<{ status: 'ok' | 'limit' | 'not_needed'; watersLeft?: number }> {
   return call('/visit/water', { id, plantId });
+}
+
+/** Отправить пачку событий аналитики. */
+export async function postTrack(events: unknown[], keepalive = false): Promise<boolean> {
+  if (!net.token) return false;
+  try {
+    await call('/track', { events }, { keepalive });
+    return true;
+  } catch {
+    return false;
+  }
 }

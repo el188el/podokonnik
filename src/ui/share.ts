@@ -46,6 +46,7 @@ export async function shareVacation(name: string) {
 }
 
 export async function shareInvite() {
+  if (platform().invite && (await platform().invite!())) return;
   const r = await platform().share({ text: 'Я выращиваю растения на подоконнике 🌿 Заходи — дадут бонус на первые черенки!', url: inviteLink() });
   report(r);
 }

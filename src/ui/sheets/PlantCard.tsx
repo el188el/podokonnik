@@ -5,8 +5,9 @@ import { POTS } from '../../game/shop';
 import { canCut, cramped, ctxFor, cutLeft, fmt, isSad, isThirstySad, lightLevel, need, nextStageAt, stageProgress } from '../../game/sim';
 import { DIFFICULTY_LABEL, sp } from '../../game/species';
 import {
-  closeSheet, feed, mist, move, now, openSheet, ownsPot, plantInPot, removePlant, renamePlant, repot, setPot, takeCutting, toast, useStore, water,
+  adsLeft, closeSheet, feed, mist, watchAd, move, now, openSheet, ownsPot, plantInPot, removePlant, renamePlant, repot, setPot, takeCutting, toast, useStore, water,
 } from '../../game/store';
+import { adsAvailable } from '../../net/ads';
 import { PlantArt } from '../art/PlantArt';
 import { Bar, Btn } from '../kit/kit';
 import { shareShowoff, shareThanks } from '../share';
@@ -18,7 +19,31 @@ export function PlantCard({ id }: { id: string }) {
   const [sure, setSure] = useState(false);
   const [pots, setPots] = useState(false);
   const [editing, setEditing] = useState(false);
+  const [note, setNote] = useState<{ text: string; ask?: 'water' | 'mist' } | null>(null);
   if (!p) return null;
+  const neighbours = g.plants.filter((x) => x.sill === p.sill).sort((a, b) => a.slot - b.slot);
+  const idx = neighbours.findIndex((x) => x.id === p.id);
+  const go = (d: number) => {
+    const n = neighbours[(idx + d + neighbours.length) % neighbours.length];
+    setNote(null);
+    setSure(false);
+    openSheet({ kind: 'card', plant: n.id });
+  };
+  const doWater = (insist = false) => {
+    const before = p.moisture;
+    const r = water(p.id, insist);
+    if (r === 'watered') setNote({ text: `💧 Полито! Влажность ${Math.round(before * 100)}% → 100%` });
+    else if (r === 'enough') setNote({ text: `Земля ещё влажная (${Math.round(before * 100)}%). Растение пока не хочет пить.`, ask: 'water' });
+    else if (r === 'over') setNote({ text: '😵 Перелили. Теперь дай земле просохнуть.' });
+    else if (r === 'rooting') setNote({ text: '💧 Налили воды в стакан — черенок пускает корни.' });
+    else if (r === 'glass') setNote({ text: p.stage === 1 ? 'Корни уже есть — посади в горшок 🪴' : 'В стакане хватает воды.' });
+  };
+  const doMist = (insist = false) => {
+    const ok = mist(p.id, insist);
+    if (ok) setNote({ text: '💦 Опрыскано! 12 часов растёт быстрее.' });
+    else if (sp(p.sp).mist === 'no' && !insist) setNote({ text: `⚠️ ${sp(p.sp).mistTip}`, ask: 'mist' });
+    else setNote({ text: sp(p.sp).mistTip });
+  };
   const t = now();
   const s = sp(p.sp);
   const ctx = ctxFor(g, p, t);
@@ -31,6 +56,13 @@ export function PlantCard({ id }: { id: string }) {
 
   return (
     <div className="card">
+      {neighbours.length > 1 && (
+        <div className="card-nav">
+          <button onClick={() => go(-1)} aria-label="Предыдущее растение">‹</button>
+          <span className="muted small">{idx + 1} из {neighbours.length}</span>
+          <button onClick={() => go(1)} aria-label="Следующее растение">›</button>
+        </div>
+      )}
       <div className="card-head">
         <PlantArt sp={p.sp} form={p.form} stage={p.stage} seed={p.id} pot={p.pot} bigPot={p.bigPot} blooming={p.blooming} className={'big' + (isSad(p) ? ' sad' : '')} />
         <div>
@@ -68,7 +100,7 @@ export function PlantCard({ id }: { id: string }) {
         <div className="meters">
           <div>
             <span>💧 Влажность</span>
-            <Bar value={Math.min(1, p.moisture)} color={p.moisture > 1 ? '#d9822b' : '#4aa3df'} />
+            <Bar value={Math.min(1, p.moisture)} color={p.moisture > 1 ? '#d9822b' : p.moisture < 0.25 ? '#e0574f' : '#4aa3df'} label={`${Math.round(p.moisture * 100)}%${p.moisture > 1 ? ' — перелив' : p.moisture < 0.25 ? ' — хочет пить' : p.moisture < 0.5 ? ' — можно поливать' : ''}`} />
           </div>
           <div>
             <span>❤️ Здоровье</span>
@@ -87,13 +119,23 @@ export function PlantCard({ id }: { id: string }) {
         </div>
       )}
 
+      {note && (
+        <div className="card-note">
+          <span>{note.text}</span>
+          {note.ask === 'water' && <Btn small kind="warn" onClick={() => doWater(true)}>Всё равно полить</Btn>}
+          {note.ask === 'mist' && <Btn small kind="warn" onClick={() => doMist(true)}>Всё равно опрыскать</Btn>}
+        </div>
+      )}
       <div className="actions">
         {p.stage === 1 && <Btn kind="primary" onClick={() => plantInPot(p.id)}>🪴 Посадить в горшок</Btn>}
-        {p.stage === 0 && !p.rootStart && <Btn kind="primary" onClick={() => water(p.id)}>💧 Налить воды в стакан</Btn>}
-        {potted && <Btn kind="primary" onClick={() => water(p.id)}>💧 Полить</Btn>}
-        {potted && <Btn onClick={() => mist(p.id)}>💦 Опрыскать</Btn>}
+        {p.stage === 0 && !p.rootStart && <Btn kind="primary" onClick={() => doWater()}>💧 Налить воды в стакан</Btn>}
+        {p.stage === 0 && !!p.rootStart && adsAvailable() && adsLeft(g) > 0 && (
+          <Btn kind="gold" onClick={() => watchAd({ kind: 'root', plant: p.id })}>🎬 Ролик — и корни сразу</Btn>
+        )}
+        {potted && <Btn kind={p.moisture < 0.5 ? 'primary' : 'soft'} onClick={() => doWater()}>💧 Полить</Btn>}
+        {potted && <Btn onClick={() => doMist()}>💦 Опрыскать</Btn>}
         <Btn onClick={() => move(p.id, p.zone === 'glass' ? 'deep' : 'glass')}>{p.zone === 'glass' ? '↓ В глубину' : '↑ К стеклу'}</Btn>
-        {potted && <Btn onClick={() => feed(p.id)}>🧪 Подкормить {(g.owned.feed ?? 0) > 0 ? `(${g.owned.feed})` : '· 15 🍃'}</Btn>}
+        {potted && <Btn onClick={() => { if (feed(p.id)) setNote({ text: '🧪 Подкормлено! Сутки растёт в 1,5 раза быстрее.' }); }}>🧪 Подкормить {(g.owned.feed ?? 0) > 0 ? `(${g.owned.feed})` : '· 15 🍃'}</Btn>}
       </div>
       <p className="muted small center">Сейчас: {ZONE_NAME[p.zone]}. {s.mist === 'love' ? s.mistTip : ''}</p>
 
