@@ -9,7 +9,8 @@
     "preview": "vite preview",
     "test": "vitest run",
     "typecheck": "tsc -b",
-    "gen:assets": "tsx scripts/gen-assets.tsx"
+    "gen:assets": "tsx scripts/gen-assets.tsx",
+    "gen:cover": "tsx scripts/gen-cover.tsx"
   },
   "dependencies": {
     "framer-motion": "^12.0.0",
