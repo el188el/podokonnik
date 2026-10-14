@@ -212,6 +212,8 @@ export interface GameState {
   round?: { key: string; checked: string[]; done: boolean }; // обход подоконника
   hues?: Record<string, string[]>;      // собранные цвета по видам
   forms?: string[];     // собранные редкие формы
+  bloomed?: string[];   // виды, которые цвели у игрока
+  shelves?: string[];   // забранные награды полок альбома
   tutorial: number;
 }
 

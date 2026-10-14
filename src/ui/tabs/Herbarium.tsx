@@ -1,5 +1,6 @@
 import { DIFFICULTY_LABEL, SPECIES } from '../../game/species';
 import { openSheet, useStore, visitHerbarium } from '../../game/store';
+import { SHELVES, shelfProgress, shelvesReady } from '../../game/album';
 import { PlantArt } from '../art/PlantArt';
 
 export function Herbarium() {
@@ -13,6 +14,10 @@ export function Herbarium() {
         </span>
       </div>
       <p className="muted small">Всё о видах, которые ты открыл(а): как поливать, где ставить и как вырастить такое же дома.</p>
+      <button className={'mini-banner album-banner' + (shelvesReady(g).length ? ' ready' : '')} onClick={() => openSheet({ kind: 'album' })}>
+        📒 Альбом редкостей · {SHELVES.reduce((n, s) => n + shelfProgress(g, s)[0], 0)}/{SHELVES.reduce((n, s) => n + s.items.length, 0)}
+        {shelvesReady(g).length ? ' · награда!' : ''}
+      </button>
       <button className="mini-banner doctor-banner" onClick={() => openSheet({ kind: 'doctor' })}>🩺 Что с моим цветком? Желтеют листья, не цветёт — подскажем причину</button>
       {[1, 2, 3].map((d) => (
         <section key={d}>

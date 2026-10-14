@@ -18,6 +18,7 @@ import { TwinsSheet } from './TwinsSheet';
 import { WeatherSheet } from './WeatherSheet';
 import { DoctorSheet } from './DoctorSheet';
 import { CoopSheet } from './CoopSheet';
+import { AlbumSheet } from './AlbumSheet';
 import { StarterSheet } from './StarterSheet';
 
 export function Sheets() {
@@ -38,6 +39,7 @@ export function Sheets() {
       {sheet?.kind === 'weather' && <WeatherSheet />}
       {sheet?.kind === 'doctor' && <DoctorSheet sp={sheet.sp} />}
       {sheet?.kind === 'coop' && <CoopSheet />}
+      {sheet?.kind === 'album' && <AlbumSheet />}
       {sheet?.kind === 'starter' && <StarterSheet />}
       </Safe>
     </Sheet>

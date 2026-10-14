@@ -11,6 +11,7 @@ import { CONTEST_ENTRY_REWARD, CONTEST_VOTE_REWARD, weekKey } from './contest';
 import { platform } from '../platform';
 import { ACHIEVEMENTS, checkAchievements } from './achievements';
 import { freshAgeMarks } from './age';
+import { SHELVES, shelfDone } from './album';
 import { D, FEED_MS, H, MAX_CUTTINGS, MIST_MS, NEIGHBOR_COOLDOWN, NEIGHBOR_FREE_DAYS, SLOTS, STAGE_NAME } from './constants';
 import { giftLink, makeCode } from './gifts';
 import { XP, levelReward, unlocksAt, xpToNext, SILL_UNLOCK } from './progression';
@@ -59,6 +60,7 @@ export type Sheet =
   | { kind: 'weather' }
   | { kind: 'doctor'; sp?: string }
   | { kind: 'coop' }
+  | { kind: 'album' }
   | null;
 
 export type Tab = 'sill' | 'shop' | 'friends' | 'herbarium' | 'quests' | 'profile';
@@ -228,6 +230,7 @@ function handleEvents(g: GameState, ev: SimEvent[], quiet: boolean) {
     } else if (e.kind === 'bloom') {
       g.stats.blooms += 1;
       p.bloomedOnce = true;
+      if (!(g.bloomed ?? []).includes(p.sp)) g.bloomed = [...(g.bloomed ?? []), p.sp];
       weekly(g, 'bloom');
       addXp(g, XP.bloom);
       if (!quiet) { toast(`${s.name} зацвело! 🌸`); haptic('success'); }
@@ -884,7 +887,7 @@ export function buyItem(id: string) {
   return mut((g, t) => {
     const it = ITEM_BY_ID[id];
     if (!it) return false;
-    if (it.eventOnly) { toast('Этот предмет — награда сезонного пропуска'); return false; }
+    if (it.eventOnly) { toast(it.album ? 'Этот предмет — награда за полную полку альбома' : 'Этот предмет — награда сезонного пропуска'); return false; }
     if (it.level && g.level < it.level) { toast(`Откроется на ${it.level} уровне`); return false; }
     if (it.months && !it.months.includes(new Date(t).getMonth() + 1)) { toast('Этот товар бывает только в сезон'); return false; }
     if (!it.consumable && (g.owned[id] ?? 0) > 0) { toast('Уже есть 🙂'); return false; }
@@ -1048,6 +1051,20 @@ export function claimWeeklyChest() {
       toast(`🎁 Сундук недели: +${WEEKLY_CHEST + 100} 🍃`);
     }
     haptic('success');
+  });
+}
+
+/** Забрать награду за полную полку альбома. */
+export function claimShelf(id: string) {
+  mut((g) => {
+    const s = SHELVES.find((x) => x.id === id);
+    if (!s || !shelfDone(g, s) || (g.shelves ?? []).includes(id)) return;
+    g.shelves = [...(g.shelves ?? []), id];
+    g.leaves += s.reward.leaves;
+    g.owned[s.reward.item] = 1;
+    track('shelf', { id });
+    haptic('success');
+    toast(`${s.icon} Полка «${s.title}» собрана! +${s.reward.leaves} 🍃 и ${ITEM_BY_ID[s.reward.item]?.icon} ${ITEM_BY_ID[s.reward.item]?.name}`);
   });
 }
 

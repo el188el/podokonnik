@@ -14,6 +14,7 @@ export interface ShopItem {
   consumable?: boolean;
   months?: number[];  // сезонный товар
   eventOnly?: boolean; // только из сезонного пропуска, в магазине не продаётся
+  album?: boolean;     // награда за полную полку альбома
   place?: DecorPlace;  // где стоит декор
   pack?: string[];    // набор: что входит
   level?: number;
@@ -86,6 +87,12 @@ export const ITEMS: ShopItem[] = [
   { id: 'tulips', cat: 'decor', place: 'sill', name: 'Тюльпаны', icon: '🌷', price: 0, desc: 'Букет в банке.', eventOnly: true },
   { id: 'birdhouse', cat: 'decor', place: 'window', name: 'Скворечник', icon: '🐦', price: 0, desc: 'Скворцы вернулись!', eventOnly: true },
   { id: 'watering_can', cat: 'decor', place: 'table', name: 'Лейка-чайник', icon: '🫖', price: 0, desc: 'Бабушкин чайник, теперь лейка.', eventOnly: true },
+
+  // награды альбома редкостей
+  { id: 'glass_dome', cat: 'decor', place: 'sill', name: 'Стеклянный купол', icon: '🔔', price: 0, desc: 'Под ним — самый ценный черенок коллекции.', eventOnly: true, album: true },
+  { id: 'golden_can', cat: 'decor', place: 'table', name: 'Золотая лейка', icon: '🏆', price: 0, desc: 'Для тех, кто вывел небывалые цветы.', eventOnly: true, album: true },
+  { id: 'herb_frame', cat: 'decor', place: 'wall', name: 'Гербарий в рамке', icon: '🖼️', price: 0, desc: 'Засушенные листья всех сезонов.', eventOnly: true, album: true },
+  { id: 'bouquet', cat: 'decor', place: 'table', name: 'Букет-победитель', icon: '💐', price: 0, desc: 'Всё, что цвело на твоём подоконнике.', eventOnly: true, album: true },
 
   // уход
   { id: 'feed', cat: 'care', name: 'Подкормка', icon: '🧪', price: 15, desc: 'Сутки растение растёт в 1,5 раза быстрее.', consumable: true },
