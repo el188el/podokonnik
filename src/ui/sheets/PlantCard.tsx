@@ -98,7 +98,10 @@ export function PlantCard({ id }: { id: string }) {
           {p.form && FORM_BY_ID[p.form] && <p className="rare-mark">✨ {FORM_BY_ID[p.form].name}</p>}
           {p.from && <p className="giftmark">🎁 Подарок от {p.from.name}</p>}
           {potted && (
-            <button className="linkish story-link" onClick={() => sharePlantStory(p, p.blooming ? 'Зацвело! 🌸' : p.stage === 4 ? 'Совсем взрослое!' : 'Расту!', p.nick || s.name)}>📲 в сторис</button>
+            <span className="story-links">
+              <button className="linkish story-link" onClick={() => openSheet({ kind: 'timelapse', plant: p.id })}>🎬 таймлапс</button>
+              <button className="linkish story-link" onClick={() => sharePlantStory(p, p.blooming ? 'Зацвело! 🌸' : p.stage === 4 ? 'Совсем взрослое!' : 'Расту!', p.nick || s.name)}>📲 фото в сторис</button>
+            </span>
           )}
           <p className={'age-line' + (mark?.frame ? ' gold' : '')}>
             {mark?.icon ?? '🗓'} С тобой {days < 1 ? 'первый день' : daysText(days)}

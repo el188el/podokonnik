@@ -608,14 +608,16 @@ const STORY_DAY_LIMIT = 15;
 
 async function storyUpload(playerId: string, b: Body) {
   const data = typeof b.image === 'string' ? b.image : '';
-  const m = /^data:image\/(jpeg|png);base64,([A-Za-z0-9+/=]+)$/.exec(data);
-  if (!m || m[2].length > 2_000_000) return fail('bad_image');
+  const m = /^data:(image\/jpeg|image\/png|video\/mp4);base64,([A-Za-z0-9+/=]+)$/.exec(data);
+  // картинка — до ~1,5 МБ, таймлапс mp4 — до ~6 МБ
+  if (!m || m[2].length > (m[1] === 'video/mp4' ? 8_000_000 : 2_000_000)) return fail('bad_image');
   const since = new Date(Date.now() - 86400e3).toISOString();
   const { count } = await db.from('story_uploads').select('id', { count: 'exact', head: true }).eq('player_id', playerId).gte('created_at', since);
   if ((count ?? 0) >= STORY_DAY_LIMIT) return fail('limit', 429);
   const bytes = Uint8Array.from(atob(m[2]), (c) => c.charCodeAt(0));
-  const path = `${new Date().toISOString().slice(0, 10)}/${randomCode(16)}.${m[1] === 'png' ? 'png' : 'jpg'}`;
-  const { error } = await db.storage.from('stories').upload(path, bytes, { contentType: `image/${m[1]}`, upsert: false });
+  const ext = m[1] === 'image/png' ? 'png' : m[1] === 'video/mp4' ? 'mp4' : 'jpg';
+  const path = `${new Date().toISOString().slice(0, 10)}/${randomCode(16)}.${ext}`;
+  const { error } = await db.storage.from('stories').upload(path, bytes, { contentType: m[1], upsert: false });
   if (error) return fail('storage', 500);
   await db.from('story_uploads').insert({ player_id: playerId, path });
   const { data: pub } = db.storage.from('stories').getPublicUrl(path);

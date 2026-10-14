@@ -46,6 +46,7 @@ export type Popup =
   | { kind: 'gift'; gift: PendingGift & { ok: boolean } }
   | { kind: 'thanks'; sp: string; from: string }
   | { kind: 'age'; plant: string; days: number }
+  | { kind: 'bloomed'; plant: string }
   | { kind: 'contest'; place: number; leaves: number }
   | { kind: 'plusGift'; code: string }
   | { kind: 'box'; prize: BoxPrize }
@@ -82,6 +83,7 @@ export type Sheet =
   | { kind: 'sills' }
   | { kind: 'postcard' }
   | { kind: 'repot'; plant: string }
+  | { kind: 'timelapse'; plant: string }
   | { kind: 'doctor'; sp?: string }
   | { kind: 'coop' }
   | { kind: 'album' }
@@ -332,6 +334,7 @@ function handleEvents(g: GameState, ev: SimEvent[], quiet: boolean) {
       log(g, `${s.name}: ${info.name.toLowerCase()}`, g.simAt);
       if (!quiet) { toast(`${info.icon} ${e.spread ? 'Перебралось на' : 'Беда у'} «${p.nick || s.name}»: ${info.name.toLowerCase()}! Загляни в карточку`); haptic('warning'); }
     } else if (e.kind === 'bloom') {
+      if (!p.bloomedOnce && !quiet) popup({ kind: 'bloomed', plant: p.id }); // первое цветение — снять таймлапс
       g.stats.blooms += 1;
       p.bloomedOnce = true;
       if (!(g.bloomed ?? []).includes(p.sp)) g.bloomed = [...(g.bloomed ?? []), p.sp];

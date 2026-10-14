@@ -5,7 +5,7 @@ import { NOTES } from '../game/constants';
 import { STREAK_REWARDS } from '../game/quests';
 import { approx } from '../game/sim';
 import { sp } from '../game/species';
-import { achievementById, claimGift, claimGiftOnline, claimStreak, closePopup, freeSlot, popup, toast, useStore } from '../game/store';
+import { achievementById, claimGift, claimGiftOnline, claimStreak, closePopup, freeSlot, openSheet, popup, toast, useStore } from '../game/store';
 import { PlantArt } from './art/PlantArt';
 import { Btn, Modal } from './kit/kit';
 import { sharePlusGift, shareThanks } from './share';
@@ -104,8 +104,24 @@ export function Popups() {
             <h2>{m.icon} {name}: {daysText(p.days)} вместе!</h2>
             <p className="muted">{m.frame ? 'Настоящий долгожитель — теперь у него золотая рамка на подоконнике.' : 'Целый месяц заботы — растение это чувствует.'}</p>
             <p><b>+{m.reward} 🍃</b></p>
-            <Btn kind="gold" onClick={() => { sharePlantStory(pl, `${daysText(p.days)} вместе`, name, 'age'); closePopup(); }}>Похвастаться 📸</Btn>
+            <Btn kind="gold" onClick={() => { closePopup(); openSheet({ kind: 'timelapse', plant: pl.id }); }}>🎬 Видео: как оно росло</Btn>
+            <Btn onClick={() => { sharePlantStory(pl, `${daysText(p.days)} вместе`, name, 'age'); closePopup(); }}>Похвастаться фото 📸</Btn>
             <Btn kind="ghost" onClick={closePopup}>Ура!</Btn>
+          </div>
+        );
+      })()}
+      {p?.kind === 'bloomed' && (() => {
+        const pl = g.plants.find((x) => x.id === p.plant);
+        if (!pl) return <Btn kind="primary" onClick={closePopup}>Ок</Btn>;
+        return (
+          <div className="center">
+            <motion.div className="postcard big2" initial={{ scale: 0.6, rotate: 8 }} animate={{ scale: 1, rotate: 0 }}>
+              <PlantArt sp={pl.sp} form={pl.form} hue={pl.hue} stage={pl.stage} seed={pl.id} pot={pl.pot} bigPot={pl.bigPot} blooming />
+            </motion.div>
+            <h2>🌸 {pl.nick || sp(pl.sp).name} впервые зацвело!</h2>
+            <p className="muted">Сними таймлапс — весь путь от черенка до цветов за 10 секунд.</p>
+            <Btn kind="gold" onClick={() => { closePopup(); openSheet({ kind: 'timelapse', plant: pl.id }); }}>🎬 Снять таймлапс</Btn>
+            <Btn kind="ghost" onClick={closePopup}>Потом</Btn>
           </div>
         );
       })()}

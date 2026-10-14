@@ -962,3 +962,6 @@ b, strong { font-weight: 800; }
 .card-nav button { background: #fff; box-shadow: var(--sh-sm); border: 0; }
 .need { border-radius: 18px; }
 .neighbors-note, .problem-box, .card-note { border-radius: 18px; }
+.timelapse-sheet { display: flex; flex-direction: column; gap: 10px; }
+.tl-video { width: 100%; max-height: 56dvh; object-fit: contain; border-radius: 20px; background: #eef5ef; }
+.story-links { display: flex; gap: 12px; flex-wrap: wrap; }

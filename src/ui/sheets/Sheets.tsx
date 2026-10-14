@@ -21,6 +21,7 @@ import { LoginSheet } from './LoginSheet';
 import { SillsSheet } from './SillsSheet';
 import { PostcardSheet } from './PostcardSheet';
 import { RepotGame } from './RepotGame';
+import { TimelapseSheet } from './TimelapseSheet';
 import { DoctorSheet } from './DoctorSheet';
 import { CoopSheet } from './CoopSheet';
 import { AlbumSheet } from './AlbumSheet';
@@ -51,6 +52,7 @@ export function Sheets() {
       {sheet?.kind === 'sills' && <SillsSheet />}
       {sheet?.kind === 'postcard' && <PostcardSheet />}
       {sheet?.kind === 'repot' && <RepotGame id={sheet.plant} />}
+      {sheet?.kind === 'timelapse' && <TimelapseSheet id={sheet.plant} />}
       {sheet?.kind === 'doctor' && <DoctorSheet sp={sheet.sp} />}
       {sheet?.kind === 'coop' && <CoopSheet />}
       {sheet?.kind === 'album' && <AlbumSheet />}
