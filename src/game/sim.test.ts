@@ -12,7 +12,8 @@ const T0 = new Date(2026, 5, 1, 12).getTime(); // июнь: без зимних 
 function world(spId = 'chlorophytum', extra: Partial<Plant> = {}): { g: GameState; p: Plant } {
   const g = newState(T0);
   g.sills[0].window = 'E';
-  const p = newPlant({ sp: spId, sill: 'room', slot: 0, zone: sp(spId).zone, ...extra }, T0);
+  // вредители и болезни случайны — в тестах роста их выключаем (для них отдельные тесты)
+  const p = newPlant({ sp: spId, sill: 'room', slot: 0, zone: sp(spId).zone, guardUntil: T0 + 1e12, ...extra }, T0);
   g.plants.push(p);
   return { g, p };
 }
@@ -46,7 +47,6 @@ describe('укоренение', () => {
 describe('рост', () => {
   it('при хорошем уходе доходит до взрослого за сумму часов стадий', () => {
     const { g, p } = potted('tradescantia');
-    p.guardUntil = T0 + 1e12; // без вредителей — проверяем чистый рост
     const [, adult] = stageMarks('tradescantia');
     // поливаем каждый день
     for (let t = T0; t < T0 + (adult + 1) * H; t += 12 * H) {
