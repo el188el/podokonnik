@@ -106,7 +106,8 @@ function OwnSill() {
   }
   const round = g.tutorial >= TUTORIAL_DONE ? roundInfo(g, t) : null;
   if (round) tiles.push({ key: 'round', cls: 'round' + (round.done ? ' done' : ''), text: `${round.label === 'утренний' ? '🌅' : '🌙'} Обход ${round.done ? '✓' : `${round.checked}/${round.total} · +15 🍃`}` });
-  const shown = tiles.slice(0, ev ? 2 : 4);
+  // сначала то, что можно забрать прямо сейчас (подарки, награды), потом остальное
+  const shown = [...tiles].sort((x, y) => Number(/ready/.test(y.cls)) - Number(/ready/.test(x.cls))).slice(0, ev ? 3 : 4);
 
   return (
     <div className="sillview fit">
@@ -140,7 +141,7 @@ function OwnSill() {
       {g.tutorial < TUTORIAL_DONE ? <Guide /> : (ev || shown.length > 0) && (
         <div className={'info-grid' + (ev ? '' : ' no-event')}>
           {ev && (
-            <button className={`event-card theme-${ev.theme}`} onClick={() => openSheet({ kind: 'event' })}>
+            <button className={`event-card theme-${ev.theme}`} style={{ gridRow: `span ${Math.max(1, shown.length)}` }} onClick={() => openSheet({ kind: 'event' })}>
               <span className="ec-icon">{ev.token}</span>
               <b>{ev.title}</b>
               <small>ур. {tierOf(ev, evp?.tokens ?? 0)}/{ev.tiers.length} · {evp?.tokens ?? 0} {ev.token}</small>

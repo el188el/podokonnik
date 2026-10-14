@@ -1164,3 +1164,5 @@ b, strong { font-weight: 800; }
 :root[data-theme='dark'] .health-box { background: #1d2b24; }
 :root[data-theme='dark'] .health-box.hurt { background: #2e1f1d; box-shadow: inset 0 0 0 1px #5a2f2a; }
 :root[data-theme='dark'] .hb-cause { background: #ffffff0d; }
+.info-grid { grid-auto-rows: minmax(36px, auto); }
+.tile { padding: 7px 11px; font-size: 12px; }
