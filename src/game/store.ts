@@ -54,6 +54,15 @@ export type Popup =
 export interface AwayReport {
   ms: number;
   lines: { icon: string; text: string }[];
+  gift?: { leaves: number; feed: number; boost: number }; // подарок за возвращение после долгого перерыва
+}
+
+/** После 3+ дней без игры — подарок: растения скучали. Чем дольше не было, тем щедрее (до недели). */
+export const COMEBACK_DAYS = 3;
+export function comebackGift(ms: number) {
+  const days = Math.floor(ms / D);
+  if (days < COMEBACK_DAYS) return undefined;
+  return { leaves: Math.min(100, 20 + 10 * days), feed: 2, boost: days >= 7 ? 2 : 1 };
 }
 
 export type Sheet =
@@ -71,6 +80,8 @@ export type Sheet =
   | { kind: 'weather' }
   | { kind: 'login' }
   | { kind: 'sills' }
+  | { kind: 'postcard' }
+  | { kind: 'repot'; plant: string }
   | { kind: 'doctor'; sp?: string }
   | { kind: 'coop' }
   | { kind: 'album' }
@@ -641,6 +652,13 @@ export async function boot() {
       const p = g.plants.find((x) => x.id === w.plantId);
       if (p) report.lines.unshift({ icon: '💧', text: `${w.name} полил(а) ${sp(p.sp).acc} — спасибо другу!` });
     }
+    report.gift = comebackGift(away);
+    if (report.gift) {
+      g.leaves += report.gift.leaves;
+      g.owned.feed = (g.owned.feed ?? 0) + report.gift.feed;
+      g.owned.boost = (g.owned.boost ?? 0) + report.gift.boost;
+      track('comeback', { days: Math.floor(away / D) });
+    }
     popup({ kind: 'away', report });
   }
   checkAges(g, t);
@@ -938,7 +956,7 @@ export function feed(plantId: string): boolean {
   });
 }
 
-export function repot(plantId: string) {
+export function repot(plantId: string, careful = false) {
   mut((g, t) => {
     const p = findPlant(g, plantId);
     if (!p || !cramped(p, t)) return;
@@ -953,7 +971,11 @@ export function repot(plantId: string) {
     addXp(g, XP.repot);
     quest(g, 'repot');
     fx(p.id, 'grow');
-    toast('Пересажено! В просторном горшке черенки отрастают быстрее 🪴');
+    if (careful) {
+      p.health = Math.min(100, p.health + 10);
+      g.leaves += 10;
+      toast('Идеальная пересадка — корни целы! +10 🍃 и здоровье ❤️');
+    } else toast('Пересажено! В просторном горшке черенки отрастают быстрее 🪴');
   });
 }
 

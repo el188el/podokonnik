@@ -3,6 +3,7 @@
 import { closeSheet, openSheet, setActiveSill, setTab, showCoop, TUTORIAL_DONE, useStore } from '../../game/store';
 import { WINDOWS } from '../../game/constants';
 import { loggedIn } from '../../net/api';
+import { Btn } from '../kit/kit';
 
 export function SillsSheet() {
   const g = useStore((s) => s.game);
@@ -39,6 +40,7 @@ export function SillsSheet() {
           </button>
         )}
       </div>
+      <Btn onClick={() => openSheet({ kind: 'postcard' })}>💌 Открытка с этого подоконника</Btn>
       <button className="linkish small" onClick={() => { closeSheet(); setTab('shop'); }}>🛒 Ещё подоконник — в магазине, раздел «Окна»</button>
     </div>
   );

@@ -807,3 +807,17 @@ svg.big.sad { filter: sepia(0.6) saturate(0.6); }
 .lineage li + li { border-top: 1px dashed #e2d6bf; }
 .lineage .gen { display: inline-block; min-width: 82px; color: #8a6a3a; font-weight: 700; }
 .heirloom { display: flex; flex-direction: column; gap: 2px; background: linear-gradient(135deg, #fff2cc, #f7e1a8); border-radius: 14px; padding: 8px 12px; margin: 8px 0; font-size: 13px; box-shadow: inset 0 0 0 1px #e8c97a; }
+.comeback { display: flex; gap: 10px; align-items: center; background: linear-gradient(135deg, #fff1c9, #ffe3ef); border-radius: 16px; padding: 10px 14px; margin: 8px 0 12px; }
+.comeback .cb-icon { font-size: 34px; animation: wiggle 2.4s ease-in-out infinite; }
+.comeback div { display: flex; flex-direction: column; }
+.comeback small { opacity: 0.8; }
+.postcard-sheet { display: flex; flex-direction: column; gap: 10px; }
+.pc-preview { display: grid; place-items: center; min-height: 180px; background: var(--soft); border-radius: 14px; overflow: hidden; }
+.pc-preview img { width: 100%; display: block; }
+.postcard-sheet .chips { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; }
+.postcard-sheet .chip { white-space: nowrap; }
+.repot-game { display: flex; flex-direction: column; gap: 10px; align-items: center; }
+.repot-stage { position: relative; height: 240px; width: 200px; display: flex; align-items: flex-end; justify-content: center; cursor: pointer; }
+.repot-stage svg { width: 150px; height: 214px; }
+.repot-stage { isolation: isolate; }
+.hold-btn { width: 100%; user-select: none; -webkit-user-select: none; touch-action: none; }

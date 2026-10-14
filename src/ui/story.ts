@@ -151,3 +151,118 @@ export const shareSillStory = async () => shareCard(await sillCard(), 'Мой п
 export async function sharePlantStory(p: Plant, title: string, sub: string, kind = 'plant') {
   return shareCard(await plantCard(p, title, sub), `${title} ${sp(p.sp).name} на моём подоконнике 🌿`, kind);
 }
+
+// ─────────────────── открытка с подоконника ───────────────────
+const PW = 1600;
+const PH = 1100;
+
+/** Открытка: подоконник в рамке, марка, подпись «Привет с подоконника!» и имя отправителя. */
+export async function postcardCard(text: string): Promise<Blob | null> {
+  const g = useStore.getState().game;
+  const sill = g.sills.find((s) => s.id === g.activeSill) ?? g.sills[0];
+  const here = g.plants.filter((p) => p.sill === sill.id && !HANG_ROW.includes(p.slot) && p.stage >= 1);
+  const c = document.createElement('canvas');
+  c.width = PW;
+  c.height = PH;
+  const x = c.getContext('2d')!;
+  // бумага
+  x.fillStyle = '#fbf6ec';
+  x.fillRect(0, 0, PW, PH);
+  x.strokeStyle = '#e7dcc6';
+  x.lineWidth = 3;
+  x.strokeRect(24, 24, PW - 48, PH - 48);
+  // фото слева
+  const fx = 70, fy = 80, fw = 960, fh = 940;
+  x.save();
+  x.shadowColor = '#0003';
+  x.shadowBlur = 24;
+  x.shadowOffsetY = 8;
+  x.fillStyle = '#fff';
+  x.fillRect(fx - 18, fy - 18, fw + 36, fh + 36);
+  x.restore();
+  const sky = x.createLinearGradient(0, fy, 0, fy + fh * 0.55);
+  sky.addColorStop(0, '#8fd2ff');
+  sky.addColorStop(1, '#e4f6ff');
+  x.fillStyle = sky;
+  x.fillRect(fx, fy, fw, fh * 0.55);
+  x.fillStyle = '#ffd85a';
+  x.beginPath();
+  x.arc(fx + fw - 140, fy + 120, 60, 0, Math.PI * 2);
+  x.fill();
+  x.fillStyle = '#fff';
+  x.fillRect(fx + fw / 2 - 8, fy, 16, fh * 0.55);
+  x.fillStyle = '#f2e3cd';
+  x.fillRect(fx, fy + fh * 0.55, fw, fh * 0.45);
+  x.fillStyle = '#e9c9a0';
+  x.fillRect(fx, fy + fh * 0.55 - 6, fw, 30);
+  x.fillStyle = '#c99a6b';
+  x.fillRect(fx, fy + fh - 40, fw, 40);
+  const rows = layoutRows(here);
+  const cw = fw / 4;
+  for (const [ri, row] of [rows.glass, rows.deep].entries()) {
+    for (const [i, p] of row.entries()) {
+      if (!p) continue;
+      const img = await plantImage(p);
+      const w = 200, h = 286;
+      const base = ri ? fy + fh - 40 : fy + fh * 0.55 - 6;
+      x.drawImage(img, fx + cw * i + (cw - w) / 2, base - h + 6, w, h);
+    }
+  }
+  // марка
+  const sx = PW - 300, sy = 70;
+  x.fillStyle = '#fff';
+  x.fillRect(sx, sy, 210, 250);
+  x.strokeStyle = '#d9483b';
+  x.setLineDash([10, 8]);
+  x.lineWidth = 4;
+  x.strokeRect(sx + 10, sy + 10, 190, 230);
+  x.setLineDash([]);
+  x.font = '120px system-ui, sans-serif';
+  x.textAlign = 'center';
+  x.fillText('🪴', sx + 105, sy + 160);
+  x.font = 'bold 30px system-ui, sans-serif';
+  x.fillStyle = '#d9483b';
+  x.fillText('ПОЧТА', sx + 105, sy + 220);
+  // штемпель
+  x.strokeStyle = '#3f6fb588';
+  x.lineWidth = 5;
+  x.beginPath();
+  x.arc(sx - 30, sy + 210, 80, 0, Math.PI * 2);
+  x.stroke();
+  x.font = 'bold 24px system-ui, sans-serif';
+  x.fillStyle = '#3f6fb5aa';
+  x.fillText(new Date().toLocaleDateString('ru-RU'), sx - 30, sy + 218);
+  // текст
+  x.textAlign = 'left';
+  x.fillStyle = '#2E4A45';
+  x.font = 'italic bold 64px Georgia, serif';
+  x.fillText('Привет', 1090, 470);
+  x.fillText('с подоконника!', 1090, 545);
+  x.font = 'italic 38px Georgia, serif';
+  x.fillStyle = '#4a5d57';
+  const words = text.split(/\s+/);
+  let line = '', y = 640;
+  for (const w of words) {
+    const t = line ? line + ' ' + w : w;
+    if (x.measureText(t).width > 440) { x.fillText(line, 1090, y); y += 52; line = w; } else line = t;
+  }
+  if (line) x.fillText(line, 1090, y);
+  x.strokeStyle = '#e1d5bd';
+  x.lineWidth = 2;
+  for (let i = 0; i < 4; i++) { x.beginPath(); x.moveTo(1090, 640 + i * 52 + 14); x.lineTo(PW - 90, 640 + i * 52 + 14); x.stroke(); }
+  x.font = 'italic bold 44px Georgia, serif';
+  x.fillStyle = '#2E4A45';
+  x.fillText(`— ${g.name || 'твой садовник'}`, 1090, 920);
+  x.font = '28px system-ui, sans-serif';
+  x.fillStyle = '#8a9a94';
+  x.fillText('🌱 Подоконник — игра в Telegram', 1090, 1000);
+  return toBlob(c);
+}
+
+export async function sharePostcard(blob: Blob | null) {
+  if (!blob) return toast('Не получилось нарисовать открытку');
+  track('postcard', { platform: platform().kind });
+  const file = new File([blob], 'otkrytka.jpg', { type: 'image/jpeg' });
+  const r = await platform().share({ text: 'Привет с моего подоконника! 🪴', url: gameLink(), files: [file] });
+  if (r === 'copied') toast('Ссылка скопирована — отправь её в чат 📋');
+}

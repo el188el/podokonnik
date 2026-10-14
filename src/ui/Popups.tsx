@@ -46,6 +46,12 @@ export function Popups() {
         <div>
           <h2 className="center">Пока тебя не было</h2>
           <p className="muted center">Прошло {approx(p.report.ms)}</p>
+          {p.report.gift && (
+            <motion.div className="comeback" initial={{ scale: 0.8, opacity: 0 }} animate={{ scale: 1, opacity: 1 }}>
+              <span className="cb-icon">🎁</span>
+              <div><b>Растения скучали — с возвращением!</b><small>+{p.report.gift.leaves} 🍃 · 🧪 ×{p.report.gift.feed} · ⚡ ×{p.report.gift.boost}</small></div>
+            </motion.div>
+          )}
           <ul className="away">
             {p.report.lines.map((l, i) => (
               <motion.li key={i} initial={{ x: -20, opacity: 0 }} animate={{ x: 0, opacity: 1 }} transition={{ delay: i * 0.08 }}>

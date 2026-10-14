@@ -6,7 +6,7 @@ import { POTS } from '../../game/shop';
 import { canCut, cramped, ctxFor, cutLeft, fmt, isSad, isThirstySad, lightLevel, need, neighborsOf, nextStageAt, stageProgress } from '../../game/sim';
 import { DIFFICULTY_LABEL, sp } from '../../game/species';
 import {
-  adsLeft, addDrain, boostBlock, boostPlant, breedPartners, drainTray, freshSoil, treat, closeSheet, feed, mist, pollinate, watchAd, move, now, openSheet, ownsPot, plantInPot, removePlant, renamePlant, repot, setPot, takeCutting, toast, useStore, water,
+  adsLeft, addDrain, boostBlock, boostPlant, breedPartners, drainTray, freshSoil, treat, closeSheet, feed, mist, pollinate, watchAd, move, now, openSheet, ownsPot, plantInPot, removePlant, renamePlant, setPot, takeCutting, toast, useStore, water,
 } from '../../game/store';
 import { adsAvailable } from '../../net/ads';
 import { ageDays, ageMark, daysText, nextAgeMark } from '../../game/age';
@@ -223,7 +223,7 @@ export function PlantCard({ id }: { id: string }) {
       {p.stage === 4 && (
         <div className="block">
           {cramped(p, t) ? (
-            <Btn kind="gold" onClick={() => repot(p.id)}>🏡 Пересадить в большой горшок {(g.owned.potL ?? 0) > 0 ? `(есть ${g.owned.potL})` : '· 25 🍃'}</Btn>
+            <Btn kind="gold" onClick={() => openSheet({ kind: 'repot', plant: p.id })}>🏡 Пересадить в большой горшок {(g.owned.potL ?? 0) > 0 ? `(есть ${g.owned.potL})` : '· 25 🍃'}</Btn>
           ) : p.bigPot ? (
             <p className="muted small">🏡 Уже в большом горшке — черенки отрастают на 25% быстрее.</p>
           ) : null}
@@ -317,7 +317,7 @@ export function Lineage({ line, title = '🌳 Родословная' }: { line:
       <b>{title}</b>
       <ol>
         {[...line].reverse().map((a, i) => (
-          <li key={i}><span className="gen">{genName(i)}</span> {a.k ? `«${a.k}» ` : ''}у {a.n}, {a.y}{a.h ? ' 🏺' : ''}</li>
+          <li key={i}><span className="gen">{genName(i)}</span> {a.n}, {a.y}{a.k ? ` · «${a.k}»` : ''}{a.h ? ' 🏺' : ''}</li>
         ))}
       </ol>
     </div>
