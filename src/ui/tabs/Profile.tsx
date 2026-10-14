@@ -4,7 +4,7 @@ import { rankOf, xpToNext } from '../../game/progression';
 import { ITEM_BY_ID, DECOR_IDS } from '../../game/shop';
 import { fmt } from '../../game/sim';
 import { ageDays } from '../../game/age';
-import { isPlus, now, openSheet, setName, setSetting, toggleDecor, useStore } from '../../game/store';
+import { isPlus, now, openSheet, setName, setSetting, startOver, toggleDecor, useStore } from '../../game/store';
 import { platform } from '../../platform';
 import { CONFIG } from '../../config';
 import { online, sendSettings } from '../../net/api';
@@ -101,7 +101,20 @@ export function Profile() {
         <p className="muted small">
           {online() ? 'Прогресс сохраняется на сервере и доступен на всех устройствах.' : pf.kind === 'telegram' ? 'Прогресс сохраняется в облаке Telegram и доступен на всех устройствах.' : 'Прогресс сохраняется в этом браузере.'}
         </p>
+        <StartOver />
       </section>
+    </div>
+  );
+}
+
+function StartOver() {
+  const [step, setStep] = useState(0);
+  if (step === 0) return <button className="linkish muted small" onClick={() => setStep(1)}>Начать сначала…</button>;
+  return (
+    <div className="card-note">
+      <span className="small">{step === 1 ? 'Все растения, листики и уровень пропадут. Подписка «Садовник+» и купленные места останутся.' : 'Точно? Вернуть будет нельзя.'}</span>
+      <Btn small kind="warn" onClick={() => (step === 1 ? setStep(2) : (startOver(), setStep(0)))}>{step === 1 ? 'Да, начать сначала' : 'Точно, стереть всё'}</Btn>
+      <Btn small kind="ghost" onClick={() => setStep(0)}>Отмена</Btn>
     </div>
   );
 }

@@ -2182,3 +2182,23 @@ export function boostPlant(plantId: string) {
     return true;
   });
 }
+
+// ─────────────────── начать сначала ───────────────────
+/** Новая игра на этом аккаунте. Подписка «Садовник+» и купленные места сохраняются. */
+export function startOver() {
+  const old = get().game;
+  const t = now();
+  const g = newState(t);
+  g.name = old.name;
+  g.settings = old.settings;
+  g.plusUntil = old.plusUntil;
+  g.places = old.places;
+  g.starterPack = old.starterPack;
+  g.plusGifts = old.plusGifts;
+  g.inboxSeen = old.inboxSeen;
+  g.tutorial = 99;
+  set({ game: g, popups: [], sheet: null });
+  track('start_over', {});
+  saveNow();
+  toast('🌱 Чистый подоконник. Всё сначала!');
+}
