@@ -6,6 +6,10 @@ import { sp } from '../../game/species';
 import { now, openSheet, plantAt, setActiveSill, setTool, showCoop, showGift, useStore, waterAll, type Tool } from '../../game/store';
 import { loggedIn } from '../../net/api';
 import { CoopSill } from './CoopSill';
+import { useEffect } from 'react';
+import { chatter } from '../../game/mood';
+import { ctxFor } from '../../game/sim';
+import { say } from '../../game/store';
 import type { GameState } from '../../game/types';
 import { PlantArt } from '../art/PlantArt';
 import { Slot } from '../Slot';
@@ -72,8 +76,29 @@ export function SillView() {
   );
 }
 
+/** Время от времени одно из растений что-нибудь говорит. */
+function useChatter(sillId: string) {
+  useEffect(() => {
+    const talk = () => {
+      if (document.hidden || useStore.getState().sheet) return;
+      const g = useStore.getState().game;
+      const t = now();
+      const list = g.plants.filter((p) => p.sill === sillId && p.stage >= 2);
+      if (!list.length) return;
+      const p = list[Math.floor(Math.random() * list.length)];
+      const fl = useStore.getState().flash[p.id];
+      if (fl && fl.until > Date.now()) return;
+      say(p.id, chatter(p, t, ctxFor(g, p, t), weatherAt(g, t), Math.random()), 4500);
+    };
+    const first = setTimeout(talk, 6000);
+    const i = setInterval(talk, 22000);
+    return () => { clearTimeout(first); clearInterval(i); };
+  }, [sillId]);
+}
+
 function OwnSill() {
   const g = useStore((s) => s.game);
+  useChatter(g.activeSill);
   const t = now();
   const sill = g.sills.find((s) => s.id === g.activeSill) ?? g.sills[0];
   const tod = timeOfDay(t);

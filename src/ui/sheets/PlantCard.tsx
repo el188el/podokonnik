@@ -11,6 +11,8 @@ import {
 import { adsAvailable } from '../../net/ads';
 import { ageDays, ageMark, daysText, nextAgeMark } from '../../game/age';
 import { PlantArt } from '../art/PlantArt';
+import { chatter, moodOf } from '../../game/mood';
+import { weatherAt } from '../../game/weather';
 import { Bar, Btn } from '../kit/kit';
 import { shareAge, shareShowoff, shareThanks } from '../share';
 
@@ -104,6 +106,10 @@ export function PlantCard({ id }: { id: string }) {
         </div>
       </div>
 
+      {potted && (() => {
+        const m = moodOf(p, t, ctx);
+        return <p className="mood-line">{m.icon} <b>{m.label}</b> · <i>«{chatter(p, t, ctx, weatherAt(g, t), (p.id.charCodeAt(0) + Math.floor(t / 600e3)) % 17 / 17)}»</i></p>;
+      })()}
       <p className="need">💡 {need(p, t, ctx)}</p>
 
       {potted && (
