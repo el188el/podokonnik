@@ -68,10 +68,13 @@ export function App() {
   return (
     <div className="app">
       <header className="topbar">
-        <div className="lvlbadge" onClick={() => openSheet({ kind: 'levels' })}>
+        <button className="lvl-ring" onClick={() => openSheet({ kind: 'levels' })} aria-label={`Уровень ${g.level}: ${g.xp} из ${xpToNext(g.level)} опыта`}>
+          <svg viewBox="0 0 40 40" aria-hidden>
+            <circle cx="20" cy="20" r="17" className="ring-bg" />
+            <circle cx="20" cy="20" r="17" className="ring-fg" strokeDasharray={`${Math.max(0.02, Math.min(1, g.xp / xpToNext(g.level))) * 106.8} 106.8`} />
+          </svg>
           <b>{g.level}</b>
-          <div className="xp"><div style={{ width: `${(g.xp / xpToNext(g.level)) * 100}%` }} /></div>
-        </div>
+        </button>
         {tab === 'sill' ? <SillPicker /> : <div className="title">Подоконник</div>}
         <div className="money">
           {g.streak.count > 0 && <span className="streak">🔥{g.streak.count}</span>}

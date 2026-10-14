@@ -100,8 +100,8 @@ export function PlantCard({ id }: { id: string }) {
           {p.from && <p className="giftmark">🎁 Подарок от {p.from.name}</p>}
           {potted && (
             <span className="story-links">
-              <button className="linkish story-link" onClick={() => openSheet({ kind: 'timelapse', plant: p.id })}>🎬 таймлапс</button>
-              <button className="linkish story-link" onClick={() => sharePlantStory(p, p.blooming ? 'Зацвело! 🌸' : p.stage === 4 ? 'Совсем взрослое!' : 'Расту!', p.nick || s.name)}>📲 фото в сторис</button>
+              <button className="icon-btn" onClick={() => openSheet({ kind: 'timelapse', plant: p.id })} aria-label="Таймлапс" title="Таймлапс">🎬</button>
+              <button className="icon-btn" onClick={() => sharePlantStory(p, p.blooming ? 'Зацвело! 🌸' : p.stage === 4 ? 'Совсем взрослое!' : 'Расту!', p.nick || s.name)} aria-label="Фото в сторис" title="Фото в сторис">📲</button>
             </span>
           )}
           <p className={'age-line' + (mark?.frame ? ' gold' : '')}>

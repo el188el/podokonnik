@@ -1,5 +1,6 @@
 import { motion } from 'framer-motion';
-import { useEffect, useRef } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState, type RefObject } from 'react';
+import { createPortal } from 'react-dom';
 import { STAGE_NAME } from '../game/constants';
 import { badLight, canCut, cramped, ctxFor, fmt, isSad, isLightSad, isThirstySad, nextStageAt, rootsAt } from '../game/sim';
 import { SHOWOFF_MS } from '../game/constants';
@@ -36,7 +37,16 @@ function bubbleFor(p: Plant, t: number, flash?: { text: string; until: number })
   return null;
 }
 
-function etaFor(p: Plant, t: number) {
+/** Маленький таймер под горшком: сколько до следующей стадии. Название — в карточке. */
+function timerFor(p: Plant, t: number): string | null {
+  if (p.stage < 2 || p.stage >= 4) return null;
+  const at = nextStageAt(p, t, ctxFor(useStore.getState().game, p, t));
+  if (!at) return null;
+  const ms = at - t;
+  return `⏱ ${ms < 3600e3 ? fmt(ms) : ms < 48 * 3600e3 ? `${Math.ceil(ms / 3600e3)} ч` : `${Math.round(ms / 86400e3)} дн`}`;
+}
+
+export function etaFor(p: Plant, t: number) {
   const g = useStore.getState().game;
   if (p.stage === 0) return p.rootStart ? 'черенок пускает корни' : 'полей меня 💧';
   if (p.stage === 1) return 'тапни, чтобы посадить';
@@ -170,11 +180,12 @@ export function Slot({ plant: p, sill, slot }: { plant: Plant; sill: string; slo
       }}
       onPointerCancel={reset}
     >
-      {bubble && (
+      {bubble && bubble.cls !== 'pop' && (
         <motion.div key={bubble.text.startsWith('🌱 ') ? 'roots' : bubble.text} className={`bubble ${bubble.cls}`} initial={{ scale: 0.6, opacity: 0 }} animate={{ scale: 1, opacity: 1 }}>
           {bubble.text}
         </motion.div>
       )}
+      {bubble && bubble.cls === 'pop' && <Speech anchor={ref} text={bubble.text} />}
       {p.stage === 0 && !p.rootStart && <div className="finger">👆</div>}
       {roundPending && <div className="round-dot" title="загляни в обходе">👀</div>}
       {p.problem && <div className={'pest pest-' + p.problem.kind} style={{ opacity: 0.45 + 0.55 * p.problem.sev }}>{p.problem.kind === 'gnats' ? <><i /><i /><i /></> : null}</div>}
@@ -212,9 +223,29 @@ export function Slot({ plant: p, sill, slot }: { plant: Plant; sill: string; slo
             <i style={{ width: `${Math.min(100, p.moisture * 100)}%`, background: p.moisture > 1 ? '#d9822b' : p.moisture < 0.25 ? '#e0574f' : '#4aa3df' }} />
           </i>
         )}
-        <b>{p.from ? '🎁 ' : ''}{p.form ? '✨ ' : ''}{p.nick || s.name}</b>
-        <span>{etaFor(p, t)}</span>
+        {timerFor(p, t) && <span className="timer-chip">{timerFor(p, t)}</span>}
       </div>
     </div>
+  );
+}
+
+/** Реплика растения — облачко поверх всего интерфейса (не обрезается рамкой подоконника). */
+function Speech({ anchor, text }: { anchor: RefObject<HTMLDivElement | null>; text: string }) {
+  const [pos, setPos] = useState<{ x: number; y: number } | null>(null);
+  useLayoutEffect(() => {
+    const upd = () => {
+      const r = anchor.current?.querySelector('.art')?.getBoundingClientRect() ?? anchor.current?.getBoundingClientRect();
+      if (r) setPos({ x: Math.min(window.innerWidth - 90, Math.max(90, r.left + r.width / 2)), y: r.top + 6 });
+    };
+    upd();
+    window.addEventListener('resize', upd);
+    return () => window.removeEventListener('resize', upd);
+  }, [anchor, text]);
+  if (!pos) return null;
+  return createPortal(
+    <motion.div className="speech" style={{ left: pos.x, top: pos.y, x: '-50%', y: '-100%', originY: 1 }} initial={{ scale: 0.5, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} key={text}>
+      {text}
+    </motion.div>,
+    document.body,
   );
 }
