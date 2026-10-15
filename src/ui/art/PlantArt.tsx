@@ -42,16 +42,27 @@ interface LeafProps {
 /** Цвет пестролистности редкой формы: светлые мазки на каждом листе. */
 const Variegate = createContext<string | undefined>(undefined);
 
+/** Контур рисунков — тёплый тёмно-коричневый, как у стикеров. */
+export const OL = '#3b2a22';
+const lighter = (hex: string, k = 0.32) => {
+  const n = parseInt(hex.slice(1), 16);
+  const c = (v: number) => Math.round(v + (255 - v) * k);
+  return `#${((c(n >> 16) << 16) | (c((n >> 8) & 255) << 8) | c(n & 255)).toString(16).padStart(6, '0')}`;
+};
+const LINE = { stroke: OL, strokeWidth: 1.6, strokeLinejoin: 'round' as const, vectorEffect: 'non-scaling-stroke' as const };
+
 function Leaf({ x = 0, y = 0, a = 0, s = 1, d, fill, vein, L, children, mask }: LeafProps) {
   const vg = useContext(Variegate);
   return (
     <g transform={`translate(${f(x)},${f(y)}) rotate(${f(a)}) scale(${f(s)})`}>
       <g mask={mask}>
-        <path d={d} fill={fill} />
+        <path d={d} fill={fill} {...LINE} />
+        {/* светлая половинка листа — объём, как на рисованных стикерах */}
+        <path d={d} fill={lighter(fill)} opacity={0.75} transform={`translate(${f(-L * 0.06)},${f(-L * 0.07)}) scale(0.42 0.8)`} />
         {vg && <path d={d} fill={vg} opacity={0.92} transform={`translate(${f(L * 0.1)},${f(-L * 0.08)}) scale(0.55 0.78)`} />}
         {children}
       </g>
-      {vein !== false && <path d={`M0,${f(-L * 0.06)} L0,${f(-L * 0.82)}`} stroke={vein ?? '#ffffff'} strokeOpacity={vein ? 1 : 0.28} strokeWidth={1.1} strokeLinecap="round" fill="none" />}
+      {vein !== false && <path d={`M0,${f(-L * 0.06)} L0,${f(-L * 0.82)}`} stroke={typeof vein === 'string' ? vein : darker(fill, 0.7)} strokeWidth={1.2} strokeLinecap="round" fill="none" vectorEffect="non-scaling-stroke" />}
     </g>
   );
 }
@@ -61,9 +72,9 @@ function Flower5({ x, y, r, color, center = '#ffd84a', petals = 5, rot = 0 }: { 
     <g transform={`translate(${f(x)},${f(y)}) rotate(${f(rot)})`}>
       {Array.from({ length: petals }, (_, i) => {
         const a = (i / petals) * Math.PI * 2;
-        return <circle key={i} cx={f(Math.cos(a) * r * 0.62)} cy={f(Math.sin(a) * r * 0.62)} r={f(r * 0.55)} fill={color} />;
+        return <circle key={i} cx={f(Math.cos(a) * r * 0.62)} cy={f(Math.sin(a) * r * 0.62)} r={f(r * 0.55)} fill={color} {...LINE} strokeWidth={1.2} />;
       })}
-      <circle r={f(r * 0.3)} fill={center} />
+      <circle r={f(r * 0.3)} fill={center} {...LINE} strokeWidth={1.1} />
     </g>
   );
 }
@@ -226,20 +237,30 @@ const aloe: Draw = ({ art, n, r }) => {
   return out;
 };
 
+// фиалка (сенполия): плоская розетка округло-овальных листьев на черешках, цветы — в центре
 const rosette: Draw = ({ art, n, r, bloom }) => {
-  const count = [5, 8, 12][n];
-  const R = [8, 10, 12][n];
   const out: ReactNode[] = [];
-  for (let i = 0; i < count; i++) {
-    const a = -100 + (i / (count - 1)) * 200 + j(r, 6);
-    const outer = i % 2 === 0;
-    out.push(
-      <Leaf key={i} a={a} y={-2} d={P.round(R * (outer ? 2.3 : 1.9), R * 1.9)} fill={outer ? darker(art.leaf, 0.92) : art.leaf} L={R * 2} vein="#5f9a5a" />,
-    );
-  }
+  const ring = (count: number, from: number, to: number, pet: number, L: number, fill: string, key: string) => {
+    for (let i = 0; i < count; i++) {
+      const a = from + (i / (count - 1)) * (to - from) + j(r, 4);
+      const ex = Math.sin(rad(a)) * pet, ey = -Math.cos(rad(a)) * pet * 0.85 - 2;
+      out.push(<path key={key + 'p' + i} d={`M0,0 L${f(ex)},${f(ey)}`} stroke={darker(art.leaf, 0.85)} strokeWidth={2.4} strokeLinecap="round" />);
+      out.push(<Leaf key={key + i} x={ex} y={ey} a={a * 1.05} d={P.ellipse(L, L * 0.9)} fill={fill} L={L} />);
+    }
+  };
+  const k = [0.75, 0.95, 1.15][n];
+  ring([4, 6, 7][n], -78, 78, 14 * k, 24 * k, darker(art.leaf, 0.92), 'o');
+  ring([2, 3, 4][n], -40, 40, 9 * k, 21 * k, art.leaf, 'i');
   if (bloom) {
-    const k = [0, 3, 6][n];
-    for (let i = 0; i < k; i++) out.push(<Flower5 key={'f' + i} x={(i - (k - 1) / 2) * 7 + j(r, 2)} y={-R * 2.3 - (i % 2) * 6} r={6} color={art.flower!} rot={r() * 70} />);
+    const c = [0, 4, 6][n];
+    for (let i = 0; i < c; i++) {
+      const t = c === 1 ? 0 : i / (c - 1) - 0.5;
+      out.push(<path key={'fs' + i} d={`M0,-4 Q${f(t * 10)},-24 ${f(t * 26)},${f(-34 - Math.cos(t * 3) * 6)}`} stroke={darker(art.leaf, 0.85)} strokeWidth={1.6} fill="none" />);
+    }
+    for (let i = 0; i < c; i++) {
+      const t = c === 1 ? 0 : i / (c - 1) - 0.5;
+      out.push(<Flower5 key={'f' + i} x={t * 26} y={-34 - Math.cos(t * 3) * 6} r={8.5} color={art.flower!} rot={r() * 70} />);
+    }
   }
   return out;
 };
@@ -290,13 +311,13 @@ const kalanchoe: Draw = ({ art, n, r, bloom }) => {
 };
 
 const zamioculcas: Draw = ({ art, n, r }) => {
-  const stems = [2, 4, 6][n];
+  const stems = [2, 3, 5][n];
   const out: ReactNode[] = [];
   for (let i = 0; i < stems; i++) {
     const t = stems === 1 ? 0.5 : i / (stems - 1);
-    const a = -28 + t * 56 + j(r, 4);
-    const L = [34, 64, 96][n] * (0.8 + r() * 0.25);
-    const pairs = [2, 4, 6][n];
+    const a = -30 + t * 60 + j(r, 4);
+    const L = [34, 62, 90][n] * (0.8 + r() * 0.25);
+    const pairs = [2, 3, 4][n];
     out.push(
       <g key={i} transform={`rotate(${f(a)})`}>
         <path d={`M0,0 L0,${f(-L)}`} stroke={darker(art.leaf, 0.9)} strokeWidth={3.2} strokeLinecap="round" />
@@ -304,12 +325,12 @@ const zamioculcas: Draw = ({ art, n, r }) => {
         {Array.from({ length: pairs }, (_, k) => {
           const y = -L * (0.35 + (k / pairs) * 0.62);
           return [-1, 1].map((sd) => (
-            <Leaf key={`${k}${sd}`} y={y} a={sd * 52} d={P.ellipse(13, 7)} fill={art.leaf} L={13}>
+            <Leaf key={`${k}${sd}`} y={y} a={sd * 52} d={P.ellipse(17, 9)} fill={art.leaf} L={17}>
               <path d="M-1.5,-3 Q-2.5,-7 -1,-10" stroke="#fff" strokeOpacity={0.35} strokeWidth={1} fill="none" />
             </Leaf>
           ));
         })}
-        <Leaf y={-L} d={P.ellipse(12, 6.5)} fill={art.leaf} L={12} />
+        <Leaf y={-L} d={P.ellipse(15, 8)} fill={art.leaf} L={15} />
       </g>,
     );
   }
@@ -324,14 +345,13 @@ const monstera: Draw = ({ art, n, r, uid }) => {
     <defs key="d">
       <mask id={mid} maskUnits="userSpaceOnUse" maskContentUnits="userSpaceOnUse" x="-40" y="-60" width="80" height="70">
         <rect x="-40" y="-60" width="80" height="70" fill="#fff" />
-        {[0.28, 0.45, 0.62, 0.78].map((k, i) =>
+        {[0.32, 0.55, 0.76].map((k, i) =>
           [-1, 1].map((sd) => (
-            <path key={`${i}${sd}`} d={`M${sd * 30},${f(-50 * k + 6)} L${sd * 4},${f(-50 * k - 2)}`} stroke="#000" strokeWidth={2.6} strokeLinecap="round" />
+            <path key={`${i}${sd}`} d={`M${sd * 30},${f(-50 * k + 6)} L${sd * 9},${f(-50 * k - 2)}`} stroke="#000" strokeWidth={2.6} strokeLinecap="round" />
           )),
         )}
-        <ellipse cx="-8" cy="-22" rx="1.8" ry="3" fill="#000" />
-        <ellipse cx="9" cy="-32" rx="1.6" ry="2.6" fill="#000" />
       </mask>
+      <clipPath id={mid + 'c'}><path d={P.heart(50, 48)} /></clipPath>
     </defs>,
   );
   for (let i = 0; i < count; i++) {
@@ -343,7 +363,13 @@ const monstera: Draw = ({ art, n, r, uid }) => {
     const s = [0.38, 0.55, 0.72][n] * (0.85 + r() * 0.2);
     out.push(<path key={'p' + i} d={`M0,0 Q${f(ex * 0.3)},${f(ey * 0.8)} ${f(ex)},${f(ey)}`} stroke={STEM} strokeWidth={2} fill="none" />);
     out.push(
-      <Leaf key={'l' + i} x={ex} y={ey} a={a * 1.25 + (a > 0 ? 15 : -15)} s={s} d={P.heart(50, 48)} fill={i % 2 ? art.leaf : darker(art.leaf, 0.9)} L={50} mask={split ? `url(#${mid})` : undefined} vein="#7fb98a" />,
+      <Leaf key={'l' + i} x={ex} y={ey} a={a * 1.25 + (a > 0 ? 15 : -15)} s={s} d={P.heart(50, 48)} fill={i % 2 ? art.leaf : darker(art.leaf, 0.9)} L={50} mask={split ? `url(#${mid})` : undefined} vein="#7fb98a">
+        {split && (
+          <g clipPath={`url(#${mid}c)`}>
+            {[0.32, 0.55, 0.76].map((k) => [-1, 1].map((sd) => <path key={`${k}${sd}`} d={`M${sd * 30},${f(-50 * k + 6)} L${sd * 9},${f(-50 * k - 2)}`} stroke={OL} strokeWidth={4.6} strokeLinecap="round" />))}
+          </g>
+        )}
+      </Leaf>,
     );
   }
   return out;
@@ -615,25 +641,29 @@ const begonia: Draw = ({ art, n, r, bloom }) => {
 };
 
 const fern: Draw = ({ art, n, r }) => {
-  const fronds = [4, 8, 12][n];
-  const L = [26, 44, 60][n];
+  const fronds = [4, 6, 9][n];
+  const L = [28, 46, 62][n];
   const out: ReactNode[] = [];
   for (let i = 0; i < fronds; i++) {
     const t = fronds === 1 ? 0.5 : i / (fronds - 1);
     const a = rad(-80 + t * 160 + j(r, 6));
-    const len = L * (0.75 + r() * 0.3);
+    const len = L * (0.8 + r() * 0.25);
     const ex = Math.sin(a) * len, ey = -len * 0.55 + Math.abs(Math.sin(a)) * len * 0.35;
     const cx = Math.sin(a) * len * 0.35, cy = -len * (0.95 - Math.abs(Math.sin(a)) * 0.3);
-    out.push(<path key={'r' + i} d={`M0,0 Q${f(cx)},${f(cy)} ${f(ex)},${f(ey)}`} stroke={darker(art.leaf, 0.8)} strokeWidth={1.3} fill="none" />);
-    const steps = 9;
-    for (let k = 1; k < steps; k++) {
+    // вайя: зубчатый лист вдоль изогнутой оси — как на рисованных стикерах
+    const steps = 14, left: string[] = [], right: string[] = [];
+    for (let k = 0; k <= steps; k++) {
       const u = k / steps, mu = 1 - u;
       const x = 2 * mu * u * cx + u * u * ex, y = 2 * mu * u * cy + u * u * ey;
       const dx = 2 * mu * cx + 2 * u * (ex - cx), dy = 2 * mu * cy + 2 * u * (ey - cy);
-      const ang = (Math.atan2(dy, dx) * 180) / Math.PI + 90;
-      const ll = 7 * (1 - u * 0.6);
-      for (const sd of [-1, 1]) out.push(<Leaf key={`${i}-${k}${sd}`} x={x} y={y} a={ang + sd * 70} d={P.ellipse(ll, ll * 0.45)} fill={k % 2 ? art.leaf : darker(art.leaf, 0.92)} L={ll} vein={false} />);
+      const dl = Math.hypot(dx, dy) || 1, nx = -dy / dl, ny = dx / dl;
+      const w = (k % 2 ? 7.5 : 4) * Math.sin(Math.PI * Math.min(1, u * 1.15 + 0.08)) * (len / 50);
+      left.push(`${f(x + nx * w)},${f(y + ny * w)}`);
+      right.unshift(`${f(x - nx * w)},${f(y - ny * w)}`);
     }
+    const fill = i % 2 ? art.leaf : darker(art.leaf, 0.9);
+    out.push(<path key={'f' + i} d={`M0,0 L${left.join(' L')} L${right.join(' L')} Z`} fill={fill} {...LINE} />);
+    out.push(<path key={'r' + i} d={`M0,0 Q${f(cx)},${f(cy)} ${f(ex)},${f(ey)}`} stroke={darker(art.leaf, 0.7)} strokeWidth={1.2} fill="none" vectorEffect="non-scaling-stroke" />);
   }
   return out;
 };
@@ -822,7 +852,7 @@ function PotL({ skin, shape }: { skin: string; shape: string }) {
           <path d={`M${x0 + 24},180 L${x0 + 16},195 M${x0 + w - 24},180 L${x0 + w - 16},195 M70,182 L70,194`} />
         </g>
       )}
-      <path d={body} fill={p.body} opacity={p.pattern === 'glass' ? 0.55 : 1} />
+      <path d={body} fill={p.body} opacity={p.pattern === 'glass' ? 0.55 : 1} {...LINE} strokeWidth={1.8} />
       {shape === 'cube' && <path d={`M${x0 + w - 18},146 V196 H${x0 + w - 4} V146 Z`} fill="#000" opacity={0.08} />}
       {shape === 'belly' && <path d={`M${x0 + 14},156 Q${x0 + 6},172 ${x0 + 18},188`} stroke="#fff" strokeWidth={4} fill="none" opacity={0.25} strokeLinecap="round" />}
       <g clipPath={`url(#${clip})`}>
@@ -895,9 +925,12 @@ function PotL({ skin, shape }: { skin: string; shape: string }) {
         </g>
       )}
       </g>
-      <rect x={shape === 'bowl' ? x0 - 2 : x0} y={rimY} width={shape === 'bowl' ? w + 4 : w} height={shape === 'bowl' ? 9 : 13} rx={shape === 'cube' ? 1.5 : 4} fill={p.rim} opacity={p.pattern === 'glass' ? 0.8 : 1} />
+      {/* блик слева */}
+      {p.pattern !== 'glass' && <path d={`M${x0 + 16},${rimY + 22} L${x0 + 22},${rimY + 48}`} stroke="#fff" strokeWidth={5} strokeLinecap="round" opacity={0.35} />}
+      <rect x={shape === 'bowl' ? x0 - 5 : x0 - 4} y={rimY} width={shape === 'bowl' ? w + 10 : w + 8} height={shape === 'bowl' ? 10 : 14} rx={shape === 'cube' ? 2 : 5} fill={p.rim} opacity={p.pattern === 'glass' ? 0.8 : 1} {...LINE} strokeWidth={1.8} />
+      <path d={`M${x0 + 2},${rimY + 4} H${x0 + 18}`} stroke="#fff" strokeWidth={2.6} strokeLinecap="round" opacity={0.45} />
       {shape !== 'bowl' && <path d={`M${x0 + 8},${152} H${x0 + w - 8}`} stroke="#000" strokeWidth={3} opacity={0.12} />}
-      <ellipse cx={70} cy={rimY + 2} rx={w / 2 - 6} ry={3.5} fill="#6b4a33" />
+      <ellipse cx={70} cy={rimY + 2} rx={w / 2 - 6} ry={3.5} fill="#6b4a33" {...LINE} strokeWidth={1.4} />
     </g>
   );
 }
@@ -921,6 +954,24 @@ export interface PlantArtProps {
   hue?: string;
 }
 
+/** Стикер: тонкий контур по силуэту, белая кайма и мягкая тень. */
+function StickerFx({ id }: { id: string }) {
+  return (
+    <defs>
+      <filter id={id} x="-25%" y="-20%" width="150%" height="140%" colorInterpolationFilters="sRGB">
+        <feMorphology in="SourceAlpha" operator="dilate" radius="4.2" result="w0" />
+        <feFlood floodColor="#ffffff" />
+        <feComposite in2="w0" operator="in" result="white" />
+        <feGaussianBlur in="w0" stdDeviation="2.4" />
+        <feOffset dy="2.4" result="sb" />
+        <feFlood floodColor="#3b2a22" floodOpacity="0.16" />
+        <feComposite in2="sb" operator="in" result="shadow" />
+        <feMerge><feMergeNode in="shadow" /><feMergeNode in="white" /><feMergeNode in="SourceGraphic" /></feMerge>
+      </filter>
+    </defs>
+  );
+}
+
 export function PlantArt({ sp: spId, stage, seed = '', pot = 'terracotta', bigPot, size, shape, potView, blooming, className, noPot, form, hue }: PlantArtProps) {
   const uid = useId().replace(/[^a-zA-Z0-9_-]/g, '');
   const base = sp(spId);
@@ -932,12 +983,15 @@ export function PlantArt({ sp: spId, stage, seed = '', pot = 'terracotta', bigPo
   const r = rng(spId + seed);
   if (stage <= 1) {
     return (
-      <svg viewBox="0 0 140 200" preserveAspectRatio="xMidYMax meet" className={className} aria-label={s.name}>
+      <svg viewBox="0 0 140 200" preserveAspectRatio="xMidYMax meet" className={className} aria-label={s.name} overflow="visible">
+        <StickerFx id={uid + 'fx'} />
+        <g filter={`url(#${uid}fx)`}>
         {!noPot && <Glass />}
         <Variegate.Provider value={vg}>
           <Cutting art={s.art} roots={stage === 1} r={r} />
         </Variegate.Provider>
         {!noPot && <Glass front />}
+        </g>
       </svg>
     );
   }
@@ -947,6 +1001,8 @@ export function PlantArt({ sp: spId, stage, seed = '', pot = 'terracotta', bigPo
   const rootY = noPot ? 142 : potRootY(sz, shape);
   return (
     <svg viewBox={potView ? '6 96 128 104' : '0 0 140 200'} preserveAspectRatio="xMidYMax meet" className={potView ? ((className ?? '') + ' pot-view').trim() : className} aria-label={s.name} overflow={potView ? 'hidden' : 'visible'}>
+      <StickerFx id={uid + 'fx'} />
+      <g filter={potView ? undefined : `url(#${uid}fx)`}>
       {!noPot && <Pot skin={pot} size={sz} shape={shape} />}
       <svg x={70} y={rootY} overflow="visible" className="plant-root">
         <g className="sway">
@@ -955,6 +1011,7 @@ export function PlantArt({ sp: spId, stage, seed = '', pot = 'terracotta', bigPo
           </Variegate.Provider>
         </g>
       </svg>
+      </g>
     </svg>
   );
 }

@@ -560,6 +560,10 @@ const ART: Record<string, { w: number; h: number; draw: (o: DrawOpts) => ReactNo
   </>) },
 };
 
+/** Стикерный контур и белая кайма — у предметов. Котики, свет и прозрачные вещи — без неё. */
+const NO_STICKER = new Set(['cat', 'cat2', 'cat3', 'cat_walk', 'lamp', 'lamp_table', 'growlamp', 'candle', 'lantern', 'garland', 'suncatcher', 'tulle', 'paper_snow', 'snowflake', 'carpet', 'hangers', 'glass_dome']);
+const STICKER = { has: (id: string) => !!ART[id] && !NO_STICKER.has(id) };
+
 export const hasDecorArt = (id: string) => !!ART[id] || id === 'cat2' || id === 'cat3';
 
 /** Нарисованный предмет декора. scale — во сколько раз крупнее «натурального» размера. */
@@ -567,9 +571,23 @@ export function DecorArt({ id, scale = 1, className = '', on = true, tint }: { i
   const a = ART[id === 'cat2' || id === 'cat3' ? 'cat' : id];
   if (!a) return null;
   const opts: DrawOpts = { on, now: Date.now(), tint };
+  const fx = STICKER.has(id) ? 'dfx-' + id : undefined;
   return (
-    <svg className={'decor-svg ' + className} viewBox={`0 0 ${a.w} ${a.h}`} width={a.w * scale} height={a.h * scale} aria-hidden>
-      {a.draw(opts)}
+    <svg className={'decor-svg ' + className} viewBox={`0 0 ${a.w} ${a.h}`} width={a.w * scale} height={a.h * scale} overflow="visible" aria-hidden>
+      {fx && (
+        <defs>
+          <filter id={fx} x="-30%" y="-30%" width="160%" height="160%" colorInterpolationFilters="sRGB">
+            <feMorphology in="SourceAlpha" operator="dilate" radius="0.7" result="o" />
+            <feFlood floodColor="#3b2a22" />
+            <feComposite in2="o" operator="in" result="line" />
+            <feMorphology in="SourceAlpha" operator="dilate" radius="2.4" result="w0" />
+            <feFlood floodColor="#ffffff" />
+            <feComposite in2="w0" operator="in" result="white" />
+            <feMerge><feMergeNode in="white" /><feMergeNode in="line" /><feMergeNode in="SourceGraphic" /></feMerge>
+          </filter>
+        </defs>
+      )}
+      <g filter={fx ? `url(#${fx})` : undefined}>{a.draw(opts)}</g>
     </svg>
   );
 }

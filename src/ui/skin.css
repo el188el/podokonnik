@@ -351,3 +351,72 @@ body:has(.skin) { background: var(--bg, #f5f2ec); }
 :root .skin .ricon { width: 56px; height: 56px; border-radius: 16px; background: var(--soft); }
 :root .skin .pot-stack svg.pot-view { width: 40px; height: 32px; }
 :root .skin .doctor-banner, :root .skin .twins-banner, :root .skin .album-banner { background: var(--paper); color: var(--ink); }
+
+/* ═══════════ рисованный стиль (как у стикеров растений) ═══════════ */
+:root .skin {
+  --bg: #f7efe2;
+  --paper: #fffcf6;
+  --card: #fffcf6;
+  --soft: #f3e9d9;
+  --line: #eadcc6;
+  --ink: #3b2a22;
+  --muted: #8a7563;
+  --ol: #3b2a22;
+  --green: #4f9a4a;
+  --green-d: #3d7d39;
+  --sh1: 0 1px 0 rgba(59, 42, 34, 0.06), 0 6px 16px rgba(59, 42, 34, 0.07);
+  --sh2: 0 2px 6px rgba(59, 42, 34, 0.1), 0 14px 34px rgba(59, 42, 34, 0.14);
+  --display: 'Nunito', system-ui, sans-serif;
+}
+:root[data-theme='dark'] .skin { --bg: #1d1814; --paper: #29221c; --card: #29221c; --soft: #332a22; --line: #3d3329; --ink: #f6eadb; --muted: #b9a58f; --ol: #120d0a; }
+:root .skin h1, :root .skin h2 { font-weight: 900; letter-spacing: -0.3px; }
+:root .skin h3 { font-weight: 800; }
+:root .skin b, :root .skin strong { font-weight: 700; }
+
+/* значки-стикеры: контур в цвет рисунков, в тёмной теме — светлее */
+:root[data-theme='dark'] .skin .ico-st { color: #120d0a; }
+
+/* карточки — бумага с тонкой тёплой рамкой */
+:root .skin :is(.panel, .row-item, .shop-item, .pick, .box-card, .plus-card, .friend, .guide, .howto-list li, .mini-banner, .ach-card.done, .ach-link, .chat-plant-card, .bp-rw) {
+  border: 1.5px solid rgba(59, 42, 34, 0.1);
+}
+/* кнопки: главная и золотая — рисованные, с контуром и небольшой «ступенькой» */
+:root .skin .btn.primary:not(.small) { background: #5ea34c; border: 1.5px solid var(--ol); box-shadow: 0 2px 0 var(--ol); text-shadow: none; }
+:root .skin .btn.gold:not(.small) { background: #ffc35a; color: var(--ol); border: 1.5px solid var(--ol); box-shadow: 0 2px 0 var(--ol); }
+:root .skin .btn.primary:not(.small):not(:disabled):active, :root .skin .btn.gold:not(.small):not(:disabled):active { transform: translateY(2px); box-shadow: 0 0 0 var(--ol); }
+:root .skin .btn.small.primary { background: #e3f1d9; color: #2f6b2c; border: 1.5px solid rgba(59, 42, 34, 0.18); }
+:root .skin .btn.small.gold { background: #ffe4a8; color: #6b4300; border: 1.5px solid rgba(59, 42, 34, 0.18); }
+:root .skin .chip.icon-chip.on { background: var(--ol); color: #fff7ea; box-shadow: none; }
+:root .skin .chip { border: 1.5px solid rgba(59, 42, 34, 0.1); box-shadow: none; }
+
+/* листики в шапке — монетка-стикер */
+:root .skin .leaves .ico { background: none !important; padding: 0; box-shadow: none; width: 24px !important; height: 24px !important; }
+:root .skin .leaves { border: 1.5px solid rgba(59, 42, 34, 0.12); padding: 4px 12px 4px 8px; }
+:root .skin .me, :root .skin .help-btn, :root .skin .sill-picker { border: 1.5px solid rgba(59, 42, 34, 0.12); }
+:root .skin .lvl-ring b { color: var(--ol); border: 1.5px solid var(--ol); inset: 5px; }
+
+/* инструменты: плитки-стикеры */
+:root .skin .tool > span { border: 1.5px solid rgba(59, 42, 34, 0.14); background: var(--paper); }
+:root .skin .tool > span .ico { stroke: var(--ol) !important; color: var(--ol) !important; }
+:root .skin .tool.on > span { background: color-mix(in srgb, var(--tc) 28%, var(--paper)); border-color: var(--ol); box-shadow: 0 2px 0 var(--ol); transform: translateY(-2px); }
+:root .skin .tool.on > span .ico { stroke: var(--ol) !important; color: var(--ol) !important; }
+:root .skin .tool small { color: var(--ink); font-weight: 600; }
+:root .skin .tool:not(.on) small { color: var(--muted); }
+
+/* нижнее меню */
+:root .skin .tabbar .tab-pill { background: var(--paper); border: 1.5px solid var(--ol); box-shadow: 0 2px 0 var(--ol); }
+:root .skin .tabbar .on, :root .skin .tabbar button.on { color: var(--ol); }
+:root .skin .tabbar .tl { font-weight: 600; }
+
+/* полоски прогресса */
+:root .skin .bar { border: 1.5px solid rgba(59, 42, 34, 0.14); background: var(--soft); }
+:root .skin .bar .fill { background: #7cbf62; }
+
+/* иконки заданий и шпаргалки — кружок цвета со значком-стикером */
+:root .skin .qicon .ico, :root .skin .howto-ic .ico { stroke: var(--ol) !important; color: var(--ol) !important; }
+:root .skin .qicon, :root .skin .howto-ic { border: 1.5px solid rgba(59, 42, 34, 0.14); }
+:root .skin .tabbar .tab-pill { inset: 1px; }
+:root .skin .tabbar .tl { font-size: 10.5px; }
+:root[data-theme='dark'] .skin .btn.small.gold { background: #ffd27a; color: #4a2f00; }
+:root[data-theme='dark'] .skin .btn.small.primary { background: #2f4a2a; color: #bfe6a8; }
+:root[data-theme='dark'] .skin .tabbar .tab-pill, :root[data-theme='dark'] .skin .tool.on > span { border-color: #f6eadb55; box-shadow: none; }

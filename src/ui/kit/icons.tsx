@@ -23,10 +23,19 @@ export const ICONS = {
 
 export type IconName = keyof typeof ICONS;
 
-/** Иконка интерфейса. Цвет — от текста (currentColor) или явно через tone. */
+/** Замкнутые фигуры — их рисуем как стикер: заливка цветом и тёмный контур. */
+const FILLED = new Set<IconName>(['water', 'leaf', 'heart', 'star', 'flame', 'crown', 'feed', 'shop', 'gift', 'herbarium', 'boost', 'trophy', 'packs', 'lock', 'design', 'clear', 'partly', 'cloudy', 'rain', 'snow', 'storm', 'fog', 'mist', 'thermo', 'chat', 'luggage', 'calendar', 'sills', 'decor', 'user', 'friends', 'pots', 'flower', 'pin']);
+const OUTLINE = '#3b2a22';
+
+/** Иконка интерфейса. Цвет — от текста (currentColor) или явно через tone.
+ *  С цветом у замкнутых фигур — «стикер»: заливка этим цветом и коричневый контур, как у рисунков игры. */
 export function Icon({ name, size = 22, tone, className, stroke = 2.2 }: { name: IconName; size?: number; tone?: string; className?: string; stroke?: number }) {
   const C = ICONS[name];
-  return <C size={size} strokeWidth={stroke} color={tone ?? 'currentColor'} className={'ico' + (className ? ' ' + className : '')} style={{ width: size, height: size, flex: 'none' }} aria-hidden focusable={false} />;
+  const sticker = !!tone && FILLED.has(name);
+  return (
+    <C size={size} strokeWidth={sticker ? Math.min(stroke, 2) : stroke} color={sticker ? OUTLINE : tone ?? 'currentColor'} fill={sticker ? tone : 'none'}
+      className={'ico' + (sticker ? ' ico-st' : '') + (className ? ' ' + className : '')} style={{ width: size, height: size, flex: 'none' }} aria-hidden focusable={false} />
+  );
 }
 
 /** Цвета действий — одинаковые везде: в инструментах, карточке и подсказках. */

@@ -20,6 +20,8 @@ import { SillView } from './tabs/SillView';
 import { Icon, TONE, type IconName } from './kit/icons';
 import { Emo, rich } from './kit/rich';
 
+const TAB_TONE: Partial<Record<Tab, string>> = { sill: '#3d8b56', shop: '#f2a7b0', friends: '#8fc3e6', quests: '#ffc35a', herbarium: '#b9a2e0' };
+
 const TABS: [Tab, IconName, string][] = [
   ['sill', 'sill', 'Подоконник'],
   ['shop', 'shop', 'Магазин'],
@@ -125,7 +127,7 @@ export function App() {
         {TABS.map(([k, icon, label]) => (
           <button key={k} className={tab === k ? 'on' : ''} onClick={() => { setTab(k); platform().haptic('select'); }}>
             {tab === k && <motion.span layoutId="tab-pill" className="tab-pill" transition={{ type: 'spring', stiffness: 500, damping: 38 }} />}
-            <span className="ti"><Icon name={icon} size={24} stroke={tab === k ? 2.4 : 2} /></span>
+            <span className="ti"><Icon name={icon} size={24} stroke={tab === k ? 2.2 : 2} tone={tab === k ? TAB_TONE[k] : undefined} /></span>
             <span className="tl">{rich(label)}</span>
             {k === 'quests' && questsReady && <i className="dot" />}
           </button>
