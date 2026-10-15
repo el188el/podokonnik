@@ -59,13 +59,13 @@ body:has(.skin) { background: var(--bg, #f7efdf); }
 :root .skin .topbar { background: transparent; backdrop-filter: none; -webkit-backdrop-filter: none; border: 0; box-shadow: none; }
 :root .skin .leaves {
   background: var(--hud); color: #fff6e6; border-radius: 999px; padding: 4px 12px 4px 6px; gap: 6px;
-  box-shadow: inset 0 -2px 0 #0004, 0 2px 0 #0002; font-weight: 700; font-size: 16px; flex-direction: row-reverse;
+  box-shadow: inset 0 -1px 0 #0003; font-weight: 700; font-size: 16px; flex-direction: row-reverse;
 }
-:root .skin .leaves .ico { background: #4fb468; border-radius: 50%; padding: 4px; width: 26px !important; height: 26px !important; stroke: #fff; box-shadow: inset 0 -2px 0 #2a6e3c; }
+:root .skin .leaves .ico { background: #4fb468; border-radius: 50%; padding: 4px; width: 26px !important; height: 26px !important; stroke: #fff; box-shadow: inset 0 -1px 0 #2a6e3c; }
 :root .skin .me, :root .skin .help-btn, :root .skin .sill-picker {
-  background: var(--paper); color: var(--ink); border: 2px solid var(--line); box-shadow: 0 3px 0 var(--edge);
+  background: var(--paper); color: var(--ink); border: 1px solid var(--line); box-shadow: 0 2px 0 var(--edge);
 }
-:root .skin .help-btn { background: var(--gold); border-color: var(--gold-edge); color: #5a3a00; box-shadow: 0 3px 0 var(--gold-edge), inset 0 2px 0 #fff6; }
+:root .skin .help-btn { background: var(--gold); border-color: var(--gold-edge); color: #5a3a00; box-shadow: 0 2px 0 var(--gold-edge), inset 0 1px 0 #fff6; }
 :root .skin .sill-picker { border-radius: 14px; font-weight: 700; }
 :root .skin .lvl-ring b { box-shadow: inset 0 -2px 0 #c77f0e, inset 0 2px 0 #fff8; font-weight: 800; }
 :root .skin .lvl-ring .ring-bg { stroke: var(--line); }
@@ -77,53 +77,53 @@ body:has(.skin) { background: var(--bg, #f7efdf); }
 }
 :root .skin .btn.primary {
   background: linear-gradient(180deg, var(--green-hi), var(--green)); color: #fff;
-  border: 2px solid var(--green-edge); box-shadow: 0 4px 0 var(--green-edge), inset 0 2px 0 #ffffff55;
+  border: 1px solid var(--green-edge); box-shadow: 0 2px 0 var(--green-edge), inset 0 1px 0 #ffffff40;
   text-shadow: 0 1px 0 #0003;
 }
 :root .skin .btn.gold {
   background: linear-gradient(180deg, var(--gold-hi), var(--gold)); color: #4a2f00;
-  border: 2px solid var(--gold-edge); box-shadow: 0 4px 0 var(--gold-edge), inset 0 2px 0 #ffffff77;
+  border: 1px solid var(--gold-edge); box-shadow: 0 2px 0 var(--gold-edge), inset 0 1px 0 #ffffff55;
 }
 :root .skin .btn.soft {
-  background: var(--paper); color: var(--ink); border: 2px solid var(--line); box-shadow: 0 3px 0 var(--edge);
+  background: var(--paper); color: var(--ink); border: 1px solid var(--line); box-shadow: 0 2px 0 var(--edge);
 }
-:root .skin .btn.warn { border: 2px solid #f0b7b0; box-shadow: 0 3px 0 #e39a90; }
-:root .skin .btn:not(:disabled):active { transform: translateY(3px); box-shadow: 0 1px 0 var(--edge); }
-:root .skin .btn.primary:not(:disabled):active { box-shadow: 0 1px 0 var(--green-edge), inset 0 2px 0 #ffffff55; }
-:root .skin .btn.gold:not(:disabled):active { box-shadow: 0 1px 0 var(--gold-edge), inset 0 2px 0 #ffffff77; }
+:root .skin .btn.warn { border: 1px solid #f0b7b0; box-shadow: 0 2px 0 #e39a90; }
+:root .skin .btn:not(:disabled):active { transform: translateY(1px); box-shadow: 0 1px 0 var(--edge); }
+:root .skin .btn.primary:not(:disabled):active { box-shadow: 0 1px 0 var(--green-edge), inset 0 1px 0 #ffffff40; }
+:root .skin .btn.gold:not(:disabled):active { box-shadow: 0 1px 0 var(--gold-edge), inset 0 1px 0 #ffffff55; }
 :root .skin .btn:disabled { filter: grayscale(.5); opacity: .6; }
 
 /* ─────────── бумажные карточки ─────────── */
 :root .skin .row-item, :root .skin .shop-item, :root .skin .pick, :root .skin .box-card, :root .skin .card-block, :root .skin .plus-card, :root .skin .quests-card,
 :root .skin .tab .card, :root .skin .friend, :root .skin .segment, :root .skin .guide, :root .skin .tile, :root .skin .strip-clim {
-  background: var(--paper); border: 2px solid var(--line); box-shadow: 0 3px 0 var(--edge);
+  background: var(--paper); border: 1px solid var(--line); box-shadow: 0 2px 0 var(--edge);
 }
 :root .skin .row-item, :root .skin .shop-item, :root .skin .pick { border-radius: 20px; }
-:root .skin .chip { background: var(--paper); border: 2px solid var(--line); box-shadow: 0 3px 0 var(--edge); color: var(--ink); font-weight: 600; }
-:root .skin .chip.on { background: var(--green); border-color: var(--green-edge); color: #fff; box-shadow: 0 3px 0 var(--green-edge), inset 0 2px 0 #ffffff44; }
-:root .skin .chip:active { transform: translateY(2px); box-shadow: 0 1px 0 var(--edge); }
+:root .skin .chip { background: var(--paper); border: 1px solid var(--line); box-shadow: 0 2px 0 var(--edge); color: var(--ink); font-weight: 600; }
+:root .skin .chip.on { background: var(--green); border-color: var(--green-edge); color: #fff; box-shadow: 0 2px 0 var(--green-edge), inset 0 1px 0 #ffffff33; }
+:root .skin .chip:active { transform: translateY(1px); box-shadow: 0 1px 0 var(--edge); }
 :root .skin .segment { padding: 4px; border-radius: 16px; }
 :root .skin .segment button.on { background: var(--green); color: #fff; box-shadow: 0 2px 0 var(--green-edge); }
 :root .skin .segment button.on .ico { stroke: currentColor; }
 
 /* окна снизу */
-:root .skin .sheet { background: var(--paper); border-top: 2px solid var(--line); }
+:root .skin .sheet { background: var(--paper); border-top: 1px solid var(--line); }
 :root .skin .sheet .grip { background: var(--edge); }
-:root .skin .modal { background: var(--paper); border: 2px solid var(--line); box-shadow: 0 5px 0 var(--edge), 0 20px 50px #0004; }
-:root .skin .toast { background: var(--hud); color: #fff6e6; border-radius: 16px; box-shadow: 0 4px 0 #0003, 0 10px 30px #0003; font-weight: 600; }
+:root .skin .modal { background: var(--paper); border: 1px solid var(--line); box-shadow: 0 2px 0 var(--edge), 0 12px 36px #0003; }
+:root .skin .toast { background: var(--hud); color: #fff6e6; border-radius: 16px; box-shadow: 0 6px 20px #0003; font-weight: 600; }
 
 /* полоска дел над подоконником */
 :root .skin .info-strip .tile, :root .skin .strip-clim { border-radius: 16px; }
-:root .skin .tile.ready { background: linear-gradient(180deg, var(--gold-hi), var(--gold)); border-color: var(--gold-edge); color: #4a2f00; box-shadow: 0 3px 0 var(--gold-edge); }
-:root .skin .strip-event { border: 2px solid #e2a35d; box-shadow: 0 3px 0 #c98a45; }
+:root .skin .tile.ready { background: linear-gradient(180deg, var(--gold-hi), var(--gold)); border-color: var(--gold-edge); color: #4a2f00; box-shadow: 0 2px 0 var(--gold-edge); }
+:root .skin .strip-event { border: 1px solid #e2a35d; box-shadow: 0 2px 0 #c98a45; }
 
 /* ─────────── инструменты: круглые цветные кнопки ─────────── */
 :root .skin .tools { background: none; box-shadow: none; padding: 0 4px; gap: 6px; justify-content: space-around; }
 :root .skin .tool { background: none !important; box-shadow: none !important; transform: none; padding: 0; gap: 4px; flex: 0 1 72px; }
 :root .skin .tool > span {
   width: 54px; height: 54px; border-radius: 50%; display: grid; place-items: center;
-  background: var(--tc, #6e8b7f); border: 3px solid var(--paper);
-  box-shadow: 0 4px 0 var(--tce, #4d665b), 0 6px 12px #0002; transition: transform .12s;
+  background: var(--tc, #6e8b7f); border: 2px solid var(--paper);
+  box-shadow: 0 2px 0 var(--tce, #4d665b), 0 3px 6px #0001; transition: transform .12s;
 }
 :root .skin .tool > span .ico { stroke: #fff; color: #fff; width: 26px !important; height: 26px !important; }
 :root .skin .tool small { font-size: 11.5px; font-weight: 600; color: var(--ink); }
@@ -131,26 +131,26 @@ body:has(.skin) { background: var(--bg, #f7efdf); }
 :root .skin .tool:nth-child(2) { --tc: #3b8fd6; --tce: #2a6aa3; }
 :root .skin .tool:nth-child(3) { --tc: #8b5cc7; --tce: #643f97; }
 :root .skin .tool:nth-child(4) { --tc: #e0685a; --tce: #ad4a3e; }
-:root .skin .tool.on > span { transform: translateY(-4px) scale(1.06); box-shadow: 0 0 0 2px var(--tc), 0 7px 0 var(--tce), 0 10px 18px #0003; }
+:root .skin .tool.on > span { transform: translateY(-2px) scale(1.04); box-shadow: 0 0 0 2px var(--tc), 0 3px 0 var(--tce), 0 4px 10px #0002; }
 :root .skin .tool.on small { color: var(--ink); font-weight: 700; }
 :root .skin .tool:not(.on) > span { filter: saturate(.85); }
-:root .skin .tool-badge { top: -4px; right: calc(50% - 34px); background: var(--paper); color: var(--ink); border: 2px solid var(--line); height: 22px; min-width: 22px; border-radius: 11px; font-size: 12px; font-weight: 700; }
+:root .skin .tool-badge { top: -4px; right: calc(50% - 34px); background: var(--paper); color: var(--ink); border: 1px solid var(--line); height: 22px; min-width: 22px; border-radius: 11px; font-size: 12px; font-weight: 700; }
 :root .skin .tool-badge.ready { background: var(--gold); border-color: var(--gold-edge); color: #4a2f00; }
-:root .skin .tool-tip { background: var(--paper); border: 2px solid var(--line); box-shadow: 0 3px 0 var(--edge), 0 8px 20px #0002; }
+:root .skin .tool-tip { background: var(--paper); border: 1px solid var(--line); box-shadow: 0 2px 0 var(--edge), 0 4px 12px #0001; }
 :root .skin .tt-all { border: 0; border-radius: 999px; padding: 4px 10px; font: 700 12.5px var(--display); display: inline-flex; gap: 4px; align-items: center; background: #3b8fd6; color: #fff; box-shadow: 0 2px 0 #2a6aa3; width: auto !important; height: 28px !important; }
 :root .skin .tt-all.locked { background: var(--gold); color: #4a2f00; box-shadow: 0 2px 0 var(--gold-edge); }
 
 /* ─────────── деревянное нижнее меню ─────────── */
 :root .skin .tabbar {
   background: linear-gradient(180deg, var(--tb-hi), var(--tb)); border: 0; border-radius: 24px;
-  box-shadow: 0 4px 0 var(--tb-edge), inset 0 2px 0 #ffffff22, 0 10px 24px #0003; padding: 6px;
+  box-shadow: 0 2px 0 var(--tb-edge), inset 0 1px 0 #ffffff1a, 0 4px 12px #0002; padding: 6px;
 }
 :root .skin .tabbar button { color: #f1dfc2; }
 :root .skin .tabbar button .ico { opacity: .85; }
 :root .skin .tabbar .tl { font-weight: 600; font-size: 11.5px; }
 :root .skin .tabbar .on, :root .skin .tabbar button.on { color: var(--green-edge); }
 :root .skin .tabbar .on .ico { opacity: 1; }
-:root .skin .tabbar .tab-pill { background: var(--paper); box-shadow: 0 3px 0 #0003, inset 0 -2px 0 var(--line); border-radius: 18px; }
+:root .skin .tabbar .tab-pill { background: var(--paper); box-shadow: 0 1px 0 #0002; border-radius: 18px; }
 :root[data-theme='dark'] .skin .tabbar .on { color: var(--green-hi); }
 :root .skin .tabbar .dot { background: var(--gold); box-shadow: 0 0 0 2px var(--tb); }
 
@@ -158,7 +158,7 @@ body:has(.skin) { background: var(--bg, #f7efdf); }
 :root .skin .tab-head h1 { font-size: 30px; }
 
 /* задания: цветные плашки-иконки */
-:root .skin .qicon { box-shadow: inset 0 -3px 0 #0001; }
+:root .skin .qicon { box-shadow: inset 0 -2px 0 #0001; }
 
 /* обучение */
 :root .skin .guide { border-radius: 22px; }
@@ -173,19 +173,19 @@ body:has(.skin) { background: var(--bg, #f7efdf); }
 :root .skin .tool-tip-wrap .tool-tip { width: 100%; justify-content: flex-start; height: 44px; }
 
 /* цветные кружки-иконки, как у инструментов */
-:root .skin .howto-ic, :root .skin .qicon { background: currentColor !important; border-radius: 50%; box-shadow: inset 0 -3px 0 #0003, 0 2px 0 #0001; }
+:root .skin .howto-ic, :root .skin .qicon { background: currentColor !important; border-radius: 50%; box-shadow: inset 0 -2px 0 #0002; }
 :root .skin .howto-ic .ico, :root .skin .qicon .ico { stroke: #fff; color: #fff; }
-:root .skin .howto-list li { background: var(--paper); border: 2px solid var(--line); box-shadow: 0 3px 0 var(--edge); }
+:root .skin .howto-list li { background: var(--paper); border: 1px solid var(--line); box-shadow: 0 2px 0 var(--edge); }
 
 /* карточка растения: объёмные плитки действий */
-:root .skin .card .care { background: var(--paper); border: 2px solid var(--line); box-shadow: 0 3px 0 var(--edge); }
+:root .skin .card .care { background: var(--paper); border: 1px solid var(--line); box-shadow: 0 2px 0 var(--edge); }
 :root .skin .card .care:not(:disabled):active { transform: translateY(2px); box-shadow: 0 1px 0 var(--edge); }
-:root .skin .card .care.hot { border-color: #7fb7e6; background: #eaf4fd; box-shadow: 0 3px 0 #5d9bd1; }
-:root .skin .card .care.ready { border-color: var(--gold-edge); background: #fff1c7; box-shadow: 0 3px 0 var(--gold-edge); }
+:root .skin .card .care.hot { border-color: #7fb7e6; background: #eaf4fd; box-shadow: 0 2px 0 #5d9bd1; }
+:root .skin .card .care.ready { border-color: var(--gold-edge); background: #fff1c7; box-shadow: 0 2px 0 var(--gold-edge); }
 :root[data-theme='dark'] .skin .card .care.hot { background: #1f3346; }
 :root[data-theme='dark'] .skin .card .care.ready { background: #4a3a14; }
-:root .skin .card-nav button { background: var(--paper); border: 2px solid var(--line); box-shadow: 0 3px 0 var(--edge); }
+:root .skin .card-nav button { background: var(--paper); border: 1px solid var(--line); box-shadow: 0 2px 0 var(--edge); }
 :root .skin .stat-chips span { background: var(--soft); }
 :root .skin .linkish { color: var(--green); }
-:root .skin .panel { background: var(--paper); border: 2px solid var(--line); box-shadow: 0 3px 0 var(--edge); }
+:root .skin .panel { background: var(--paper); border: 1px solid var(--line); box-shadow: 0 2px 0 var(--edge); }
 :root .skin .quest { border-bottom-color: var(--line); }
