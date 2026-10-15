@@ -9,7 +9,7 @@ import { sp } from './species';
 import type { GameState, Plant } from './types';
 
 export type Fix =
-  | { kind: 'water' | 'mist' | 'vent' | 'tray' | 'soil' | 'drain'; label: string }
+  | { kind: 'water' | 'mist' | 'vent' | 'tray' | 'soil' | 'drain' | 'wipe'; label: string }
   | { kind: 'move'; to: 'glass' | 'deep'; label: string }
   | { kind: 'buy'; item: string; label: string }
   | { kind: 'cure'; item: string; label: string };
@@ -38,6 +38,13 @@ export function diagnose(g: GameState, p: Plant, t: number): Cause[] {
       fixes: [{ kind: 'water', label: '💧 Полить' }, ...(owns(g, sill.decor, 'meter') ? [] : [{ kind: 'buy' as const, item: 'meter', label: '📟 Влагомер' }])],
     });
   }
+  if (p.wetLeaves) {
+    out.push({
+      icon: '💧', title: 'Мокрые листья', hurts: true,
+      text: `${s.name} не любит воду на листьях: появляются пятна, а в сырости — плесень. Протри салфеткой${owns(g, sill.decor, 'fan') ? ' или подожди — вентилятор высушит за полчаса' : ', иначе листья будут сохнуть 3 часа'}.`,
+      fixes: [{ kind: 'wipe', label: '🧻 Протереть' }, ...(owns(g, sill.decor, 'fan') ? [] : [{ kind: 'buy' as const, item: 'fan', label: '🌀 Вентилятор' }])],
+    });
+  }
   if (p.moisture > 1) {
     out.push({
       icon: '🌊', title: 'Перелив', hurts: s.overwater !== 'tolerant',
@@ -52,7 +59,7 @@ export function diagnose(g: GameState, p: Plant, t: number): Cause[] {
       icon: dark ? '🌥' : '🔥', title: dark ? 'Мало света' : 'Слишком много солнца', hurts: p.badLightFor > 20 && p.health > 50,
       text: dark ? `Ему нужно больше света. Поставь ${p.zone === 'deep' ? 'к стеклу' : 'на более светлое окно'} или повесь фитолампу.` : 'Прямое солнце обжигает листья. Отодвинь в глубину, задёрни шторы или повесь тюль.',
       fixes: dark
-        ? [...(p.zone === 'deep' ? [{ kind: 'move' as const, to: 'glass' as const, label: '↑ К стеклу' }] : []), ...(owns(g, sill.decor, 'lamp') ? [] : [{ kind: 'buy' as const, item: 'lamp', label: '💜 Фитолампа' }])]
+        ? [...(p.zone === 'deep' ? [{ kind: 'move' as const, to: 'glass' as const, label: '↑ К стеклу' }] : []), ...(p.zone === 'deep' ? (owns(g, sill.decor, 'lamp_table') ? [] : [{ kind: 'buy' as const, item: 'lamp_table', label: '💜 Настольная фитолампа' }]) : owns(g, sill.decor, 'lamp') ? [] : [{ kind: 'buy' as const, item: 'lamp', label: '💜 Фитолампа' }])]
         : [...(p.zone === 'glass' ? [{ kind: 'move' as const, to: 'deep' as const, label: '↓ В глубину' }] : []), ...(owns(g, sill.decor, 'curtains') ? [] : [{ kind: 'buy' as const, item: 'curtains', label: '🎐 Шторы' }]), ...(owns(g, sill.decor, 'tulle') ? [] : [{ kind: 'buy' as const, item: 'tulle', label: '🪟 Тюль' }])],
     });
   }

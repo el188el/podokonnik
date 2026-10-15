@@ -131,6 +131,7 @@ export interface Ctx {
   repel?: boolean; // рядом взрослая герань — отпугивает вредителей
   tulle?: boolean; // тюль рассеивает прямое солнце у стекла
   radio?: boolean; // радио на подоконнике: под музыку растут чуть быстрее
+  lampGrow?: number; // фитолампа над этим рядом: множитель роста
 }
 
 /** Бонус новичка: первые двое суток (пока уровень ниже 6) растения растут втрое быстрее. */
@@ -154,6 +155,7 @@ export function growthRate(p: Plant, t: number, ctx: Ctx) {
   r *= problemEffect(p).slow;
   r *= climateGrowth(ctx.temp ?? 22, ctx.rh ?? 45, sp(p.sp).mist === 'love');
   if (ctx.radio) r *= 1.05;
+  if (ctx.lampGrow) r *= ctx.lampGrow;
   r = Math.min(r, MAX_GROWTH_MULT);
   if (ctx.newbie) r *= NEWBIE_MULT; // бонус новичка — поверх всех ускорений
   return r;
@@ -191,6 +193,12 @@ function stepPlant(p: Plant, dtH: number, t: number, ctx: Ctx, ev: SimEvent[]) {
   }
   if (p.stage === 1) return;
   if (p.potSize == null) p.potSize = p.bigPot ? 4 : needSize(p.stage); // старые сохранения
+  // мокрые листья у тех, кого мочить нельзя: пока не высохнут — пятна и риск болезней
+  let wetDmg = 0;
+  if (p.wetLeaves) {
+    if (t - p.wetLeaves >= wetLeavesH(ctx.fan) * H) p.wetLeaves = undefined;
+    else { wetDmg = 3 * dtH; p.splashedAt = t; }
+  }
 
   const s = sp(p.sp);
   const winter = isWinter(t);
@@ -214,6 +222,7 @@ function stepPlant(p: Plant, dtH: number, t: number, ctx: Ctx, ev: SimEvent[]) {
   if (p.moisture > 1) dmg += (s.overwater === 'sensitive' ? 2 : s.overwater === 'normal' ? 0.6 : 0) * (p.drain ? 0.5 : 1) * dtH;
   if (p.badLightFor > 20 && p.health > 50) lightDmg = Math.min(dtH, p.health - 50);
   dmg += problemEffect(p).dmg * dtH;
+  dmg += wetDmg;
   // холод: тропическим ниже 14°, остальным ниже 8° — листья подмерзают
   const cold = coldLimit(p.sp) - (ctx.temp ?? 22);
   if (cold > 0) dmg += Math.min(3, cold * 0.25) * dtH;
@@ -268,6 +277,18 @@ export function canBloom(p: Plant, t: number, ctx: Ctx) {
 }
 
 export const hasLamp = (state: GameState, sill: Sill) => hasDecorOn(state, sill, 'lamp');
+/** Бонус фитоламп к росту: оконная светит на верхний ряд (+15%) и немного на столик (+5%),
+ *  настольная — на столик (+15%). */
+export const LAMP_GROW = 1.15;
+export function lampFor(state: GameState, sill: Sill, zone: Plant['zone']): { light: boolean; grow: number } {
+  const win = hasLamp(state, sill);
+  const table = hasDecorOn(state, sill, 'lamp_table');
+  if (zone === 'glass') return { light: win, grow: win ? LAMP_GROW : 1 };
+  return { light: win || table, grow: table ? LAMP_GROW : win ? 1.05 : 1 };
+}
+
+/** Сколько сохнут листья после опрыскивания (ч): с вентилятором — быстро. */
+export const wetLeavesH = (fan?: boolean) => (fan ? 0.5 : 3);
 
 /** Соседи по ряду: слева и справа. */
 export function neighborsOf(state: Pick<GameState, 'plants'>, p: Plant): Plant[] {
@@ -286,7 +307,7 @@ export function ctxFor(state: GameState, p: Plant, t: number): Ctx {
   const w = weatherAt(state, t);
   const near = neighborsOf(state, p);
   return {
-    sill, lamp: hasLamp(state, sill), neighbor: !!state.neighbor && t < state.neighbor.until, dim: isDim(w), sunny: isSunny(w),
+    sill, lamp: lampFor(state, sill, p.zone).light, lampGrow: lampFor(state, sill, p.zone).grow, neighbor: !!state.neighbor && t < state.neighbor.until, dim: isDim(w), sunny: isSunny(w),
     shade: !SHADY.includes(p.sp) && near.some((n) => SHADY.includes(n.sp) && n.stage === 4),
     humid: hasDecorOn(state, sill, 'humidifier'),
     ...(() => {

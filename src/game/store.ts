@@ -25,7 +25,7 @@ import { giftLink, makeCode } from './gifts';
 import { XP, levelPerks, levelReward, unlocksAt, xpToNext, SILL_UNLOCK } from './progression';
 import { QUEST_BONUS, WEEKLY_CHEST, dayKey, bumpQuest, bumpWeekly, rollDay, rollWeek, streakReward, weeklyVisit } from './quests';
 import { ITEM_BY_ID, ITEMS, placeOf, potIdOf } from './shop';
-import { advance, badLight, bestZone, canCut, ctxFor, fmt, needSize, POT_SIZE_ITEM, POT_SIZE_NAME, potSizeOf, tight, hasLamp, neighborsOf, stageMarks, type SimEvent } from './sim';
+import { advance, badLight, bestZone, canCut, ctxFor, hasDecorOn, fmt, needSize, POT_SIZE_ITEM, POT_SIZE_NAME, potSizeOf, tight, hasLamp, neighborsOf, stageMarks, type SimEvent } from './sim';
 import { activeEvent, EVENT_TOKENS, eventSeason, tierOf, type GameEvent, type PassReward } from './events';
 import { FORM_BY_ID, FORMS, PRODUCT_BY_ID, RARE_DROP, formsOf } from './products';
 import { replayFriendWaters, type FriendWater } from './social';
@@ -917,38 +917,48 @@ export function mist(plantId: string, insist = true) {
     const p = findPlant(g, plantId);
     if (!p || p.stage < 2) return false;
     const s = sp(p.sp);
+    // опрыскивать можно всех, но тех, кого мочить нельзя, — с последствиями (сперва предупредим)
     if (s.mist === 'no' && !insist) {
-      say(p.id, 'Меня нельзя опрыскивать! 🙅', 2600);
+      say(p.id, 'Меня лучше не опрыскивать! 🙅', 2600);
       haptic('warning');
       return false;
     }
-    if (s.mist === 'no') {
-      p.health = Math.max(5, p.health - 10);
-      say(p.id, 'Ай! Пятна на листьях 😣');
-      haptic('error');
-      toast(s.mistTip);
-      return false;
-    }
-    if (s.mist === 'ok') { toast(s.mistTip); return false; }
-    const fresh = !(p.mistUntil && t < p.mistUntil);
-    p.mistUntil = t + MIST_MS;
-    g.stats.mists += 1;
-    if (fresh) { addXp(g, XP.mist); quest(g, 'mist'); eventToken(g, 'mist', t); }
     fx(p.id, 'mist');
-    say(p.id, 'Спасибо! 😊');
+    g.stats.mists += 1;
+    if (s.mist === 'no') {
+      p.wetLeaves = t;
+      say(p.id, 'Ой, листья мокрые! Протри меня 😣', 4000);
+      haptic('error');
+      toast(`💧 ${s.name}: на мокрых листьях появятся пятна и плесень. Протри салфеткой${hasDecorOn(g, g.sills.find((x) => x.id === p.sill) ?? g.sills[0], 'fan') ? ' — или вентилятор высушит за полчаса' : ' или включи вентилятор'}`);
+      return true;
+    }
+    const fresh = !(p.mistUntil && t < p.mistUntil);
+    p.mistUntil = t + (s.mist === 'love' ? MIST_MS : MIST_MS / 2);
+    if (fresh) { addXp(g, XP.mist); quest(g, 'mist'); eventToken(g, 'mist', t); }
+    say(p.id, s.mist === 'love' ? 'Спасибо! 😊' : 'Освежилось 🌿');
     haptic('light');
     // влажность мешает клещу
     if (p.problem?.kind === 'mite') p.problem.sev = Math.max(0.1, p.problem.sev - 0.15);
-    // брызги летят на соседей: тем, кого нельзя мочить, это вредно
+    // брызги летят на соседей: тех, кого нельзя мочить, придётся протереть
     const splashed = neighborsOf(g, p).filter((n) => n.stage >= 2 && sp(n.sp).mist === 'no');
     for (const n of splashed) {
-      n.splashedAt = t;
-      n.health = Math.max(5, n.health - 4);
-      say(n.id, 'Брр, брызги! 💧', 2000);
+      n.wetLeaves = t;
+      say(n.id, 'Брр, брызги! Протри меня 💧', 2600);
     }
-    if (splashed.length) toast(`💦 Брызги попали на ${splashed.map((n) => sp(n.sp).acc).join(' и ')} — им опрыскивание вредно. Переставь подальше`);
-    else toast(`${s.name} радуется! 12 ч растёт быстрее 💦`);
+    if (splashed.length) toast(`💦 Брызги попали на ${splashed.map((n) => sp(n.sp).acc).join(' и ')} — протри листья салфеткой или переставь подальше`);
+    else toast(s.mist === 'love' ? `${s.name} радуется! 12 ч растёт быстрее 💦` : `${s.name} освежилось — 6 ч растёт быстрее 💦`);
     return true;
+  });
+}
+
+/** Протереть мокрые листья салфеткой — пятен не будет. */
+export function wipeLeaves(plantId: string) {
+  mut((g) => {
+    const p = findPlant(g, plantId);
+    if (!p?.wetLeaves) return;
+    p.wetLeaves = undefined;
+    say(p.id, 'Сухо и чисто, спасибо! 🧻', 2400);
+    haptic('success');
   });
 }
 
@@ -2295,7 +2305,8 @@ export async function logoutTelegram() {
 
 // ─────────────────── живой декор: включить, переставить ───────────────────
 const SWITCH_TEXT: Record<string, [string, string]> = {
-  lamp: ['💜 Фитолампа включена: +1 к свету', '🌑 Фитолампа выключена'],
+  lamp: ['💜 Фитолампа включена: +1 к свету и +15% к росту у окна', '🌑 Фитолампа выключена'],
+  lamp_table: ['💜 Настольная фитолампа: +1 к свету и +15% к росту на столике', '🌑 Настольная фитолампа выключена'],
   radio: ['📻 Радио играет — растения растут чуть быстрее', '📻 Радио выключено'],
   candle: ['🕯️ Свеча зажжена', '🕯️ Свеча задута'],
   lantern: ['🏮 Фонарик горит', '🏮 Фонарик погас'],

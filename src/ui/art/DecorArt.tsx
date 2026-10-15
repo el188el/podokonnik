@@ -469,6 +469,18 @@ const ART: Record<string, { w: number; h: number; draw: (o: DrawOpts) => ReactNo
     <text x="13" y="14.6" textAnchor="middle" fontSize="7" fontWeight="700" fill="#1f3832" fontFamily="system-ui, sans-serif">°C</text>
     <circle cx="9" cy="22" r="2" fill="#4aa3df" /><circle cx="17" cy="22" r="2" fill="#f08a3c" />
   </>) },
+  lamp_table: { w: 58, h: 64, draw: (o) => (<>
+    {shadow(14, 62, 12)}
+    <rect x="4" y="57" width="20" height="5" rx="2.5" fill="#3b3742" />
+    <path d="M14 58 L18 28 L44 12" stroke="#57525f" strokeWidth="3" fill="none" strokeLinecap="round" strokeLinejoin="round" />
+    <circle cx="18" cy="28" r="2.6" fill="#3b3742" />
+    <g transform="rotate(18 44 14)">
+      <rect x="28" y="10" width="30" height="8" rx="4" fill="#3b3742" />
+      <rect x="30" y="16" width="26" height="3.4" rx="1.7" fill={o.on ? '#d18cff' : '#6c6676'} />
+      {o.on && [0, 1, 2, 3, 4].map((i) => <circle key={i} cx={33 + i * 5} cy="17.7" r="1.2" fill={i % 2 ? '#ff6fa8' : '#f3d4ff'} />)}
+    </g>
+    {o.on && <path d="M30 22 L18 64 H62 L56 26 Z" fill="#c77dff22" />}
+  </>) },
   growlamp: { w: 160, h: 30, draw: (o) => (<>
     <path d="M30 0 V12 M130 0 V12" stroke="#5d5a66" strokeWidth="1.4" />
     <rect x="6" y="10" width="148" height="12" rx="6" fill="#3b3742" />

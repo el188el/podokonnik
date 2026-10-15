@@ -134,6 +134,37 @@ describe('черенки и пересадка', () => {
   });
 });
 
+describe('мокрые листья и фитолампы', () => {
+  it('мокрые листья у фиалки отнимают здоровье, пока не высохнут', () => {
+    const { g, p } = world('violet', { stage: 3, rootStart: T0, plantedAt: T0, moisture: 0.8, potSize: 3, health: 100, wetLeaves: T0 });
+    advance(g, T0 + 2 * H);
+    expect(p.health).toBeLessThan(100);
+    expect(p.wetLeaves).toBe(T0);
+    advance(g, T0 + 4 * H);
+    expect(p.wetLeaves).toBeUndefined();
+  });
+
+  it('вентилятор сушит листья за полчаса', () => {
+    const { g, p } = world('violet', { stage: 3, rootStart: T0, plantedAt: T0, moisture: 0.8, potSize: 3, wetLeaves: T0 });
+    g.owned.fan = 1; g.sills[0].decor.push('fan');
+    advance(g, T0 + H);
+    expect(p.wetLeaves).toBeUndefined();
+  });
+
+  it('оконная фитолампа ускоряет верхний ряд, настольная — столик', () => {
+    const { g, p } = potted('chlorophytum');
+    const base = growthRate(p, T0, ctxFor(g, p, T0));
+    g.owned.lamp = 1; g.sills[0].decor.push('lamp');
+    expect(ctxFor(g, p, T0).lampGrow).toBe(p.zone === 'glass' ? 1.15 : 1.05);
+    const q = newPlant({ sp: 'chlorophytum', sill: 'room', slot: 3, zone: 'deep', stage: 2, potSize: 3, guardUntil: T0 + 1e12 }, T0);
+    g.plants.push(q);
+    g.owned.lamp_table = 1; g.sills[0].decor.push('lamp_table');
+    expect(ctxFor(g, q, T0).lampGrow).toBe(1.15);
+    expect(ctxFor(g, q, T0).lamp).toBe(true);
+    expect(base).toBeGreaterThan(0);
+  });
+});
+
 describe('размер горшка', () => {
   it('росток в S дорастает до подростка и останавливается — тесно', () => {
     const { g, p } = world('tradescantia', { stage: 2, rootStart: T0, plantedAt: T0, moisture: 1, potSize: 1 });

@@ -7,7 +7,7 @@ import { POT_SHAPES, POTS } from '../../game/shop';
 import { canCut, cramped, ctxFor, cutLeft, fmt, isSad, isThirstySad, lightLevel, need, neighborsOf, nextStageAt, stageProgress } from '../../game/sim';
 import { DIFFICULTY_LABEL, sp } from '../../game/species';
 import {
-  adsLeft, addDrain, buyItem, toggleVent, boostBlock, boostPlant, breedPartners, drainTray, freshSoil, treat, closeSheet, feed, mist, pollinate, watchAd, move, now, openSheet, ownsPot, ownsShape, potsOf, setPotShape, plantInPot, removePlant, renamePlant, setPot, takeCutting, toast, useStore, water,
+  adsLeft, addDrain, buyItem, toggleVent, boostBlock, boostPlant, breedPartners, drainTray, freshSoil, treat, closeSheet, feed, mist, pollinate, watchAd, move, now, openSheet, ownsPot, ownsShape, wipeLeaves, potsOf, setPotShape, plantInPot, removePlant, renamePlant, setPot, takeCutting, toast, useStore, water,
 } from '../../game/store';
 import { adsAvailable } from '../../net/ads';
 import { ageDays, ageMark, daysText, nextAgeMark } from '../../game/age';
@@ -53,9 +53,9 @@ export function PlantCard({ id }: { id: string }) {
   };
   const doMist = (insist = false) => {
     const ok = mist(p.id, insist);
-    if (ok) setNote({ text: '💦 Опрыскано! 12 часов растёт быстрее.' });
-    else if (sp(p.sp).mist === 'no' && !insist) setNote({ text: `⚠️ ${sp(p.sp).mistTip}`, ask: 'mist' });
-    else setNote({ text: sp(p.sp).mistTip });
+    const m = sp(p.sp).mist;
+    if (ok) setNote({ text: m === 'love' ? '💦 Опрыскано! 12 часов растёт быстрее.' : m === 'ok' ? '💦 Освежили листья — 6 часов растёт быстрее.' : '💧 Листья мокрые — протри салфеткой, иначе пойдут пятна.' });
+    else if (m === 'no' && !insist) setNote({ text: `⚠️ ${sp(p.sp).mistTip} Всё равно опрыскать? Потом придётся протереть листья.`, ask: 'mist' });
   };
   const t = now();
   const s = sp(p.sp);
@@ -379,6 +379,7 @@ function HealthBox({ p }: { p: Plant }) {
   const run = (f: Fix) => {
     if (f.kind === 'water') water(p.id, true);
     else if (f.kind === 'mist') mist(p.id, true);
+    else if (f.kind === 'wipe') wipeLeaves(p.id);
     else if (f.kind === 'move') move(p.id, f.to);
     else if (f.kind === 'vent') toggleVent(sill.id);
     else if (f.kind === 'tray') drainTray(p.id);

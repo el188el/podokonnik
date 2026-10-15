@@ -272,7 +272,7 @@ export function SillScene({ decor, tod, winter, sky, theme, win = 'E', cell, han
           ))}
         </div>
       </div>
-      {lampOn && <div className="lamp-glow-deep" />}
+      {(lampOn || (decor.includes('lamp_table') && isOn('lamp_table'))) && <div className={'lamp-glow-deep' + (decor.includes('lamp_table') && isOn('lamp_table') ? ' strong' : '')} />}
 
       {/* ─── ряды с горшками ─── */}
       <div className="rows">

@@ -1250,3 +1250,5 @@ b, strong { font-weight: 800; }
 /* превью горшков крупным планом */
 .ricon svg.pot-view { width: 60px; height: 50px; }
 .pot-pick svg.pot-view { width: 64px; height: 52px; }
+.lamp-glow-deep.strong { background: linear-gradient(#b05cff3d, #b05cff1a 60%, transparent); }
+.deco-lamp_table .deco-in svg, .deco-lamp_table > svg { transform: scale(1.45); transform-origin: 50% 100%; }

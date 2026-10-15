@@ -27,6 +27,7 @@ function bubbleFor(p: Plant, t: number, flash?: { text: string; until: number })
   }
   if (p.stage === 0) return { text: 'Налей воды 💧', cls: '' };
   if (p.stage === 1) return { text: (g.owned.pot ?? 0) > 0 ? 'Посади меня 🪴' : 'Нужен горшок 🪴', cls: 'ready' };
+  if (p.wetLeaves) return { text: '💧 Протри листья', cls: 'sad' };
   if (p.moisture > 1) return { text: 'Перелили 😵', cls: '' };
   if (p.moisture < 0.25) return { text: isThirstySad(p) ? 'Мне грустно… 💧' : 'Хочу пить', cls: isThirstySad(p) ? 'sad' : '' };
   if (p.problem) return { text: `${PROBLEMS[p.problem.kind].icon} ${PROBLEMS[p.problem.kind].short}`, cls: 'sad' };

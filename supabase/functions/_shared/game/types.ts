@@ -82,6 +82,7 @@ export interface Plant {
   bigPot: boolean;      // старое поле: пересажено в большой горшок (теперь XL)
   potSize?: number;     // размер горшка: 1 S, 2 M, 3 L, 4 XL
   shape?: string;       // форма горшка
+  wetLeaves?: number;   // когда опрыскали растение, которое мочить нельзя (листья ещё мокрые)
   createdAt: number;
   quick?: boolean;      // первый черенок и подарки укореняются за 2 минуты
   rootStart?: number;   // когда налили воду в стакан
