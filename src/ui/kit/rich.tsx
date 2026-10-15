@@ -19,13 +19,13 @@ import {
 } from 'lucide-react';
 import { Fragment, type ReactNode } from 'react';
 
-type Glyph = [LucideIcon, string, boolean?]; // иконка, цвет, заливка
+type Glyph = [LucideIcon, string, (boolean | 'soft')?]; // иконка, цвет, заливка (soft — полупрозрачная, видно прожилки)
 
 const G = '#3fa35f', GD = '#3d8b56', B = '#3b8fd6', P = '#d0578f', Y = '#e8a325', R = '#e0574f', V = '#8b5cc7', W = '#a8703f', S = '#4a6b60', C = '#7a9aa8', T = '#2fa3a0', O = '#e8702a', K = '#8a948f';
 
 /** Ключи — без «вариационного селектора» U+FE0F. */
 export const EMOJI: Record<string, Glyph> = {
-  '🍃': [Leaf, G], '🌿': [LeafyGreen, GD], '🌱': [Sprout, G], '🪴': [Shrub, GD], '🍂': [Leaf, '#c9762b', true], '🍁': [Leaf, '#d9622b', true],
+  '🍃': [Leaf, G], '🌿': [LeafyGreen, GD], '🌱': [Sprout, G], '🪴': [Shrub, GD], '🍂': [Leaf, '#c9762b', 'soft'], '🍁': [Leaf, '#d9622b', 'soft'],
   '🌳': [TreeDeciduous, GD], '🌴': [TreePalm, GD], '🎄': [TreePine, GD], '🌵': [Sprout, GD], '🌾': [Wheat, Y], '🪵': [Logs, W],
   '🌸': [Flower, '#e86fa0'], '🌷': [Flower, '#e0607e'], '🌼': [Flower, Y], '🌺': [Flower, R], '💐': [Flower2, P], '🥀': [Flower, '#8a6a5a'],
   '💧': [Droplet, B], '💦': [Droplets, B], '🌊': [Waves, B], '🫗': [GlassWater, B], '🫙': [GlassWater, '#5f9fc9'],
@@ -79,7 +79,7 @@ export function Emo({ e, size = '1.15em' }: { e: string; size?: string | number 
   const g = EMOJI[key(e)];
   if (!g) return <>{e}</>;
   const [C, color, fill] = g;
-  return <C className="emo" size={size} color={color} strokeWidth={2.3} fill={fill ? color : 'none'} aria-hidden focusable={false} />;
+  return <C className="emo" size={size} color={color} strokeWidth={2.3} fill={fill === 'soft' ? color + '59' : fill ? color : 'none'} aria-hidden focusable={false} />;
 }
 
 /** Строка с эмодзи → текст с иконками. Не строку (число, элемент) возвращает как есть. */

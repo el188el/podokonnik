@@ -48,6 +48,16 @@ function bubbleFor(p: Plant, t: number, flash?: { text: string; until: number })
   return null;
 }
 
+/** Подсветка: выбранный инструмент сейчас пригодится этому растению. */
+export function wantsTool(tool: string, p: Plant, t: number): boolean {
+  if (p.stage < 2) return false;
+  if (tool === 'water') return p.moisture < 0.5;
+  if (tool === 'mist') return sp(p.sp).mist === 'love' && !(p.mistUntil && t < p.mistUntil) && !p.wetLeaves;
+  if (tool === 'feed') return !(p.feedUntil && t < p.feedUntil) && p.stage < 4;
+  if (tool === 'cut') return canCut(p, t);
+  return false;
+}
+
 /** Маленький таймер под горшком: сколько до следующей стадии. Название — в карточке. */
 function timerFor(p: Plant, t: number): string | null {
   if (p.stage < 2 || p.stage >= 4) return null;
@@ -97,6 +107,7 @@ export function Slot({ plant: p, sill, slot }: { plant: Plant; sill: string; slo
   const sad = isSad(p);
   const fresh = fx && Date.now() - fx.at < 1400;
   const age = ageMark(p, t);
+  const want = useStore((st) => wantsTool(st.tool, p, t));
 
   function reset() {
     clearTimeout(st.current.timer);
@@ -115,9 +126,10 @@ export function Slot({ plant: p, sill, slot }: { plant: Plant; sill: string; slo
     checkRound(p.id);
     if (p.stage === 1) return plantInPot(p.id);
     if (p.stage === 0 && p.rootStart) return say(p.id, 'Пускаю корни… 🌱', 1600);
+    // в стакан можно только налить воды — наливаем сразу, без карточки (так понятнее новичку)
+    if (p.stage === 0) return water(p.id);
     const tool = useStore.getState().tool;
     if (tool === 'look') return openSheet({ kind: 'card', plant: p.id });
-    if (p.stage === 0) return water(p.id); // в стакан можно только налить воды
     const again = Date.now() - (lastEnough[p.id] ?? 0) < 1800;
     if (tool === 'mist') {
       const ok = mist(p.id, again);
@@ -141,7 +153,7 @@ export function Slot({ plant: p, sill, slot }: { plant: Plant; sill: string; slo
   return (
     <div
       ref={ref}
-      className={`slot${age?.frame ? ' gold' : ''}${sad ? ' sad' : ''}${p.moisture > 0.6 && p.stage >= 2 ? ' wet' : ''}${p.stage >= 2 && p.moisture <= 0 ? ' dry' : ''}`}
+      className={`slot${age?.frame ? ' gold' : ''}${sad ? ' sad' : ''}${p.moisture > 0.6 && p.stage >= 2 ? ' wet' : ''}${p.stage >= 2 && p.moisture <= 0 ? ' dry' : ''}${want ? ' want want-' + useStore.getState().tool : ''}`}
       role="button"
       aria-label={`${s.name}, ${STAGE_NAME[p.stage]}`}
       onContextMenu={(e) => e.preventDefault()}

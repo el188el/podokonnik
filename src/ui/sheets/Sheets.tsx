@@ -35,6 +35,7 @@ import { PlaceSheet } from './PlaceSheet';
 import { PotsSheet } from './PotsSheet';
 import { OrdersSheet } from './OrdersSheet';
 import { StarterSheet } from './StarterSheet';
+import { HowToSheet } from './HowToSheet';
 import { TodoSheet } from './TodoSheet';
 import { Emo, rich } from '../kit/rich';
 
@@ -72,6 +73,7 @@ export function Sheets() {
       {sheet?.kind === 'pots' && <PotsSheet plant={sheet.plant} />}
       {sheet?.kind === 'orders' && <OrdersSheet />}
       {sheet?.kind === 'todo' && <TodoSheet />}
+      {sheet?.kind === 'howto' && <HowToSheet />}
       {sheet?.kind === 'starter' && <StarterSheet />}
       </Safe>
     </Sheet>

@@ -5,13 +5,13 @@
 import {
   AppWindow, Armchair, CalendarDays, Check, Crown, Flame, Flower2, Gift, Handshake, Lock, Luggage, MessageCircle,
   Package, Plus, Repeat2, Sparkles, Star, Trophy,
-  ArrowDown, MapPin, RefreshCw, ArrowUp, BookOpen, ChevronDown, Cloud, CloudFog, CloudLightning, CloudRain, CloudSnow, CloudSun,
+  ArrowDown, MapPin, RefreshCw, X, HelpCircle, ArrowUp, BookOpen, ChevronDown, Cloud, CloudFog, CloudLightning, CloudRain, CloudSnow, CloudSun,
   Droplet, Eye, Heart, FlaskConical, Leaf, Palette, Scissors, Share, ShoppingBag, ShowerHead, Shovel, SprayCan, Sprout,
   Sun, Target, Thermometer, User, Users, Zap, type LucideIcon,
 } from 'lucide-react';
 
 export const ICONS = {
-  sill: Sprout, pin: MapPin, refresh: RefreshCw, shop: ShoppingBag, friends: Users, quests: Target, herbarium: BookOpen,
+  sill: Sprout, pin: MapPin, refresh: RefreshCw, close: X, help: HelpCircle, shop: ShoppingBag, friends: Users, quests: Target, herbarium: BookOpen,
   look: Eye, water: Droplet, mist: SprayCan, feed: FlaskConical, cut: Scissors, waterAll: ShowerHead,
   boost: Zap, repot: Shovel, down: ArrowDown, up: ArrowUp, design: Palette, share: Share,
   user: User, leaf: Leaf, heart: Heart, chevron: ChevronDown, thermo: Thermometer,

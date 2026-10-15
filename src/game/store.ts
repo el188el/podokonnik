@@ -98,6 +98,7 @@ export type Sheet =
   | { kind: 'place'; slot: number }
   | { kind: 'pots'; plant?: string }
   | { kind: 'orders' }
+  | { kind: 'howto' }
   | { kind: 'todo' }
   | null;
 
@@ -1687,6 +1688,7 @@ export function finishTutorial(reward: boolean) {
       g.owned.pot_white = 1;
       haptic('success');
       toast('Подарок на новоселье: +50 🍃 и горшок «Белая керамика» 🤍');
+      setTimeout(() => { if (!get().sheet) openSheet({ kind: 'howto' }); }, 1600); // шпаргалка — сразу после обучения
     }
   });
 }

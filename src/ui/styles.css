@@ -1419,3 +1419,56 @@ button:focus:not(:focus-visible) { outline: none; }
 .label .meter-row.with-pct .meter { width: 34px; }
 /* иконки вместо эмодзи внутри текста */
 .emo { display: inline-block; vertical-align: -0.2em; flex: none; }
+
+/* ─────────── понятнее для новичка: подсказка инструмента и подсветка растений ─────────── */
+.toolbar { position: relative; }
+.tool-tip { position: absolute; left: 8px; right: 8px; bottom: calc(100% + 8px); z-index: 6; display: flex; align-items: center; gap: 8px; padding: 8px 8px 8px 12px; border-radius: 16px; background: var(--card, #fff); color: var(--ink); box-shadow: 0 6px 20px #1f3a2c26, 0 0 0 1px #0000000a; font-size: 13px; font-weight: 700; line-height: 1.25; }
+.tool-tip span { flex: 1; }
+.tool-tip b { color: var(--green, #2e8b57); white-space: nowrap; }
+.tool-tip button { flex: none; width: 30px; height: 30px; border: 0; border-radius: 50%; background: var(--soft); display: grid; place-items: center; color: var(--muted); }
+:root[data-theme='dark'] .tool-tip { background: #1f2a26; box-shadow: 0 6px 20px #0008, 0 0 0 1px #ffffff12; }
+:root[data-theme='dark'] .tool-tip b { color: #7fd09a; }
+.slot.want::before { content: ''; position: absolute; left: 50%; bottom: -2px; width: 92%; height: 34%; transform: translateX(-50%); border-radius: 50%; background: radial-gradient(closest-side, #ffe27acc, #ffd24a55 60%, transparent); animation: want-glow 1.4s ease-in-out infinite; pointer-events: none; z-index: 0; }
+.slot.want .art { filter: drop-shadow(0 0 6px #ffd54acc); }
+@keyframes want-glow { 0%, 100% { opacity: .55; transform: translateX(-50%) scale(.92); } 50% { opacity: 1; transform: translateX(-50%) scale(1.05); } }
+@media (prefers-reduced-motion: reduce) { .slot.want::before { animation: none; } }
+/* обучение: аватар-рисунок и шаги точками */
+.guide { box-shadow: 0 8px 24px #1f3a2c1f, 0 0 0 1px #0000000a; border-radius: 22px; }
+.guide-avatar { background: none; overflow: hidden; width: 52px; height: 52px; box-shadow: 0 0 0 3px #fff, 0 3px 10px #0002; }
+.guide-avatar .granny { display: block; }
+.guide-top { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.guide-dots { display: flex; gap: 4px; flex: none; }
+.guide-dots i { width: 6px; height: 6px; border-radius: 3px; background: #0000001f; transition: width .25s, background .25s; }
+.guide-dots i.done { background: #8fcf9f; }
+.guide-dots i.on { width: 16px; background: var(--green, #2e8b57); }
+.guide-body p { font-size: 15px; line-height: 1.4; }
+:root[data-theme='dark'] .guide-avatar { box-shadow: 0 0 0 3px #26312c, 0 3px 10px #0006; }
+:root[data-theme='dark'] .guide-dots i { background: #ffffff24; }
+/* кнопка «Как играть» в шапке и шпаргалка */
+.help-btn { border: 0; width: 36px; height: 36px; border-radius: 50%; background: #fff3d6; color: #c98a16; display: grid; place-items: center; flex: none; box-shadow: 0 2px 6px #c98a1626; }
+:root[data-theme='dark'] .help-btn { background: #3a3118; color: #f0c060; }
+.howto-list { list-style: none; padding: 0; margin: 12px 0; display: flex; flex-direction: column; gap: 8px; }
+.howto-list li { display: flex; gap: 12px; align-items: center; background: var(--soft); border-radius: 18px; padding: 10px 12px; }
+.howto-ic { width: 48px; height: 48px; border-radius: 15px; display: grid; place-items: center; flex: none; }
+.howto-list b { display: block; font-size: 15px; }
+.howto-list small { display: block; color: var(--muted); font-size: 13px; line-height: 1.35; margin-top: 2px; }
+/* нижнее меню: подсветка плавно переезжает к выбранной вкладке */
+.tabbar .on { background: none !important; }
+.tabbar .tab-pill { position: absolute; inset: 0; border-radius: 20px; background: #e3f3e8; z-index: -1; box-shadow: inset 0 0 0 1px #2e8b5714; }
+.tabbar button { isolation: isolate; }
+:root[data-theme='dark'] .tabbar .tab-pill { background: #24382e; }
+/* листики в шапке: «+N» при пополнении */
+.leaves { position: relative; }
+.leaves-n { display: inline-block; }
+.leaves-gain { position: absolute; right: 6px; top: 100%; font-size: 13px; font-weight: 900; color: #2e8b57; background: #e8f6ec; border-radius: 10px; padding: 1px 7px; pointer-events: none; white-space: nowrap; box-shadow: 0 3px 8px #2e8b5733; }
+:root[data-theme='dark'] .leaves-gain { background: #22382b; color: #7fd09a; }
+/* подсказка инструмента — компактная строка по центру, подсветка — кольцо цвета инструмента */
+.tool-tip { left: 50%; right: auto; transform: translateX(-50%); width: max-content; max-width: calc(100% - 16px); padding: 6px 6px 6px 12px; border-radius: 999px; font-size: 12.5px; white-space: nowrap; }
+.tool-tip span { overflow: hidden; text-overflow: ellipsis; }
+.tool-tip .tt-n { min-width: 22px; height: 22px; border-radius: 11px; background: var(--want, #3b8fd6); color: #fff; display: grid; place-items: center; font-size: 12px; padding: 0 6px; }
+.tool-tip button { width: 26px; height: 26px; }
+.want-water { --want: #3b8fd6; } .want-mist { --want: #2fa3a0; } .want-feed { --want: #8b5cc7; } .want-cut { --want: #e0685a; }
+.slot.want::before { background: radial-gradient(closest-side, color-mix(in srgb, var(--want, #ffd24a) 45%, transparent), transparent); box-shadow: 0 0 0 3px var(--want, #ffd24a); height: 18%; bottom: 2px; width: 84%; }
+.slot.want .art { filter: drop-shadow(0 0 5px color-mix(in srgb, var(--want, #ffd24a) 70%, transparent)); }
+.tool-tip-wrap { position: absolute; left: 8px; right: 8px; bottom: calc(100% + 8px); z-index: 6; display: flex; justify-content: center; pointer-events: none; }
+.tool-tip-wrap .tool-tip { position: relative; left: auto; right: auto; bottom: auto; transform: none; pointer-events: auto; max-width: 100%; }

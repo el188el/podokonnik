@@ -7,7 +7,8 @@ import { finishTutorial, openSheet, setTool, setTutorial, TUTORIAL_DONE, useStor
 import { Btn } from './kit/kit';
 import { online } from '../net/api';
 import { platform } from '../platform';
-import { Emo, rich } from './kit/rich';
+import { Granny } from './art/Granny';
+import { rich } from './kit/rich';
 
 interface Step {
   text: string;
@@ -32,30 +33,29 @@ export function Guide() {
 
   if (step >= TUTORIAL_DONE) return null;
 
+  // коротко и простыми словами — чтобы понял и десятилетний
   const steps: Record<number, Step> = {
     0: {
-      text: 'Здравствуй! Я Валентина Петровна, соседка. Сорок лет цветы ращу — научу и тебя. Давай заведём тебе подоконник!',
-      action: { label: 'Давайте 🌿', run: () => setTutorial(1) },
+      text: 'Привет! Я Валентина Петровна, твоя соседка. Давай вместе вырастим твой первый цветок!',
+      action: { label: 'Давай!', run: () => setTutorial(1) },
     },
     1: {
-      text: 'Сначала скажи, куда смотрит твоё окно. От этого зависит, сколько света достанется цветам.',
+      text: 'Куда смотрит твоё окно? Не знаешь — не страшно, выбери «Не знаю».',
       action: { label: 'Выбрать окно', run: () => openSheet({ kind: 'window', sill: sill.id, then: 'picker', slot: 0 }) },
     },
     2: {
-      text: 'Держи черенок от меня в подарок! Выбирай любой — все трое неприхотливые.',
+      text: 'Держи подарок — черенок! Это веточка, из которой вырастет новый цветок. Выбери любой.',
       action: { label: 'Выбрать черенок', run: () => openSheet({ kind: 'picker', slot: 0, sill: sill.id }) },
     },
-    3: { text: 'Черенок стоит в стакане. Тапни по нему — нальём водички, и он начнёт пускать корни.' },
-    4: {
-      text: 'Пару минут подождём корешков. А пока запоминай: верхний ряд — у стекла, там светло. Нижний — столик в глубине, там тень. Каждому цветку — своё место: горшок можно зажать и перетащить.',
-    },
-    5: { text: 'Корешки есть! Тапни по стакану — посадим в настоящий горшок.' },
+    3: { text: 'Черенок стоит в стакане. Нажми на стакан — нальём воды 💧' },
+    4: { text: 'Теперь ждём корешки — пару минут. Наверху у стекла светло, внизу — тень. Цветок можно перетащить пальцем.' },
+    5: { text: 'Ура, корешки выросли! Нажми на стакан — посадим цветок в горшок 🪴' },
     6: {
-      text: 'Под подоконником — инструменты: лейка, опрыскиватель, подкормка, ножницы. Полоска под горшком — влажность земли: покраснела — пора поливать.',
-      action: { label: 'Понятно', run: () => { setTool('water'); setTutorial(7); } },
+      text: 'Внизу — инструменты. Выбери лейку и нажми на цветок. Полоска под горшком покраснела — значит, пора поливать.',
+      action: { label: 'Понятно!', run: () => { setTool('water'); setTutorial(7); } },
     },
     7: {
-      text: 'Вот ты и садовод! Держи на новоселье листики и белый горшок. Заходи каждый день — я буду рядом, а растения будут тебя ждать 🌿',
+      text: 'Ты настоящий садовод! Держи подарок: листики и белый горшок. Заходи каждый день — цветы будут ждать 🌿',
       action: { label: 'Спасибо!', run: () => finishTutorial(true) },
     },
   };
@@ -64,9 +64,14 @@ export function Guide() {
   return (
     <AnimatePresence mode="wait">
       <motion.div key={step} className="guide" initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}>
-        <div className="guide-avatar"><Emo e="👵" /></div>
+        <div className="guide-avatar"><Granny size={52} /></div>
         <div className="guide-body">
-          <b>Валентина Петровна</b>
+          <div className="guide-top">
+            <b>Валентина Петровна</b>
+            <span className="guide-dots" aria-label={`Шаг ${Math.min(step, 7) + 1} из 8`}>
+              {Array.from({ length: 8 }, (_, i) => <i key={i} className={i < step ? 'done' : i === step ? 'on' : ''} />)}
+            </span>
+          </div>
           <p>{rich(st.text)}</p>
           <div className="guide-actions">
             {st.action && <Btn small kind="primary" onClick={st.action.run}>{rich(st.action.label)}</Btn>}

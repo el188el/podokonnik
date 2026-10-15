@@ -9,6 +9,7 @@ import { platform } from '../../platform';
 import { CONFIG } from '../../config';
 import { linkedAccount, online, sendSettings } from '../../net/api';
 import { Bar, Btn, Leaves } from '../kit/kit';
+import { Icon } from '../kit/icons';
 import { Emo, rich } from '../kit/rich';
 
 export function Profile() {
@@ -105,6 +106,7 @@ export function Profile() {
             <input type="checkbox" checked={g.settings.notify !== false} onChange={(e) => { setSetting('notify', e.target.checked); sendSettings({ notify: e.target.checked }); }} /> Напоминания от бота
           </label>
         )}
+        <Btn onClick={() => openSheet({ kind: 'howto' })}><Icon name="help" size={18} className="inl" /> Как играть</Btn>
         {CONFIG.channel && <Btn onClick={() => pf.openLink(`https://t.me/${CONFIG.channel}`)}><Emo e="📢" /> Канал игры: советы по растениям</Btn>}
         {pf.kind !== 'discord' && <Btn onClick={() => openSheet({ kind: 'weather' })}><Emo e="🌦" /> Погода за окном: {rich(g.settings.place ? g.settings.place.city : 'выключена')}</Btn>}
         {pf.kind === 'web' && <Btn onClick={() => openSheet({ kind: 'install' })}><Emo e="📲" /> Добавить на главный экран</Btn>}

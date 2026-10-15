@@ -24,11 +24,11 @@
   <body>
     <style>
       .boot{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;height:100vh;font:600 15px/1.4 system-ui,sans-serif;color:#2b4a40;text-align:center;padding:24px;box-sizing:border-box}
-      .boot i{font-style:normal;font-size:56px;line-height:1}
+      .boot i{font-style:normal;line-height:0;animation:bsway 2.4s ease-in-out infinite;transform-origin:50% 100%}@keyframes bsway{50%{transform:rotate(-6deg)}}
       .boot small{display:block;max-width:300px;opacity:.7;font-size:12px;word-break:break-word}
       .boot button{border:0;border-radius:14px;padding:12px 22px;background:#3d8b56;color:#fff;font:700 15px system-ui,sans-serif}
     </style>
-    <div id="root"><div class="boot"><i>🌱</i></div></div>
+    <div id="root"><div class="boot"><i><svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="#3fa35f" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 20h10"/><path d="M10 20c5.5-2.5.8-6.4 3-10"/><path d="M9.5 9.4c1.1.8 1.8 2.2 2.3 3.7-2 .4-3.5.4-4.8-.3-1.2-.6-2.3-1.9-3-4.2 2.8-.5 4.4 0 5.5.8z"/><path d="M14.1 6a7 7 0 0 0-1.1 4c1.9-.1 3.3-.6 4.3-1.4 1-1 1.6-2.3 1.7-4.6-2.7.1-4 1-4.9 2z"/></svg></i></div></div>
     <script>
       // если игра не запустилась (ошибка или очень старый браузер) — не висеть на заставке вечно
       (function () {
@@ -37,7 +37,7 @@
           var r = document.getElementById('root');
           var b = r && r.querySelector('.boot');
           if (!b) return; // игра уже нарисовалась
-          b.innerHTML = '<i>🥀</i><div>Игра не загрузилась</div><button onclick="location.reload()">Обновить</button>' +
+          b.innerHTML = '<i><svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="#a0705a" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 20h10"/><path d="M10 20c5.5-2.5.8-6.4 3-10"/><path d="M9.5 9.4c1.1.8 1.8 2.2 2.3 3.7-2 .4-3.5.4-4.8-.3-1.2-.6-2.3-1.9-3-4.2 2.8-.5 4.4 0 5.5.8z"/><path d="M14.1 6a7 7 0 0 0-1.1 4c1.9-.1 3.3-.6 4.3-1.4 1-1 1.6-2.3 1.7-4.6-2.7.1-4 1-4.9 2z"/></svg></i><div>Игра не загрузилась</div><button onclick="location.reload()">Обновить</button>' +
             (msg ? '<small>' + String(msg).replace(/</g, '&lt;').slice(0, 200) + '</small>' : '');
         }
         window.addEventListener('error', function (e) { err = e.message || err; if (/Unexpected|SyntaxError|is not defined|is not a function/.test(err)) fail(err); });

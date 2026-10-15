@@ -1,4 +1,4 @@
-import { motion } from 'framer-motion';
+import { AnimatePresence, motion } from 'framer-motion';
 import type { GameState } from '../../game/types';
 import { Icon, TONE, type IconName } from '../kit/icons';
 import { activeEvent, eventSeason, tierOf } from '../../game/events';
@@ -17,7 +17,7 @@ import { climateOf, tempWord } from '../../game/climate';
 import { darkWall, roomVars } from '../../game/room';
 import { zoneOfSlot } from '../../game/layout';
 import { PlantArt } from '../art/PlantArt';
-import { Slot } from '../Slot';
+import { Slot, wantsTool } from '../Slot';
 import { Guide } from '../Guide';
 import { chestReady, firstChest, firstStepNow, roundInfo, starterDone, starterLeft } from '../../game/onboarding';
 import { TUTORIAL_DONE } from '../../game/store';
@@ -254,6 +254,14 @@ const TOOLS: [Tool, IconName, string][] = [
   ['cut', 'cut', 'Черенок'],
 ];
 
+/** Подсказка над инструментами: что делать, когда инструмент в руке. */
+const TOOL_TIP: Partial<Record<Tool, [IconName, string, string]>> = {
+  water: ['water', 'Нажми на цветок, чтобы полить', 'Пить никто не хочет — все довольны'],
+  mist: ['mist', 'Нажми на цветок, чтобы опрыскать', 'Опрыскивать сейчас некого'],
+  feed: ['feed', 'Нажми на цветок, чтобы подкормить', 'Подкормка сейчас не нужна'],
+  cut: ['cut', 'Нажми на цветок, чтобы взять черенок', 'Черенков пока нет — цветы растут'],
+};
+
 function Toolbar({ sill }: { sill: string }) {
   const tool = useStore((s) => s.tool);
   const g = useStore((s) => s.game);
@@ -261,8 +269,21 @@ function Toolbar({ sill }: { sill: string }) {
   if (!potted.length) return null;
   const thirsty = potted.filter((p) => p.moisture < 0.5).length;
   const cuts = potted.filter((p) => canCut(p, now())).length;
+  const fits = tool === 'look' ? 0 : potted.filter((p) => wantsTool(tool, p, now())).length;
   return (
     <div className="toolbar">
+      <div className="tool-tip-wrap">
+      <AnimatePresence>
+        {tool !== 'look' && TOOL_TIP[tool] && (
+          <motion.div key={tool} className={"tool-tip want-" + tool} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 8 }}>
+            <Icon name={TOOL_TIP[tool][0]} size={18} tone={TONE[TOOL_TIP[tool][0] as keyof typeof TONE]} />
+            <span>{fits ? TOOL_TIP[tool][1] : TOOL_TIP[tool][2]}</span>
+            {fits > 0 && <b className="tt-n" aria-label={`подсвечено: ${fits}`}>{fits}</b>}
+            <button onClick={() => setTool('look')} aria-label="Убрать инструмент"><Icon name="close" size={16} /></button>
+          </motion.div>
+        )}
+      </AnimatePresence>
+      </div>
       <div className="tools">
         {TOOLS.map(([k, icon, label]) => (
           <button key={k} className={'tool' + (tool === k ? ' on' : '')} onClick={() => setTool(tool === k && k !== 'look' ? 'look' : k)} aria-pressed={tool === k}>

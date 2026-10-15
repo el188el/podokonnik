@@ -1,6 +1,6 @@
 import { useTheme } from './theme';
 import { AnimatePresence, motion } from 'framer-motion';
-import { useEffect } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { D, H, MIN } from '../game/constants';
 import { decodeGift, legacyGift } from '../game/gifts';
 import { xpToNext } from '../game/progression';
@@ -38,6 +38,9 @@ export function App() {
   const coopOn = useStore((s) => s.coopOn);
   useTheme();
   const questsReady = g.quests.list.some((q) => !q.claimed && q.progress >= q.target);
+  // новая вкладка открывается с самого верха, а не там, где прокрутили прошлую
+  const main = useRef<HTMLElement>(null);
+  useEffect(() => { main.current?.scrollTo(0, 0); }, [tab]);
 
   // подарок по ссылке: ?g=… (веб), startapp (Telegram) или старый формат ?gift=…
   useEffect(() => {
@@ -79,12 +82,15 @@ export function App() {
         </button>
         {tab === 'sill' ? <SillPicker /> : <div className="title">Подоконник</div>}
         <div className="money">
-          <span className="leaves">{g.leaves} <Icon name="leaf" size={18} tone={TONE.leaf} /></span>
+          {g.level < 10 && tab === 'sill' && (
+            <button className="help-btn" onClick={() => openSheet({ kind: 'howto' })} aria-label="Как играть"><Icon name="help" size={22} /></button>
+          )}
+          <LeafCounter n={g.leaves} />
           <button className="me" onClick={() => setTab('profile')} aria-label="Профиль"><Icon name="user" size={22} /></button>
         </div>
       </header>
 
-      <main className={'content' + (tab === 'sill' && !coopOn ? ' fixed' : '')}>
+      <main ref={main} className={'content' + (tab === 'sill' && !coopOn ? ' fixed' : '')}>
         <Safe key={tab} label={tab}>
         {tab === 'sill' && <SillView />}
         {tab === 'shop' && <Shop />}
@@ -114,6 +120,7 @@ export function App() {
       <nav className="tabbar">
         {TABS.map(([k, icon, label]) => (
           <button key={k} className={tab === k ? 'on' : ''} onClick={() => { setTab(k); platform().haptic('select'); }}>
+            {tab === k && <motion.span layoutId="tab-pill" className="tab-pill" transition={{ type: 'spring', stiffness: 500, damping: 38 }} />}
             <span className="ti"><Icon name={icon} size={24} stroke={tab === k ? 2.4 : 2} /></span>
             <span className="tl">{rich(label)}</span>
             {k === 'quests' && questsReady && <i className="dot" />}
@@ -133,6 +140,30 @@ export function App() {
         </AnimatePresence>
       </div>
     </div>
+  );
+}
+
+/** Листики в шапке: при пополнении счётчик подпрыгивает и показывает «+N». */
+function LeafCounter({ n }: { n: number }) {
+  const prev = useRef(n);
+  const [gain, setGain] = useState<{ id: number; v: number } | null>(null);
+  useEffect(() => {
+    const d = n - prev.current;
+    prev.current = n;
+    if (d > 0) setGain({ id: Date.now(), v: d });
+  }, [n]);
+  return (
+    <span className="leaves">
+      <motion.span key={gain?.id ?? 0} className="leaves-n" initial={gain ? { scale: 1.35 } : false} animate={{ scale: 1 }} transition={{ type: 'spring', stiffness: 420, damping: 14 }}>{n}</motion.span>
+      <Icon name="leaf" size={18} tone={TONE.leaf} />
+      <AnimatePresence>
+        {gain && (
+          <motion.b key={gain.id} className="leaves-gain" initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 18 }} exit={{ opacity: 0 }} transition={{ duration: 0.5 }} onAnimationComplete={() => setTimeout(() => setGain((x) => (x?.id === gain.id ? null : x)), 700)}>
+            +{gain.v}
+          </motion.b>
+        )}
+      </AnimatePresence>
+    </span>
   );
 }
 
