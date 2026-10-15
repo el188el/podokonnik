@@ -420,3 +420,13 @@ body:has(.skin) { background: var(--bg, #f5f2ec); }
 :root[data-theme='dark'] .skin .btn.small.gold { background: #ffd27a; color: #4a2f00; }
 :root[data-theme='dark'] .skin .btn.small.primary { background: #2f4a2a; color: #bfe6a8; }
 :root[data-theme='dark'] .skin .tabbar .tab-pill, :root[data-theme='dark'] .skin .tool.on > span { border-color: #f6eadb55; box-shadow: none; }
+
+/* меню «Ухода»: полить / опрыскать / всем */
+:root .skin .care-menu { position: absolute; left: 8px; bottom: calc(100% + 10px); z-index: 8; display: flex; gap: 6px; padding: 8px; border-radius: 22px; background: var(--paper); border: 1.5px solid var(--ol); box-shadow: 0 3px 0 var(--ol), 0 12px 28px rgba(59, 42, 34, 0.18); }
+:root .skin .care-menu button { width: 82px; display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 8px 4px 6px; border: 0; border-radius: 16px; background: var(--soft); font: 600 12px var(--display); color: var(--ink); white-space: nowrap; }
+:root .skin .care-menu button.on { background: color-mix(in srgb, #3b8fd6 18%, var(--paper)); box-shadow: inset 0 0 0 1.5px var(--ol); }
+:root .skin .care-menu button:active { transform: scale(0.95); }
+
+:root .skin .gicon :is(.ico, .emo) { max-width: 56px; max-height: 56px; }
+:root .skin .tabbar .tab-pill { inset: 0 -3px; }
+:root .skin .tabbar .tl { letter-spacing: -0.2px; }

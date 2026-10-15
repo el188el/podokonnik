@@ -31,7 +31,8 @@ export async function shareCoop(c: CoopView) {
 }
 
 const TOOLS: [Tool, string, string][] = [
-  ['water', '💧', 'Уход'],
+  ['water', '💧', 'Полить'],
+  ['mist', '💦', 'Опрыскать'],
   ['cut', '✂️', 'Черенок'],
   ['look', '🔍', 'Осмотр'],
 ];
@@ -73,8 +74,6 @@ export function CoopSill({ coop }: { coop: CoopView }) {
     if (tool === 'mist') return act({ kind: 'mist', plant: p.id });
     if (tool === 'cut') return canCut(p, t) ? act({ kind: 'cut', plant: p.id }) : toast(p.stage < 4 ? 'Растение ещё маленькое ✂️' : 'Черенок пока не готов');
     const again = lastEnough?.id === p.id && Date.now() - lastEnough.at < 2500;
-    // «Уход»: пить не хочет, а влагу любит — опрыскиваем
-    if (!again && p.stage >= 2 && p.moisture >= 0.5 && sp(p.sp).mist === 'love' && !(p.mistUntil && t < p.mistUntil)) return act({ kind: 'mist', plant: p.id });
     const r = await act({ kind: 'water', plant: p.id, insist: again });
     setLastEnough(r && !r.ok && r.reason === 'enough' ? { id: p.id, at: Date.now() } : null);
   };

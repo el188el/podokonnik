@@ -256,7 +256,8 @@ const TOOLS: [Tool, IconName, string][] = [
 
 /** Подсказка над инструментами: что делать, когда инструмент в руке. */
 const TOOL_TIP: Partial<Record<Tool, [IconName, string, string]>> = {
-  water: ['water', 'Нажми на цветок', 'Всем хорошо — уход не нужен'],
+  water: ['water', 'Нажми на цветок', 'Пить никто не хочет'],
+  mist: ['mist', 'Нажми на цветок', 'Опрыскивать некого'],
   feed: ['feed', 'Нажми на цветок', 'Подкормка не нужна'],
   cut: ['cut', 'Нажми на цветок', 'Черенков пока нет'],
 };
@@ -264,20 +265,53 @@ const TOOL_TIP: Partial<Record<Tool, [IconName, string, string]>> = {
 function Toolbar({ sill }: { sill: string }) {
   const tool = useStore((s) => s.tool);
   const g = useStore((s) => s.game);
+  const [care, setCare] = useState(false);
   const potted = g.plants.filter((p) => p.sill === sill && p.stage >= 2);
   if (!potted.length) return null;
   const cuts = potted.filter((p) => canCut(p, now())).length;
+  const thirsty = potted.filter((p) => p.moisture < 0.5).length;
+  const plus = isPlus(g);
+  const careOn = tool === 'water' || tool === 'mist';
+  const careIcon: IconName = tool === 'mist' ? 'mist' : 'water';
+  // «Уход» — меню из трёх: полить, опрыскать или полить всех (Садовник+)
+  const pick = (k: 'water' | 'mist' | 'all') => {
+    setCare(false);
+    if (k === 'all') {
+      if (!plus) { toast('👑 «Полить всех» — с подпиской Садовник+'); setTab('shop'); return; }
+      waterAll(sill);
+      return;
+    }
+    setTool(k);
+  };
   return (
     <div className="toolbar">
+      <AnimatePresence>
+        {care && (
+          <motion.div className="care-menu" initial={{ opacity: 0, y: 10, scale: 0.96 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: 10, scale: 0.96 }}>
+            <button className={tool === 'water' ? 'on' : ''} onClick={() => pick('water')}><Icon name="water" size={26} tone={TONE.water} /><span>Полить</span></button>
+            <button className={tool === 'mist' ? 'on' : ''} onClick={() => pick('mist')}><Icon name="mist" size={26} tone={TONE.mist} /><span>Опрыскать</span></button>
+            <button className={plus ? '' : 'locked'} onClick={() => pick('all')}>
+              <Icon name={plus ? 'waterAll' : 'crown'} size={26} tone={plus ? TONE.water : '#ffc35a'} />
+              <span>Всем{thirsty ? ` · ${thirsty}` : ''}</span>
+            </button>
+          </motion.div>
+        )}
+      </AnimatePresence>
       <div className="tools">
-        {TOOLS.map(([k, icon, label]) => (
-          <button key={k} className={'tool' + (tool === k ? ' on' : '')} onClick={() => setTool(tool === k && k !== 'look' ? 'look' : k)} aria-pressed={tool === k}>
-            <span><Icon name={icon} size={24} tone={TONE[icon as keyof typeof TONE]} /></span>
-            <small>{rich(label)}</small>
-            {k === 'feed' && (g.owned.feed ?? 0) > 0 && <i className="tool-badge">{g.owned.feed}</i>}
-            {k === 'cut' && cuts > 0 && <i className="tool-badge ready">{cuts}</i>}
-          </button>
-        ))}
+        {TOOLS.map(([k, icon, label]) => {
+          const isCare = k === 'water';
+          const on = isCare ? careOn : tool === k;
+          const ic = isCare ? careIcon : icon;
+          return (
+            <button key={k} className={'tool' + (on ? ' on' : '')} aria-pressed={on} aria-expanded={isCare ? care : undefined}
+              onClick={() => { if (isCare) { setCare(!care); return; } setCare(false); setTool(tool === k && k !== 'look' ? 'look' : k); }}>
+              <span><Icon name={ic} size={24} tone={TONE[ic as keyof typeof TONE]} /></span>
+              <small>{isCare && careOn ? (tool === 'mist' ? 'Опрыскать' : 'Полить') : rich(label)}</small>
+              {k === 'feed' && (g.owned.feed ?? 0) > 0 && <i className="tool-badge">{g.owned.feed}</i>}
+              {k === 'cut' && cuts > 0 && <i className="tool-badge ready">{cuts}</i>}
+            </button>
+          );
+        })}
       </div>
     </div>
   );
@@ -288,8 +322,6 @@ function ToolTip({ sill }: { sill: string }) {
   const tool = useStore((s) => s.tool);
   const g = useStore((s) => s.game);
   const potted = g.plants.filter((p) => p.sill === sill && p.stage >= 2);
-  const thirsty = potted.filter((p) => p.moisture < 0.5).length;
-  const plus = isPlus(g);
   const fits = tool === 'look' ? 0 : potted.filter((p) => wantsTool(tool, p, now())).length;
   return (
     <div className="tool-tip-wrap">
@@ -299,11 +331,6 @@ function ToolTip({ sill }: { sill: string }) {
             <Icon name={TOOL_TIP[tool][0]} size={18} tone={TONE[TOOL_TIP[tool][0] as keyof typeof TONE]} />
             <span>{fits ? TOOL_TIP[tool][1] : TOOL_TIP[tool][2]}</span>
             {fits > 0 && <b className="tt-n" aria-label={`подсвечено: ${fits}`}>{fits}</b>}
-            {tool === 'water' && thirsty >= 2 && (
-              <button className={'tt-all' + (plus ? '' : ' locked')} onClick={() => (plus ? waterAll(sill) : (toast('👑 «Полить всех» — с подпиской Садовник+'), setTab('shop')))}>
-                <Icon name={plus ? 'waterAll' : 'crown'} size={16} /> Всем
-              </button>
-            )}
             <button onClick={() => setTool('look')} aria-label="Убрать инструмент"><Icon name="close" size={16} /></button>
           </motion.div>
         )}

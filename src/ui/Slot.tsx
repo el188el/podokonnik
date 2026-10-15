@@ -53,7 +53,7 @@ const wantsMist = (p: Plant, t: number) => sp(p.sp).mist === 'love' && !(p.mistU
 /** Подсветка: выбранный инструмент сейчас пригодится этому растению. */
 export function wantsTool(tool: string, p: Plant, t: number): boolean {
   if (p.stage < 2) return false;
-  if (tool === 'water') return p.moisture < 0.5 || wantsMist(p, t);
+  if (tool === 'water') return p.moisture < 0.5;
   if (tool === 'mist') return wantsMist(p, t);
   if (tool === 'feed') return !(p.feedUntil && t < p.feedUntil) && p.stage < 4;
   if (tool === 'cut') return canCut(p, t);
@@ -152,8 +152,6 @@ export function Slot({ plant: p, sill, slot }: { plant: Plant; sill: string; slo
     const tool = useStore.getState().tool;
     if (tool === 'look') return openSheet({ kind: 'card', plant: p.id });
     const again = Date.now() - (lastEnough[p.id] ?? 0) < 1800;
-    // «Уход» — полив и опрыскивание в одном: пить хочет — поливаем, любит влажность — опрыскиваем
-    if (tool === 'water' && !again && p.moisture >= 0.5 && wantsMist(p, now())) { mist(p.id); return; }
     if (tool === 'mist') {
       const ok = mist(p.id, again);
       if (!ok && sp(p.sp).mist === 'no' && !again) lastEnough[p.id] = Date.now();
