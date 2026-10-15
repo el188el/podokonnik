@@ -1252,3 +1252,5 @@ b, strong { font-weight: 800; }
 .pot-pick svg.pot-view { width: 64px; height: 52px; }
 .lamp-glow-deep.strong { background: linear-gradient(#b05cff3d, #b05cff1a 60%, transparent); }
 .deco-lamp_table .deco-in svg, .deco-lamp_table > svg { transform: scale(1.45); transform-origin: 50% 100%; }
+.order-actions { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.order-skip { font-size: 13px; opacity: .75; }

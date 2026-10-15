@@ -78,3 +78,36 @@ describe('заказы соседей', () => {
     expect(canFulfil(g, g.orders.list[0])).toMatchObject({ ok: true, cuttings: ['c1', 'c2'] });
   });
 });
+
+describe('доска без повторов', () => {
+  it('три записки — не одно и то же, цветение только у взрослых и в сезон', async () => {
+    const { newState, newPlant } = await import('./storage');
+    const { rollOrders } = await import('./orders');
+    const T = new Date(2026, 9, 15, 12).getTime();
+    for (let seed = 1; seed < 40; seed++) {
+      const g = newState(T);
+      g.level = 5; g.stats.planted = 3;
+      g.plants.push(newPlant({ sp: 'spathiphyllum', sill: 'room', slot: 0, zone: 'deep', stage: 4 }, T));
+      g.plants.push(newPlant({ sp: 'chlorophytum', sill: 'room', slot: 1, zone: 'glass', stage: 3 }, T));
+      g.plants.push(newPlant({ sp: 'violet', sill: 'room', slot: 2, zone: 'glass', stage: 2 }, T));
+      let x = seed;
+      const rnd = () => ((x = (x * 16807) % 2147483647) / 2147483647);
+      g.orders = { list: [], next: T - 10 * 3600e3, done: 0, hearts: {} };
+      rollOrders(g, T, rnd);
+      const keys = g.orders!.list.map((o) => o.kind + o.sp);
+      expect(new Set(keys).size).toBe(keys.length);
+      expect(g.orders!.list.filter((o) => o.kind === 'bloom').every((o) => o.sp === 'spathiphyllum')).toBe(true);
+    }
+  });
+
+  it('старая доска с тремя одинаковыми записками чистится', async () => {
+    const { newState } = await import('./storage');
+    const { rollOrders } = await import('./orders');
+    const T = new Date(2026, 9, 15, 12).getTime();
+    const g = newState(T);
+    const o = (id: string, who: string) => ({ id, who, kind: 'bloom' as const, sp: 'spathiphyllum', reward: 64, xp: 20, at: T, until: T + 3600e3 * 10 });
+    g.orders = { list: [o('a', 'zina'), o('b', 'petya'), o('c', 'ashot')], next: T + 3600e3, done: 0, hearts: {} };
+    rollOrders(g, T, () => 0.5);
+    expect(g.orders!.list.filter((x) => x.kind === 'bloom' && x.sp === 'spathiphyllum').length).toBe(1);
+  });
+});

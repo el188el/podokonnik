@@ -1,6 +1,6 @@
 import { HEARTS_FOR_GIFT, NEIGHBORS, canFulfil, neighborOf, orderGives, orderNeed, orderText } from '../../game/orders';
 import { fmt } from '../../game/sim';
-import { closeSheet, fulfilOrder, now, useStore } from '../../game/store';
+import { closeSheet, declineOrder, fulfilOrder, now, useStore } from '../../game/store';
 import { PlantArt } from '../art/PlantArt';
 import { Btn } from '../kit/kit';
 
@@ -26,9 +26,12 @@ export function OrdersSheet() {
               <span className="order-text">{o.kind === 'rare' || o.kind === 'hue' ? '⭐ ' : ''}«{orderText(o)}»</span>
               <span className="muted small">+{o.reward} 🍃 · +{o.xp} опыта · ❤️ {Math.min(board?.hearts[o.who] ?? 0, HEARTS_FOR_GIFT)}/{HEARTS_FOR_GIFT} · ещё {fmt(o.until - t)}</span>
             </div>
-            <Btn small kind={can.ok ? 'gold' : 'soft'} disabled={!can.ok} onClick={() => fulfilOrder(o.id)}>
-              {can.ok ? (orderGives(o) ? 'Отдать' : 'Показать') : orderNeed(o)}
-            </Btn>
+            <div className="order-actions">
+              <Btn small kind={can.ok ? 'gold' : 'soft'} disabled={!can.ok} onClick={() => fulfilOrder(o.id)}>
+                {can.ok ? (orderGives(o) ? 'Отдать' : 'Показать') : orderNeed(o)}
+              </Btn>
+              {!can.ok && <button className="linkish order-skip" onClick={() => declineOrder(o.id)}>Отказаться</button>}
+            </div>
           </div>
         );
       })}

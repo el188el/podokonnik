@@ -46,10 +46,25 @@ export function orderText(o: Order): string {
   }
 }
 
-/** Какие виды игрок может принести: те, что у него растут или росли. */
-function poolFor(g: GameState, kind: OrderKind): string[] {
+/**
+ * Какие виды можно попросить: те, что у игрока растут или росли.
+ * Цветение — только у тех, что уже взрослые и цветут в этот сезон, иначе просьбу не выполнить.
+ */
+function poolFor(g: GameState, kind: OrderKind, t: number): string[] {
+  if (kind === 'bloom') {
+    const m = new Date(t).getMonth() + 1;
+    const adults = new Set(g.plants.filter((p) => p.stage === 4).map((p) => p.sp));
+    return SPECIES.filter((s) => s.bloom && adults.has(s.id) && (!s.bloom.months || s.bloom.months.includes(m))).map((s) => s.id);
+  }
   const have = new Set([...g.plants.map((p) => p.sp), ...g.grownAdult]);
-  return SPECIES.filter((s) => have.has(s.id) && (kind !== 'bloom' || s.bloom)).map((s) => s.id);
+  return SPECIES.filter((s) => have.has(s.id)).map((s) => s.id);
+}
+
+/** Такая же просьба уже висит на доске (тот же вид и то же дело) — или слишком много одинаковых дел. */
+function clash(list: Order[], kind: OrderKind, spId: string, form?: string, hue?: string): boolean {
+  if (list.some((o) => o.sp === spId && (o.kind === kind || (form && o.form === form) || (hue && o.hue === hue)))) return true;
+  if (list.filter((o) => o.kind === kind).length >= 2) return true; // не больше двух одинаковых дел
+  return false;
 }
 
 /** Набор заказов по уровню: чем выше уровень, тем интереснее и сложнее просьбы. */
@@ -62,10 +77,11 @@ function kindsFor(level: number): [OrderKind, number][] {
 const MULT: Record<OrderKind, number> = { cutting: 1, bloom: 1.2, adult: 0.9, healthy: 0.7, rare: 2.5, hue: 2.2 };
 
 /** Придумать один заказ под игрока (или null, если нечего просить). */
-function makeOrder(g: GameState, t: number, rnd: () => number, busy: Set<string>): Order | null {
+function makeOrder(g: GameState, t: number, rnd: () => number, taken: Order[]): Order | null {
+  const busy = new Set(taken.map((x) => x.who));
   const weights = kindsFor(g.level);
   const total = weights.reduce((n, [, w]) => n + w, 0);
-  for (let tries = 0; tries < 6; tries++) {
+  for (let tries = 0; tries < 16; tries++) {
     let r = rnd() * total;
     const kind = weights.find(([, w]) => (r -= w) < 0)?.[0] ?? 'cutting';
     let spId = '';
@@ -82,11 +98,13 @@ function makeOrder(g: GameState, t: number, rnd: () => number, busy: Set<string>
       [spId, hue] = opts[Math.floor(rnd() * opts.length)];
     } else {
       // на высоких уровнях — чаще сложные виды
-      let pool = poolFor(g, kind);
+      let pool = poolFor(g, kind, t).filter((s) => !taken.some((o) => o.sp === s));
+      if (!pool.length) pool = poolFor(g, kind, t);
       if (g.level >= 8) { const hard = pool.filter((s) => sp(s).difficulty >= 2); if (hard.length && rnd() < 0.6) pool = hard; }
       if (!pool.length) continue;
       spId = pool[Math.floor(rnd() * pool.length)];
     }
+    if (clash(taken, kind, spId, form, hue)) continue;
     const n = kind === 'cutting' ? (g.level >= 10 ? 1 + Math.floor(rnd() * 3) : g.level >= 4 ? 1 + Math.floor(rnd() * 2) : 1) : undefined;
     const free = NEIGHBORS.filter((x) => !busy.has(x.id));
     const who = free[Math.floor(rnd() * free.length)] ?? NEIGHBORS[0];
@@ -107,9 +125,13 @@ export function rollOrders(g: GameState, t: number, rnd = Math.random): boolean 
   const board = g.orders ?? { list: [], next: t, done: 0, hearts: {} };
   const before = board.list.length;
   board.list = board.list.filter((o) => o.until > t);
+  // старые доски: убрать повторы (одно и то же дело с тем же растением)
+  const uniq: Order[] = [];
+  for (const o of board.list) if (!uniq.some((u) => u.kind === o.kind && u.sp === o.sp && u.form === o.form && u.hue === o.hue)) uniq.push(o);
+  if (uniq.length !== board.list.length) { board.list = uniq; board.next = Math.min(board.next, t); }
   let changed = board.list.length !== before;
   while (board.list.length < ORDERS_MAX && board.next <= t && g.stats.planted > 0) {
-    const o = makeOrder(g, t, rnd, new Set(board.list.map((x) => x.who)));
+    const o = makeOrder(g, t, rnd, board.list);
     if (!o) break;
     board.list.push(o);
     board.next += ORDER_EVERY;

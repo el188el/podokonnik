@@ -2099,6 +2099,18 @@ export function claimInvite(n: number, active: number) {
 }
 
 // ─────────────────── заказы соседей ───────────────────
+/** Отказаться от просьбы: записка снимается, новая появится через час. */
+export function declineOrder(id: string) {
+  mut((g, t) => {
+    const board = g.orders;
+    if (!board) return;
+    const o = board.list.find((x) => x.id === id);
+    if (!o) return;
+    board.list = board.list.filter((x) => x.id !== id);
+    board.next = Math.min(Math.max(board.next, t), t + H);
+    toast(`${neighborOf(o.who).name} не обидится 🙂 Новая записка — через час`);
+  });
+}
 export function fulfilOrder(id: string) {
   mut((g, t) => {
     const board = g.orders;
