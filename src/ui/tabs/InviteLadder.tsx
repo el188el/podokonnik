@@ -26,7 +26,7 @@ export function InviteLadder() {
           const ready = active >= s.n && !got;
           return (
             <div key={s.n} className={'ladder-step' + (got ? ' got' : ready ? ' ready' : '')}>
-              <span className="ladder-n">{got ? '✓' : s.n}</span>
+              <span className="ladder-n">{got ? <Icon name="check" size={18} /> : s.n}</span>
               <div className="ladder-body">
                 <b>{s.icon} {s.title}</b>
                 <span className="small muted">{s.n} {s.n === 1 ? 'друг' : s.n < 5 ? 'друга' : 'друзей'} · {s.text}</span>
