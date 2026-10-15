@@ -1294,3 +1294,33 @@ details.more .facts { margin: 8px 0 0; padding-left: 18px; font-size: 13px; }
 .remove-link { display: block; margin: 14px auto 4px; font-size: 13px; opacity: .6; }
 .remove-link.warn { color: #c0392b; opacity: 1; font-weight: 700; }
 .card .care-grid { row-gap: 6px; align-items: stretch; } .card .care { margin: 0; }
+
+/* ═════════ аудит UI/UX (ui-ux-pro-max): касания ≥44px, текст ≥12px, контраст ≥4.5:1 ═════════ */
+:root { --muted: #566a63; }                       /* серый текст: было 3,8:1 на белом, стало ~5,5:1 */
+:root[data-theme='dark'] { --muted: #a3b4ac; }
+.tabbar .tl { font-size: 12px; }
+.tabbar button { color: #4f635c; min-height: 48px; }
+:root[data-theme='dark'] .tabbar button { color: #a3b4ac; }
+:root[data-theme='dark'] .tabbar .on { color: var(--green); }
+.tool small, .tools .tool small { font-size: 11.5px; color: #4f635c; }
+:root[data-theme='dark'] .tool small, :root[data-theme='dark'] .tools .tool small { color: #a3b4ac; }
+.tool { min-height: 48px; }
+.bar { height: 16px; }
+.bar span { font-size: 12px; line-height: 16px; }
+/* кнопки в шапке и навигация по карточкам — не меньше 44×44 */
+.me { width: 44px; height: 44px; font-size: 18px; }
+.card-nav button { width: 44px; height: 44px; }
+.chip { min-height: 44px; display: inline-flex; align-items: center; justify-content: center; }
+.sill-picker { min-height: 44px; }
+.btn.small { min-height: 44px; }
+/* текстовые ссылки: увеличенная зона касания без сдвига вёрстки */
+.linkish { padding-top: 10px; padding-bottom: 10px; margin-top: -10px; margin-bottom: -10px; }
+.remove-link { padding: 12px 16px; margin-top: 4px; }
+/* отклик на нажатие без сдвига соседей */
+button:not(:disabled):active, [role='button']:active { filter: brightness(0.94); }
+/* видимый фокус для клавиатуры */
+:focus-visible { outline: 3px solid var(--green); outline-offset: 2px; border-radius: 10px; }
+button:focus:not(:focus-visible) { outline: none; }
+/* зелёный текст (ссылки, активная вкладка) — темнее, чтобы читался на светлом */
+.tabbar .on, .linkish { color: #276b3e; }
+:root[data-theme='dark'] .tabbar .on, :root[data-theme='dark'] .linkish { color: #7fd39a; }
