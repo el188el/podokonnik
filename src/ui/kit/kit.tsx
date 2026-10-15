@@ -15,6 +15,35 @@ function guardedClose(e: MouseEvent, onClose: () => void) {
 }
 
 /**
+ * На компьютере игра — колонка по центру, а вокруг фон. Клик по фону вне колонки
+ * (и клавиша Esc) закрывает верхнее открытое окно. Стек — чтобы закрывалось только верхнее.
+ */
+const openStack: { current: () => void }[] = [];
+let downOutside = false;
+const outside = (t: EventTarget | null) => t instanceof Element && !t.closest('.app, .float-bubble');
+if (typeof document !== 'undefined') {
+  document.addEventListener('pointerdown', (e) => { downOutside = outside(e.target); }, true);
+  document.addEventListener('click', (e) => {
+    if (!downOutside || !outside(e.target)) return;
+    downOutside = false;
+    openStack[openStack.length - 1]?.current();
+  }, true);
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && openStack.length) openStack[openStack.length - 1].current();
+  });
+}
+function useOutsideClose(open: boolean, onClose: () => void) {
+  const ref = useRef(onClose);
+  ref.current = onClose;
+  useEffect(() => {
+    if (!open) return;
+    const entry = ref;
+    openStack.push(entry);
+    return () => { const i = openStack.lastIndexOf(entry); if (i >= 0) openStack.splice(i, 1); };
+  }, [open]);
+}
+
+/**
  * Свайп вниз закрывает окно — с любого места, если окно прокручено до самого верха.
  * Слушаем touch-события напрямую (не pointer): браузер не отменяет их, когда начинает скролл.
  */
@@ -65,6 +94,7 @@ function useSwipeClose(open: boolean, onClose: () => void): [React.RefObject<HTM
 }
 
 export function Sheet({ open, onClose, children, wide }: { open: boolean; onClose: () => void; children: ReactNode; wide?: boolean }) {
+  useOutsideClose(open, onClose);
   useEffect(() => {
     if (!open) return;
     platform().setBack(onClose);
@@ -101,6 +131,7 @@ function SheetBody({ open, onClose, wide, children }: { open: boolean; onClose: 
 }
 
 export function Modal({ open, onClose, children }: { open: boolean; onClose: () => void; children: ReactNode }) {
+  useOutsideClose(open, onClose);
   useEffect(() => {
     if (!open) return;
     platform().setBack(onClose);
