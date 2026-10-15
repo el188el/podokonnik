@@ -251,10 +251,6 @@ svg.big.sad { filter: sepia(0.6) saturate(0.6); }
 .debug { display: flex; flex-wrap: wrap; gap: 4px; padding: 6px; background: #fff3; justify-content: center; }
 .debug button { font-size: 12px; border: 1px solid #0002; border-radius: 8px; background: #fff; padding: 4px 6px; }
 
-@media (min-width: 700px) {
-  :root { --cell: 210px; }
-  .slot .art { width: 128px; height: 182px; }
-}
 
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation: none !important; transition: none !important; }
@@ -404,7 +400,7 @@ svg.big.sad { filter: sepia(0.6) saturate(0.6); }
 
 .guest-scene { margin: 10px 0; }
 
-@media (min-width: 560px) {
+@media (min-width: 560px) and (max-width: 599px) {
   .scene { --cellh: 200px; max-width: 620px; margin-left: auto; margin-right: auto; }
   .scene .slot .art { width: 124px; height: 177px; }
 }
@@ -610,10 +606,6 @@ svg.big.sad { filter: sepia(0.6) saturate(0.6); }
 .scene .label span { font-size: 9px; }
 .scene .label .meter { width: 44px; }
 .scene .hang-row { grid-template-columns: repeat(3, 1fr); }
-@media (min-width: 600px) {
-  .scene { --cellh: 196px; }
-  .scene .slot .art { width: 120px; height: 171px; }
-}
 
 /* нарисованный декор */
 .deco { font-size: 20px; filter: drop-shadow(0 1px 0 #0001); }
@@ -1383,3 +1375,34 @@ button:focus:not(:focus-visible) { outline: none; }
 .btn.primary .ico, .chip.on .ico { stroke: currentColor; }
 .btn:disabled .ico { opacity: .7; }
 .weather-ic { display: grid; place-items: center; color: var(--ink); opacity: .85; }
+
+/* ─────────── компьютер: игра колонкой как на телефоне, вокруг — фон ─────────── */
+@media (min-width: 600px) {
+  html { background: none !important; } /* в index.html цвет задан прямо в теге — на время загрузки */
+  body { background-color: #dfe9dc; min-height: 100dvh; }
+  body {
+    background: url("data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 width=%22170%22 height=%22170%22><g transform=%22translate(30 32) rotate(-30) scale(1)%22><path d=%22M0-22C14-15 14 10 0 22C-14 10-14-15 0-22Z%22 fill=%22%233d8b5612%22/><path d=%22M0-18V20%22 stroke=%22%23ffffff00%22 stroke-width=%221.6%22 fill=%22none%22/></g><g transform=%22translate(118 40) rotate(40) scale(0.8)%22><path d=%22M0-22C14-15 14 10 0 22C-14 10-14-15 0-22Z%22 fill=%22%233d8b5612%22/><path d=%22M0-18V20%22 stroke=%22%23ffffff00%22 stroke-width=%221.6%22 fill=%22none%22/></g><g transform=%22translate(78 104) rotate(10) scale(1.15)%22><path d=%22M0-22C14-15 14 10 0 22C-14 10-14-15 0-22Z%22 fill=%22%233d8b5612%22/><path d=%22M0-18V20%22 stroke=%22%23ffffff00%22 stroke-width=%221.6%22 fill=%22none%22/></g><g transform=%22translate(20 140) rotate(-60) scale(0.7)%22><path d=%22M0-22C14-15 14 10 0 22C-14 10-14-15 0-22Z%22 fill=%22%233d8b5612%22/><path d=%22M0-18V20%22 stroke=%22%23ffffff00%22 stroke-width=%221.6%22 fill=%22none%22/></g><g transform=%22translate(150 130) rotate(70) scale(0.9)%22><path d=%22M0-22C14-15 14 10 0 22C-14 10-14-15 0-22Z%22 fill=%22%233d8b5612%22/><path d=%22M0-18V20%22 stroke=%22%23ffffff00%22 stroke-width=%221.6%22 fill=%22none%22/></g></svg>"), radial-gradient(70% 90% at 50% 40%, #f3f8ef 0%, #dbe8d6 55%, #c9dcc4 100%);
+    background-attachment: fixed;
+  }
+  :root[data-theme='dark'] body { background: url("data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 width=%22170%22 height=%22170%22><g transform=%22translate(30 32) rotate(-30) scale(1)%22><path d=%22M0-22C14-15 14 10 0 22C-14 10-14-15 0-22Z%22 fill=%22%237fd09a0d%22/><path d=%22M0-18V20%22 stroke=%22%23ffffff00%22 stroke-width=%221.6%22 fill=%22none%22/></g><g transform=%22translate(118 40) rotate(40) scale(0.8)%22><path d=%22M0-22C14-15 14 10 0 22C-14 10-14-15 0-22Z%22 fill=%22%237fd09a0d%22/><path d=%22M0-18V20%22 stroke=%22%23ffffff00%22 stroke-width=%221.6%22 fill=%22none%22/></g><g transform=%22translate(78 104) rotate(10) scale(1.15)%22><path d=%22M0-22C14-15 14 10 0 22C-14 10-14-15 0-22Z%22 fill=%22%237fd09a0d%22/><path d=%22M0-18V20%22 stroke=%22%23ffffff00%22 stroke-width=%221.6%22 fill=%22none%22/></g><g transform=%22translate(20 140) rotate(-60) scale(0.7)%22><path d=%22M0-22C14-15 14 10 0 22C-14 10-14-15 0-22Z%22 fill=%22%237fd09a0d%22/><path d=%22M0-18V20%22 stroke=%22%23ffffff00%22 stroke-width=%221.6%22 fill=%22none%22/></g><g transform=%22translate(150 130) rotate(70) scale(0.9)%22><path d=%22M0-22C14-15 14 10 0 22C-14 10-14-15 0-22Z%22 fill=%22%237fd09a0d%22/><path d=%22M0-18V20%22 stroke=%22%23ffffff00%22 stroke-width=%221.6%22 fill=%22none%22/></g></svg>"), radial-gradient(70% 90% at 50% 40%, #1b2722 0%, #111a16 60%, #0b120f 100%); background-attachment: fixed; }
+  body::before, body::after { content: ''; position: fixed; bottom: -10px; width: min(300px, 36vh); height: min(420px, 50vh); background: url("data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 width=%22300%22 height=%22420%22 viewBox=%220 0 300 420%22><path d=%22M150 300Q108 262 20 225%22 stroke=%22%233a7a4c%22 stroke-width=%224%22 fill=%22none%22/><g transform=%22translate(20 225) rotate(-60) scale(1.5)%22><path d=%22M0-22C14-15 14 10 0 22C-14 10-14-15 0-22Z%22 fill=%22%234f9a63%22/><path d=%22M0-18V20%22 stroke=%22%230002%22 stroke-width=%221.4%22/></g><path d=%22M150 300Q120 228 50 157%22 stroke=%22%233a7a4c%22 stroke-width=%224%22 fill=%22none%22/><g transform=%22translate(50 157) rotate(-35) scale(1.7)%22><path d=%22M0-22C14-15 14 10 0 22C-14 10-14-15 0-22Z%22 fill=%22%233d8553%22/><path d=%22M0-18V20%22 stroke=%22%230002%22 stroke-width=%221.4%22/></g><path d=%22M150 300Q147 206 117 113%22 stroke=%22%233a7a4c%22 stroke-width=%224%22 fill=%22none%22/><g transform=%22translate(117 113) rotate(-10) scale(1.9)%22><path d=%22M0-22C14-15 14 10 0 22C-14 10-14-15 0-22Z%22 fill=%22%234f9a63%22/><path d=%22M0-18V20%22 stroke=%22%230002%22 stroke-width=%221.4%22/></g><path d=%22M150 300Q179 211 198 121%22 stroke=%22%233a7a4c%22 stroke-width=%224%22 fill=%22none%22/><g transform=%22translate(198 121) rotate(15) scale(1.8)%22><path d=%22M0-22C14-15 14 10 0 22C-14 10-14-15 0-22Z%22 fill=%22%233d8553%22/><path d=%22M0-18V20%22 stroke=%22%230002%22 stroke-width=%221.4%22/></g><path d=%22M150 300Q202 237 256 174%22 stroke=%22%233a7a4c%22 stroke-width=%224%22 fill=%22none%22/><g transform=%22translate(256 174) rotate(40) scale(1.6)%22><path d=%22M0-22C14-15 14 10 0 22C-14 10-14-15 0-22Z%22 fill=%22%234f9a63%22/><path d=%22M0-18V20%22 stroke=%22%230002%22 stroke-width=%221.4%22/></g><path d=%22M150 300Q209 267 274 234%22 stroke=%22%233a7a4c%22 stroke-width=%224%22 fill=%22none%22/><g transform=%22translate(274 234) rotate(62) scale(1.4)%22><path d=%22M0-22C14-15 14 10 0 22C-14 10-14-15 0-22Z%22 fill=%22%233d8553%22/><path d=%22M0-18V20%22 stroke=%22%230002%22 stroke-width=%221.4%22/></g><path d=%22M150 300Q113 290 32 279%22 stroke=%22%233a7a4c%22 stroke-width=%224%22 fill=%22none%22/><g transform=%22translate(32 279) rotate(-80) scale(1.2)%22><path d=%22M0-22C14-15 14 10 0 22C-14 10-14-15 0-22Z%22 fill=%22%233d8553%22/><path d=%22M0-18V20%22 stroke=%22%230002%22 stroke-width=%221.4%22/></g><path d=%22M150 300Q205 290 263 280%22 stroke=%22%233a7a4c%22 stroke-width=%224%22 fill=%22none%22/><g transform=%22translate(263 280) rotate(80) scale(1.2)%22><path d=%22M0-22C14-15 14 10 0 22C-14 10-14-15 0-22Z%22 fill=%22%234f9a63%22/><path d=%22M0-18V20%22 stroke=%22%230002%22 stroke-width=%221.4%22/></g><path d=%22M88 300H212L198 410H102Z%22 fill=%22%23c9764a%22/><rect x=%2280%22 y=%22290%22 width=%22140%22 height=%2226%22 rx=%226%22 fill=%22%23b0633c%22/></svg>") no-repeat bottom / contain; pointer-events: none; z-index: 0; opacity: .9; }
+  :root[data-theme='dark'] body::before, :root[data-theme='dark'] body::after { background-image: url("data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 width=%22300%22 height=%22420%22 viewBox=%220 0 300 420%22><path d=%22M150 300Q108 262 20 225%22 stroke=%22%2324543a%22 stroke-width=%224%22 fill=%22none%22/><g transform=%22translate(20 225) rotate(-60) scale(1.5)%22><path d=%22M0-22C14-15 14 10 0 22C-14 10-14-15 0-22Z%22 fill=%22%232f6b43%22/><path d=%22M0-18V20%22 stroke=%22%230002%22 stroke-width=%221.4%22/></g><path d=%22M150 300Q120 228 50 157%22 stroke=%22%2324543a%22 stroke-width=%224%22 fill=%22none%22/><g transform=%22translate(50 157) rotate(-35) scale(1.7)%22><path d=%22M0-22C14-15 14 10 0 22C-14 10-14-15 0-22Z%22 fill=%22%23265a38%22/><path d=%22M0-18V20%22 stroke=%22%230002%22 stroke-width=%221.4%22/></g><path d=%22M150 300Q147 206 117 113%22 stroke=%22%2324543a%22 stroke-width=%224%22 fill=%22none%22/><g transform=%22translate(117 113) rotate(-10) scale(1.9)%22><path d=%22M0-22C14-15 14 10 0 22C-14 10-14-15 0-22Z%22 fill=%22%232f6b43%22/><path d=%22M0-18V20%22 stroke=%22%230002%22 stroke-width=%221.4%22/></g><path d=%22M150 300Q179 211 198 121%22 stroke=%22%2324543a%22 stroke-width=%224%22 fill=%22none%22/><g transform=%22translate(198 121) rotate(15) scale(1.8)%22><path d=%22M0-22C14-15 14 10 0 22C-14 10-14-15 0-22Z%22 fill=%22%23265a38%22/><path d=%22M0-18V20%22 stroke=%22%230002%22 stroke-width=%221.4%22/></g><path d=%22M150 300Q202 237 256 174%22 stroke=%22%2324543a%22 stroke-width=%224%22 fill=%22none%22/><g transform=%22translate(256 174) rotate(40) scale(1.6)%22><path d=%22M0-22C14-15 14 10 0 22C-14 10-14-15 0-22Z%22 fill=%22%232f6b43%22/><path d=%22M0-18V20%22 stroke=%22%230002%22 stroke-width=%221.4%22/></g><path d=%22M150 300Q209 267 274 234%22 stroke=%22%2324543a%22 stroke-width=%224%22 fill=%22none%22/><g transform=%22translate(274 234) rotate(62) scale(1.4)%22><path d=%22M0-22C14-15 14 10 0 22C-14 10-14-15 0-22Z%22 fill=%22%23265a38%22/><path d=%22M0-18V20%22 stroke=%22%230002%22 stroke-width=%221.4%22/></g><path d=%22M150 300Q113 290 32 279%22 stroke=%22%2324543a%22 stroke-width=%224%22 fill=%22none%22/><g transform=%22translate(32 279) rotate(-80) scale(1.2)%22><path d=%22M0-22C14-15 14 10 0 22C-14 10-14-15 0-22Z%22 fill=%22%23265a38%22/><path d=%22M0-18V20%22 stroke=%22%230002%22 stroke-width=%221.4%22/></g><path d=%22M150 300Q205 290 263 280%22 stroke=%22%2324543a%22 stroke-width=%224%22 fill=%22none%22/><g transform=%22translate(263 280) rotate(80) scale(1.2)%22><path d=%22M0-22C14-15 14 10 0 22C-14 10-14-15 0-22Z%22 fill=%22%232f6b43%22/><path d=%22M0-18V20%22 stroke=%22%230002%22 stroke-width=%221.4%22/></g><path d=%22M88 300H212L198 410H102Z%22 fill=%22%239a5a39%22/><rect x=%2280%22 y=%22290%22 width=%22140%22 height=%2226%22 rx=%226%22 fill=%22%237f4a30%22/></svg>"); opacity: .8; }
+  body::before { left: max(8px, calc(50% - 560px)); transform: rotate(-4deg); }
+  body::after { right: max(8px, calc(50% - 560px)); transform: scaleX(-1) rotate(-4deg) scale(.85); transform-origin: bottom; }
+  .app {
+    position: relative; z-index: 1; width: 100%; max-width: 440px; margin: 0 auto;
+    background: var(--bg); box-shadow: 0 0 0 1px #0000000d, 0 30px 80px #2e4a3a40;
+    transform: translateZ(0); /* окна и тосты — внутри колонки, а не на весь экран */
+    overflow: hidden;
+  }
+  :root[data-theme='dark'] .app { box-shadow: 0 0 0 1px #ffffff12, 0 30px 80px #0009; }
+  .sheet { max-height: 90%; }
+  .modal { max-height: 86%; }
+  .sill-picker { max-width: 180px; }
+  .level-road { max-height: 420px; }
+  .tl-video { max-height: 480px; }
+}
+@media (min-width: 600px) and (min-height: 780px) {
+  .app { height: min(calc(100dvh - 40px), 940px); margin-top: max(20px, calc((100dvh - 940px) / 2)); border-radius: 32px; }
+}
+@media (min-width: 600px) and (max-width: 1000px) { body::before, body::after { display: none; } }
