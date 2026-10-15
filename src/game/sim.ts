@@ -83,6 +83,26 @@ export const isThirstySad = (p: Plant) => p.stage >= 2 && p.dryFor > sp(p.sp).dr
 export const isLightSad = (p: Plant) => p.badLightFor >= 20;
 export const isSad = (p: Plant) => p.stage >= 2 && (p.health < 60 || isThirstySad(p) || isLightSad(p));
 
+// ─────────── полив ───────────
+/** Выше этой влажности земля уже мокрая: вода уходит в поддон. */
+export const WET_FULL = 0.9;
+/** Через сколько полив снова приносит опыт и засчитывается в задания. */
+export const WATER_REWARD_MS = 3 * H;
+/**
+ * Полить: подсохшую землю — до 100%, влажную — подлить до краёв (без вреда).
+ * Если земля и так мокрая (90%+), лишняя вода стоит в поддоне — это перелив.
+ */
+export function pour(p: Plant): 'watered' | 'topped' | 'over' {
+  const before = p.moisture;
+  if (before >= WET_FULL) {
+    p.moisture = Math.min(1.4, Math.max(1, before) + 0.25);
+    return 'over';
+  }
+  p.moisture = 1;
+  p.dryFor = 0;
+  return before < 0.5 ? 'watered' : 'topped';
+}
+
 // ─────────── размер горшка ───────────
 // Растёт растение — растёт и горшок: росток в S, подросток в M, взрослое в L.
 // XL — простор для взрослого: черенки отрастают быстрее. В тесном горшке

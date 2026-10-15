@@ -25,7 +25,7 @@ import { giftLink, makeCode } from './gifts';
 import { XP, levelPerks, levelReward, unlocksAt, xpToNext, SILL_UNLOCK } from './progression';
 import { QUEST_BONUS, WEEKLY_CHEST, dayKey, bumpQuest, bumpWeekly, rollDay, rollWeek, streakReward, weeklyVisit } from './quests';
 import { ITEM_BY_ID, ITEMS, placeOf, potIdOf } from './shop';
-import { advance, badLight, bestZone, canCut, ctxFor, hasDecorOn, fmt, needSize, POT_SIZE_ITEM, POT_SIZE_NAME, potSizeOf, tight, hasLamp, neighborsOf, stageMarks, type SimEvent } from './sim';
+import { advance, badLight, bestZone, canCut, ctxFor, hasDecorOn, pour, WATER_REWARD_MS, WET_FULL, fmt, needSize, POT_SIZE_ITEM, POT_SIZE_NAME, potSizeOf, tight, hasLamp, neighborsOf, stageMarks, type SimEvent } from './sim';
 import { activeEvent, EVENT_TOKENS, eventSeason, tierOf, type GameEvent, type PassReward } from './events';
 import { FORM_BY_ID, FORMS, PRODUCT_BY_ID, RARE_DROP, formsOf } from './products';
 import { replayFriendWaters, type FriendWater } from './social';
@@ -784,8 +784,13 @@ export function placeCutting(spId: string, sill: string, slot: number, extra: Pa
   });
 }
 
-export type WaterResult = 'rooting' | 'glass' | 'enough' | 'watered' | 'over';
+export type WaterResult = 'rooting' | 'glass' | 'enough' | 'watered' | 'topped' | 'over';
 
+/**
+ * Полить. Подсохшую землю — до 100%, влажную — подлить до краёв: это безопасно.
+ * Если земля уже мокрая (90%+), сначала предупредим: вода уйдёт в поддон (перелив).
+ * Опыт и задания — за полив, но не чаще раза в 3 часа на растение.
+ */
 export function water(plantId: string, insist = false): WaterResult | null {
   return mut((g, t) => {
     const p = findPlant(g, plantId);
@@ -801,34 +806,35 @@ export function water(plantId: string, insist = false): WaterResult | null {
       say(p.id, p.stage === 1 ? 'Посади меня в горшок 🪴' : 'В стакане хватает воды');
       return 'glass';
     }
-    if (p.moisture > 0.5 && !insist) {
-      say(p.id, p.moisture > 1 ? 'Я и так мокрое 😵' : 'Мне уже хватит 💧');
-      haptic('warning');
-      return 'enough';
+    if (p.moisture >= WET_FULL) {
+      if ((g.owned.meter ?? 0) > 0) {
+        say(p.id, `📟 ${Math.round(p.moisture * 100)}% — мокро`, 2200);
+        toast('📟 Влагомер: земля мокрая — лишняя вода уйдёт в поддон. Полей, когда подсохнет');
+        haptic('warning');
+        return 'enough';
+      }
+      if (!insist) {
+        say(p.id, p.moisture > 1 ? 'Я и так мокрое 😵' : 'Я ещё мокрое 💧', 2200);
+        haptic('warning');
+        return 'enough';
+      }
     }
-    if (p.moisture > 0.5 && insist && (g.owned.meter ?? 0) > 0) {
-      say(p.id, `📟 ${Math.round(p.moisture * 100)}% — ещё мокро`, 2200);
-      toast('📟 Влагомер: земля ещё влажная. Полей, когда станет меньше 50%');
-      haptic('warning');
-      return 'enough';
-    }
-    if (p.moisture > 0.5 && insist) {
-      p.moisture = 1.4;
-      say(p.id, 'Ой, перелили! 😵', 2600);
+    const r = pour(p);
+    if (r === 'over') {
+      say(p.id, 'Ой, вода в поддоне! 😵', 2600);
       haptic('error');
-      toast(sp(p.sp).overwater === 'sensitive' ? `${sp(p.sp).name} не любит перелив — корни могут загнить` : 'Перелили. Дай земле просохнуть');
+      toast(sp(p.sp).overwater === 'sensitive' ? `${sp(p.sp).name} не любит перелив — слей воду из поддона, иначе корни загниют` : 'Вода ушла в поддон. Слей её или дай земле просохнуть');
       return 'over';
     }
-    const helpful = p.moisture < 0.5;
-    p.moisture = 1;
-    p.dryFor = 0;
     g.stats.waters += 1;
     const hour = new Date(t).getHours();
     if (hour >= 0 && hour < 5) g.stats.nightWater += 1;
-    if (helpful) { addXp(g, XP.water); quest(g, 'water'); eventToken(g, 'water', t); }
+    if (!p.wateredAt || t - p.wateredAt >= WATER_REWARD_MS) { addXp(g, XP.water); quest(g, 'water'); eventToken(g, 'water', t); }
+    p.wateredAt = t;
+    if (r === 'topped') say(p.id, 'Подлили до краёв 💧', 1800);
     fx(p.id, 'water');
     haptic('light');
-    return 'watered';
+    return r;
   });
 }
 
@@ -1610,7 +1616,7 @@ function grantTester(g: GameState, t: number) {
 
 /** Полить всех на подоконнике, у кого подсохла земля. */
 export function waterAll(sillId: string) {
-  const ids = get().game.plants.filter((p) => p.sill === sillId && p.stage >= 2 && p.moisture < 0.5).map((p) => p.id);
+  const ids = get().game.plants.filter((p) => p.sill === sillId && p.stage >= 2 && p.moisture < WET_FULL).map((p) => p.id);
   for (const id of ids) water(id);
   if (ids.length) toast(`💧 Полито растений: ${ids.length}`);
   return ids.length;

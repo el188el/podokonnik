@@ -6,7 +6,7 @@
 import { GLASS_ROW, DEEP_ROW, zoneOfSlot } from './layout.ts';
 import { hueOf } from './breeding.ts';
 import { FORM_BY_ID, RARE_DROP, formsOf } from './products.ts';
-import { advance, canCut } from './sim.ts';
+import { advance, canCut, pour, WET_FULL } from './sim.ts';
 import { sp } from './species.ts';
 import type { GameState, Plant, WindowSide } from './types.ts';
 
@@ -119,17 +119,16 @@ export function coopAct(c: CoopState, a: CoopAction, who: string, t: number, id 
         return { ok: true, effect: 'rooting' };
       }
       if (p.stage <= 1) return { ok: false, reason: 'not_ready' };
-      if (p.moisture > 0.5 && !a.insist) return { ok: false, reason: 'enough' };
-      p.moisture = p.moisture > 0.5 ? 1.4 : 1;
-      p.dryFor = 0;
+      if (p.moisture >= WET_FULL && !a.insist) return { ok: false, reason: 'enough' };
+      pour(p);
       p.waterBy = { name: who, at: t };
       log(c, who, `полил(а) ${sp(p.sp).acc}${p.moisture > 1 ? ' — перелили 😵' : ''}`, t);
       return { ok: true, effect: 'watered' };
     }
     case 'mist': {
       if (p.stage < 2) return { ok: false, reason: 'not_ready' };
-      if (sp(p.sp).mist !== 'love') return { ok: false, reason: 'no_mist' };
-      p.mistUntil = t + 12 * 3600e3;
+      if (sp(p.sp).mist === 'no') return { ok: false, reason: 'no_mist' };
+      p.mistUntil = t + (sp(p.sp).mist === 'love' ? 12 : 6) * 3600e3;
       log(c, who, `опрыскал(а) ${sp(p.sp).acc}`, t);
       return { ok: true, effect: 'misted' };
     }

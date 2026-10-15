@@ -46,8 +46,9 @@ export function PlantCard({ id }: { id: string }) {
     const before = p.moisture;
     const r = water(p.id, insist);
     if (r === 'watered') setNote({ text: `💧 Полито! Влажность ${Math.round(before * 100)}% → 100%` });
-    else if (r === 'enough') setNote({ text: `Земля ещё влажная (${Math.round(before * 100)}%). Растение пока не хочет пить.`, ask: 'water' });
-    else if (r === 'over') setNote({ text: '😵 Перелили. Теперь дай земле просохнуть.' });
+    else if (r === 'topped') setNote({ text: `💧 Подлили до краёв: ${Math.round(before * 100)}% → 100%. Следующий полив — когда подсохнет до 50%.` });
+    else if (r === 'enough') setNote({ text: (g.owned.meter ?? 0) > 0 ? `📟 Земля мокрая (${Math.round(before * 100)}%) — влагомер не даст залить.` : `Земля мокрая (${Math.round(before * 100)}%) — вода уйдёт в поддон, это перелив. Всё равно полить?`, ask: (g.owned.meter ?? 0) > 0 ? undefined : 'water' });
+    else if (r === 'over') setNote({ text: '😵 Вода в поддоне — перелив. Слей её или дай земле просохнуть.' });
     else if (r === 'rooting') setNote({ text: '💧 Налили воды в стакан — черенок пускает корни.' });
     else if (r === 'glass') setNote({ text: p.stage === 1 ? 'Корни уже есть — посади в горшок 🪴' : 'В стакане хватает воды.' });
   };

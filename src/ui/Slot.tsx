@@ -133,7 +133,7 @@ export function Slot({ plant: p, sill, slot }: { plant: Plant; sill: string; slo
     const r = water(p.id, again);
     if (r === 'enough') lastEnough[p.id] = Date.now();
     else delete lastEnough[p.id];
-    if (r === 'enough' && !again) toast('Земля ещё влажная. Тапни ещё раз, если всё равно хочешь полить');
+    if (r === 'enough' && !again && (useStore.getState().game.owned.meter ?? 0) <= 0) toast('Земля мокрая — вода уйдёт в поддон. Тапни ещё раз, если всё равно хочешь полить');
   }
 
   return (
