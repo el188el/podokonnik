@@ -1,3 +1,4 @@
+import { clone } from './constants';
 import { create } from 'zustand';
 import * as api from '../net/api';
 import { ADS_PER_DAY, showRewardedAd } from '../net/ads';
@@ -180,7 +181,7 @@ const haptic = (k: Parameters<ReturnType<typeof platform>['haptic']>[0]) => {
 
 /** Изменить состояние игры: работаем с копией и потом сохраняем. */
 function mut<T>(fn: (g: GameState, t: number) => T): T {
-  const g: GameState = structuredClone(get().game);
+  const g: GameState = clone(get().game);
   const t = now();
   const r = fn(g, t);
   after(g);
@@ -717,7 +718,7 @@ export function tick() {
   const st = get();
   if (!st.ready) return;
   const t = now();
-  const g: GameState = structuredClone(st.game);
+  const g: GameState = clone(st.game);
   const ev = advance(g, t);
   handleEvents(g, ev, false);
   checkAges(g, t);

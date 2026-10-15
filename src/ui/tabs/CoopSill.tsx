@@ -1,5 +1,6 @@
 // Общий подоконник: те же растения видят и поливают двое (или вся квартира).
 
+import { clone } from '../../game/constants';
 import { potSizeOf } from '../../game/sim';
 import { motion } from 'framer-motion';
 import { useEffect, useMemo, useState } from 'react';
@@ -47,7 +48,7 @@ export function CoopSill({ coop }: { coop: CoopView }) {
 
   // локально досчитываем рост между обновлениями с сервера
   const st = useMemo(() => {
-    const c = structuredClone(coop.state);
+    const c = clone(coop.state);
     coopAdvance(c, tSec * 1000);
     return c;
   }, [coop, tSec]);

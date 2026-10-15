@@ -1,5 +1,6 @@
 // Общая логика друзей: её используют и игра, и сервер (через sync:shared).
 
+import { clone } from './constants';
 import { advance, type SimEvent } from './sim';
 import type { GameState, Plant, Sill } from './types';
 
@@ -60,7 +61,7 @@ export interface PublicView {
 
 /** Что видит гость: только внешний вид подоконника, без экономики и статистики. */
 export function publicView(state: GameState, now: number, waters: FriendWater[] = []): PublicView {
-  const g: GameState = structuredClone(state);
+  const g: GameState = clone(state);
   replayFriendWaters(g, waters, now);
   return {
     name: g.name || 'Садовник',

@@ -6,6 +6,9 @@ import { VitePWA } from 'vite-plugin-pwa';
 // в Telegram Mini App, в Discord Activity и внутри Capacitor.
 export default defineConfig({
   base: './',
+  // старые WebView в Telegram (Android 8–10, iOS 13–15) не понимают новый синтаксис —
+  // без этого у части игроков висела заставка и игра не запускалась
+  build: { target: ['es2019', 'chrome79', 'safari13', 'firefox78'] },
   plugins: [
     react(),
     VitePWA({

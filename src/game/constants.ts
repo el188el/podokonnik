@@ -53,3 +53,6 @@ export const SILL_NAMES: Record<string, string> = {
   loggia: 'Лоджия',
   veranda: 'Веранда',
 };
+
+/** Глубокая копия состояния игры. Не structuredClone: его нет в старых WebView (Chrome < 98, iOS < 15.4) — игра там не запускалась. */
+export const clone = <T>(x: T): T => JSON.parse(JSON.stringify(x));

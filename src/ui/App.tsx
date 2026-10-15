@@ -16,13 +16,14 @@ import { Profile } from './tabs/Profile';
 import { Quests } from './tabs/Quests';
 import { Shop } from './tabs/Shop';
 import { SillView } from './tabs/SillView';
+import { Icon, TONE, type IconName } from './kit/icons';
 
-const TABS: [Tab, string, string][] = [
-  ['sill', '🪴', 'Подоконник'],
-  ['shop', '🛒', 'Магазин'],
-  ['friends', '👯', 'Друзья'],
-  ['quests', '🎯', 'Задания'],
-  ['herbarium', '📖', 'Гербарий'],
+const TABS: [Tab, IconName, string][] = [
+  ['sill', 'sill', 'Подоконник'],
+  ['shop', 'shop', 'Магазин'],
+  ['friends', 'friends', 'Друзья'],
+  ['quests', 'quests', 'Задания'],
+  ['herbarium', 'herbarium', 'Гербарий'],
 ];
 
 // Панель отладки (перемотка времени, листики) есть только в тестовых сборках с VITE_DEBUG=1.
@@ -77,8 +78,8 @@ export function App() {
         </button>
         {tab === 'sill' ? <SillPicker /> : <div className="title">Подоконник</div>}
         <div className="money">
-          <span className="leaves">{g.leaves} 🍃</span>
-          <button className="me" onClick={() => setTab('profile')} aria-label="Профиль">👤</button>
+          <span className="leaves">{g.leaves} <Icon name="leaf" size={18} tone={TONE.leaf} /></span>
+          <button className="me" onClick={() => setTab('profile')} aria-label="Профиль"><Icon name="user" size={22} /></button>
         </div>
       </header>
 
@@ -112,7 +113,7 @@ export function App() {
       <nav className="tabbar">
         {TABS.map(([k, icon, label]) => (
           <button key={k} className={tab === k ? 'on' : ''} onClick={() => { setTab(k); platform().haptic('select'); }}>
-            <span className="ti">{icon}</span>
+            <span className="ti"><Icon name={icon} size={24} stroke={tab === k ? 2.4 : 2} /></span>
             <span className="tl">{label}</span>
             {k === 'quests' && questsReady && <i className="dot" />}
           </button>
@@ -141,8 +142,8 @@ function SillPicker() {
   const sill = g.sills.find((s) => s.id === g.activeSill) ?? g.sills[0];
   return (
     <button className="sill-picker" onClick={() => openSheet({ kind: 'sills' })}>
-      <span>{coop ? `💞 ${coop.state.name}` : `🪟 ${sill.name}`}</span>
-      <i>▾</i>
+      <span>{coop ? `💞 ${coop.state.name}` : sill.name}</span>
+      <Icon name="chevron" size={18} />
     </button>
   );
 }

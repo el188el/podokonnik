@@ -24,6 +24,7 @@ import { coldLimit, rhWord, tempWord } from '../../game/climate';
 import { diagnose, recoverHours, type Fix } from '../../game/diagnose';
 import type { Plant } from '../../game/types';
 import type { Ancestor } from '../../game/types';
+import { Icon, TONE } from '../kit/icons';
 
 export function PlantCard({ id }: { id: string }) {
   const g = useStore((s) => s.game);
@@ -117,9 +118,9 @@ export function PlantCard({ id }: { id: string }) {
           {p.stage < 4 && <Bar value={stageProgress(p, t)} label={p.stage === 1 ? 'пора сажать' : tight(p) ? 'тесно — не растёт' : next ? `ещё ${fmt(next - t)}` : '…'} />}
           {potted && (
             <div className="stat-chips">
-              <span className={p.moisture > 1 ? 'bad' : p.moisture < 0.25 ? 'bad' : ''}>💧 {Math.round(p.moisture * 100)}%</span>
-              <span className={p.health < 60 ? 'bad' : ''}>❤️ {Math.round(p.health)}%</span>
-              <span className={lightBad ? 'bad' : ''}>☀️ {LIGHT_NAME[light]}</span>
+              <span className={p.moisture > 1 ? 'bad' : p.moisture < 0.25 ? 'bad' : ''}><Icon name="water" size={15} tone={TONE.water} /> {Math.round(p.moisture * 100)}%</span>
+              <span className={p.health < 60 ? 'bad' : ''}><Icon name="heart" size={15} tone="#e0574f" /> {Math.round(p.health)}%</span>
+              <span className={lightBad ? 'bad' : ''}><Icon name="clear" size={15} tone="#e8a325" /> {LIGHT_NAME[light]}</span>
             </div>
           )}
         </div>
@@ -178,18 +179,18 @@ export function PlantCard({ id }: { id: string }) {
       )}
       {potted && (
         <div className="care-grid">
-          <button className={'care' + (p.moisture < 0.5 ? ' hot' : '')} onClick={() => doWater()}><span>💧</span><b>Полить</b></button>
-          <button className={'care' + (s.mist === 'love' && !mistOn ? ' hot' : '')} onClick={() => doMist()}><span>💦</span><b>Опрыскать</b><small>{mistOn ? fmt(p.mistUntil! - t) : s.mist === 'love' ? 'любит' : s.mist === 'no' ? 'не любит' : 'можно'}</small></button>
-          <button className="care" disabled={!!feedOn} onClick={() => { if (feed(p.id)) setNote({ text: '🧪 Подкормлено! Сутки растёт в 1,5 раза быстрее.' }); }}><span>🧪</span><b>Подкормка</b><small>{feedSub}</small></button>
+          <button className={'care' + (p.moisture < 0.5 ? ' hot' : '')} onClick={() => doWater()}><span><Icon name="water" size={24} tone={TONE.water} /></span><b>Полить</b></button>
+          <button className={'care' + (s.mist === 'love' && !mistOn ? ' hot' : '')} onClick={() => doMist()}><span><Icon name="mist" size={24} tone={TONE.mist} /></span><b>Опрыскать</b><small>{mistOn ? fmt(p.mistUntil! - t) : s.mist === 'love' ? 'любит' : s.mist === 'no' ? 'не любит' : 'можно'}</small></button>
+          <button className="care" disabled={!!feedOn} onClick={() => { if (feed(p.id)) setNote({ text: '🧪 Подкормлено! Сутки растёт в 1,5 раза быстрее.' }); }}><span><Icon name="feed" size={24} tone={TONE.feed} /></span><b>Подкормка</b><small>{feedSub}</small></button>
           {p.stage < 4 ? (
-            <button className="care" disabled={!!why && why !== 'sick'} onClick={() => { if (boostPlant(p.id)) setNote({ text: '⚡ Сутки растёт вдвое быстрее. Следующий раз — через неделю.' }); }}><span>⚡</span><b>Стимулятор</b><small>{boostOn ? fmt(p.boostUntil! - t) : boostSub}</small></button>
+            <button className="care" disabled={!!why && why !== 'sick'} onClick={() => { if (boostPlant(p.id)) setNote({ text: '⚡ Сутки растёт вдвое быстрее. Следующий раз — через неделю.' }); }}><span><Icon name="boost" size={24} tone={TONE.boost} /></span><b>Стимулятор</b><small>{boostOn ? fmt(p.boostUntil! - t) : boostSub}</small></button>
           ) : (
-            <button className={'care' + (cutReady ? ' ready' : '')} disabled={!cutReady} onClick={() => { const c = takeCutting(p.id); if (c) openSheet({ kind: 'send', cutting: c }); }}><span>✂️</span><b>Черенок</b><small>{cutReady ? 'можно!' : sad || tight(p) ? 'грустит' : fmt(cutLeft(p, t))}</small></button>
+            <button className={'care' + (cutReady ? ' ready' : '')} disabled={!cutReady} onClick={() => { const c = takeCutting(p.id); if (c) openSheet({ kind: 'send', cutting: c }); }}><span><Icon name="cut" size={24} tone={TONE.cut} /></span><b>Черенок</b><small>{cutReady ? 'можно!' : sad || tight(p) ? 'грустит' : fmt(cutLeft(p, t))}</small></button>
           )}
-          <button className={'care' + (potHot ? ' warn' : '')} disabled={size >= 4 && !potHot} onClick={() => openSheet({ kind: 'repot', plant: p.id })}><span>🪴</span><b>Пересадить</b><small>{tight(p) ? `тесно! → ${POT_SIZE_NAME[needSize(p.stage)]}` : cramped(p, t) ? 'тесновато → XL' : `горшок ${POT_SIZE_NAME[size]}`}</small></button>
-          <button className="care" onClick={() => move(p.id, p.zone === 'glass' ? 'deep' : 'glass')}><span>{p.zone === 'glass' ? '⬇️' : '⬆️'}</span><b>{p.zone === 'glass' ? 'В глубину' : 'К стеклу'}</b></button>
-          <button className="care" onClick={() => setPots(!pots)}><span>🎨</span><b>Дизайн</b></button>
-          <button className="care" onClick={() => openSheet({ kind: 'share', plant: p.id })}><span><ShareIcon /></span><b>Поделиться</b></button>
+          <button className={'care' + (potHot ? ' warn' : '')} disabled={size >= 4 && !potHot} onClick={() => openSheet({ kind: 'repot', plant: p.id })}><span><Icon name="repot" size={24} tone={TONE.repot} /></span><b>Пересадить</b><small>{tight(p) ? `тесно! → ${POT_SIZE_NAME[needSize(p.stage)]}` : cramped(p, t) ? 'тесновато → XL' : `горшок ${POT_SIZE_NAME[size]}`}</small></button>
+          <button className="care" onClick={() => move(p.id, p.zone === 'glass' ? 'deep' : 'glass')}><span><Icon name={p.zone === 'glass' ? 'down' : 'up'} size={24} tone={TONE.look} /></span><b>{p.zone === 'glass' ? 'В глубину' : 'К стеклу'}</b></button>
+          <button className="care" onClick={() => setPots(!pots)}><span><Icon name="design" size={24} tone={TONE.design} /></span><b>Дизайн</b></button>
+          <button className="care" onClick={() => openSheet({ kind: 'share', plant: p.id })}><span><Icon name="share" size={24} tone={TONE.share} /></span><b>Поделиться</b></button>
         </div>
       )}
       {!potted && <Btn onClick={() => move(p.id, p.zone === 'glass' ? 'deep' : 'glass')}>{p.zone === 'glass' ? '↓ В глубину' : '↑ К стеклу'}</Btn>}
@@ -240,7 +241,7 @@ export function PlantCard({ id }: { id: string }) {
 
       {/* ── всё остальное — свёрнуто ── */}
       <details className="more">
-        <summary>ℹ️ Подробнее о растении</summary>
+        <summary>Подробнее о растении</summary>
         <p className="small">💡 {need(p, t, ctx)}</p>
         {potted && (
           <>
@@ -280,7 +281,7 @@ export function PlantCard({ id }: { id: string }) {
       </details>
 
       <details className="more" open={real} onToggle={(e) => setReal((e.target as HTMLDetailsElement).open)}>
-        <summary>🌍 Вырастить по-настоящему</summary>
+        <summary>Вырастить по-настоящему</summary>
         <p className="small"><b>Уход:</b> {s.care}</p>
         <p className="small"><b>Купить:</b> {s.buy}. Цены примерные.</p>
         <p className="small"><b>Бесплатно:</b> попроси черенок у знакомых или на «Авито» в «Отдам даром». Как укоренить: {s.free}</p>

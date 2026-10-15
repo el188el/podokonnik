@@ -1353,3 +1353,14 @@ button:focus:not(:focus-visible) { outline: none; }
 .toasts { top: calc(64px + var(--safe-t, 0px)); bottom: auto; }
 .slot .round-dot { background: #4caf6a; }
 :root[data-theme='dark'] .slot .round-dot { background: #6fd08e; box-shadow: 0 0 0 2px #1d2622; }
+/* линейные иконки вместо эмодзи */
+.ico { display: block; flex: none; }
+.tabbar .ti { display: grid; place-items: center; height: 26px; }
+.tool span { display: grid; place-items: center; height: 28px; }
+.tool:not(.on) .ico { opacity: .9; }
+.leaves { display: inline-flex; align-items: center; gap: 4px; }
+.sill-picker { gap: 2px; }
+.sill-picker .ico { opacity: .55; }
+.me { display: grid; place-items: center; color: var(--ink); }
+.strip-clim > span:first-child { display: grid; place-items: center; }
+.stat-chips span { display: inline-flex; align-items: center; gap: 4px; }

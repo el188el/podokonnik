@@ -1,6 +1,7 @@
 // СГЕНЕРИРОВАНО из src/game/social.ts командой npm run sync:shared — не редактировать.
 // Общая логика друзей: её используют и игра, и сервер (через sync:shared).
 
+import { clone } from './constants.ts';
 import { advance, type SimEvent } from './sim.ts';
 import type { GameState, Plant, Sill } from './types.ts';
 
@@ -61,7 +62,7 @@ export interface PublicView {
 
 /** Что видит гость: только внешний вид подоконника, без экономики и статистики. */
 export function publicView(state: GameState, now: number, waters: FriendWater[] = []): PublicView {
-  const g: GameState = structuredClone(state);
+  const g: GameState = clone(state);
   replayFriendWaters(g, waters, now);
   return {
     name: g.name || 'Садовник',

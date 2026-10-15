@@ -1,3 +1,4 @@
+import { clone } from '../../game/constants';
 import { useState } from 'react';
 import { activeEvent, eventEndsAt, EVENT_TOKENS, tierOf } from '../../game/events';
 import { PRODUCT_BY_ID } from '../../game/products';
@@ -12,7 +13,7 @@ export function EventSheet() {
   const t = now();
   const e = activeEvent(t);
   if (!e) return <div className="center"><p className="muted">Сейчас ивентов нет. Следующий скоро!</p><Btn kind="ghost" onClick={closeSheet}>Закрыть</Btn></div>;
-  const st = eventProgress(structuredClone(g), e, t);
+  const st = eventProgress(clone(g), e, t);
   const tier = tierOf(e, st.tokens);
   const next = e.tiers[tier];
   const prev = tier ? e.tiers[tier - 1] : 0;

@@ -22,7 +22,29 @@
     <meta name="apple-mobile-web-app-title" content="Подоконник" />
   </head>
   <body>
-    <div id="root"><div class="boot">🌱</div></div>
+    <style>
+      .boot{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;height:100vh;font:600 15px/1.4 system-ui,sans-serif;color:#2b4a40;text-align:center;padding:24px;box-sizing:border-box}
+      .boot i{font-style:normal;font-size:56px;line-height:1}
+      .boot small{display:block;max-width:300px;opacity:.7;font-size:12px;word-break:break-word}
+      .boot button{border:0;border-radius:14px;padding:12px 22px;background:#3d8b56;color:#fff;font:700 15px system-ui,sans-serif}
+    </style>
+    <div id="root"><div class="boot"><i>🌱</i></div></div>
+    <script>
+      // если игра не запустилась (ошибка или очень старый браузер) — не висеть на заставке вечно
+      (function () {
+        var err = '';
+        function fail(msg) {
+          var r = document.getElementById('root');
+          var b = r && r.querySelector('.boot');
+          if (!b) return; // игра уже нарисовалась
+          b.innerHTML = '<i>🥀</i><div>Игра не загрузилась</div><button onclick="location.reload()">Обновить</button>' +
+            (msg ? '<small>' + String(msg).replace(/</g, '&lt;').slice(0, 200) + '</small>' : '');
+        }
+        window.addEventListener('error', function (e) { err = e.message || err; if (/Unexpected|SyntaxError|is not defined|is not a function/.test(err)) fail(err); });
+        window.addEventListener('unhandledrejection', function (e) { err = (e.reason && e.reason.message) || err; });
+        setTimeout(function () { fail(err || 'Проверь интернет и обнови Telegram'); }, 15000);
+      })();
+    </script>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

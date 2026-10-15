@@ -1,5 +1,6 @@
 import { motion } from 'framer-motion';
 import type { GameState } from '../../game/types';
+import { Icon, TONE, type IconName } from '../kit/icons';
 import { activeEvent, eventSeason, tierOf } from '../../game/events';
 import { canCut, isWinter, fmt } from '../../game/sim';
 import { sp } from '../../game/species';
@@ -21,7 +22,7 @@ import { Guide } from '../Guide';
 import { chestReady, firstChest, firstStepNow, roundInfo, starterDone, starterLeft } from '../../game/onboarding';
 import { TUTORIAL_DONE } from '../../game/store';
 import { SillScene, timeOfDay } from '../SillScene';
-import { SKY, tempText, weatherAt } from '../../game/weather';
+import { tempText, weatherAt } from '../../game/weather';
 import { platform } from '../../platform';
 
 
@@ -153,7 +154,7 @@ function OwnSill() {
         <div className="info-strip">
           {platform().kind !== 'discord' && (
             <button className={'strip-clim' + (climBad ? ' alert' : '')} onClick={() => openSheet({ kind: 'climate' })} aria-label="Погода и климат в комнате">
-              <span>{w ? SKY[w.sky].icon : '🌡'}</span>
+              <span><Icon name={w ? w.sky : 'thermo'} size={24} tone={w && (w.sky === 'clear' || w.sky === 'partly') ? '#e8a325' : '#5f7f9a'} /></span>
               <span className="sc-text"><b>{w ? tempText(w.temp) : `${Math.round(clim.temp)}°`}</b><small>{climBad ? 'неуютно' : 'дома ' + tempWord(clim.temp)}</small></span>
             </button>
           )}
@@ -244,12 +245,12 @@ function SceneFit({ hang, children }: { hang: boolean; children: (style: CSSProp
   return <div className="scene-fit" ref={ref}>{children({ ['--cellh' as string]: `${cellh}px` })}</div>;
 }
 
-const TOOLS: [Tool, string, string][] = [
-  ['look', '👆', 'Осмотр'],
-  ['water', '💧', 'Лейка'],
-  ['mist', '💦', 'Опрыскать'],
-  ['feed', '🧪', 'Подкормка'],
-  ['cut', '✂️', 'Черенок'],
+const TOOLS: [Tool, IconName, string][] = [
+  ['look', 'look', 'Осмотр'],
+  ['water', 'water', 'Лейка'],
+  ['mist', 'mist', 'Опрыскать'],
+  ['feed', 'feed', 'Подкормка'],
+  ['cut', 'cut', 'Черенок'],
 ];
 
 function Toolbar({ sill }: { sill: string }) {
@@ -264,7 +265,7 @@ function Toolbar({ sill }: { sill: string }) {
       <div className="tools">
         {TOOLS.map(([k, icon, label]) => (
           <button key={k} className={'tool' + (tool === k ? ' on' : '')} onClick={() => setTool(tool === k && k !== 'look' ? 'look' : k)} aria-pressed={tool === k}>
-            <span>{icon}</span>
+            <span><Icon name={icon} size={24} tone={TONE[icon as keyof typeof TONE]} /></span>
             <small>{label}</small>
             {k === 'feed' && (g.owned.feed ?? 0) > 0 && <i className="tool-badge">{g.owned.feed}</i>}
             {k === 'cut' && cuts > 0 && <i className="tool-badge ready">{cuts}</i>}
@@ -272,7 +273,7 @@ function Toolbar({ sill }: { sill: string }) {
         ))}
         {thirsty >= 2 && (
           <button className="tool water-all-tool" onClick={() => waterAll(sill)} aria-label={`Полить всех, кто хочет пить: ${thirsty}`}>
-            <span>🚿</span>
+            <span><Icon name="waterAll" size={24} tone={TONE.water} /></span>
             <small>Всем · {thirsty}</small>
           </button>
         )}
