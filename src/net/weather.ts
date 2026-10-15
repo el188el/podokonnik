@@ -1,10 +1,11 @@
 // Погода и поиск города через Open-Meteo: бесплатно, без ключа и регистрации.
 
 import { roundCoord, skyFromCode, type Place, type Weather } from '../game/weather';
+import { cityViaServer, loggedIn, weatherViaServer } from './api';
 
-const get = async (url: string) => {
+const get = async (url: string, ms = 6000) => {
   const ctl = new AbortController();
-  const timer = setTimeout(() => ctl.abort(), 8000);
+  const timer = setTimeout(() => ctl.abort(), ms);
   try {
     const r = await fetch(url, { signal: ctl.signal });
     if (!r.ok) throw new Error('http ' + r.status);
@@ -14,11 +15,17 @@ const get = async (url: string) => {
   }
 };
 
+/** Сначала напрямую из Open-Meteo, не вышло — через наш сервер (у части мобильных операторов Open-Meteo не открывается). */
 export async function fetchWeather(p: Place, t = Date.now()): Promise<Weather> {
-  const j = await get(`https://api.open-meteo.com/v1/forecast?latitude=${p.lat}&longitude=${p.lon}&current=weather_code,temperature_2m,is_day`);
-  const c = j?.current;
-  if (!c || typeof c.weather_code !== 'number') throw new Error('bad weather');
-  return { sky: skyFromCode(c.weather_code), temp: Number(c.temperature_2m) || 0, day: c.is_day !== 0, at: t };
+  let c: { code: number; temp: number; day: boolean } | null = null;
+  try {
+    const j = await get(`https://api.open-meteo.com/v1/forecast?latitude=${p.lat}&longitude=${p.lon}&current=weather_code,temperature_2m,is_day`);
+    const cur = j?.current;
+    if (cur && typeof cur.weather_code === 'number') c = { code: cur.weather_code, temp: Number(cur.temperature_2m) || 0, day: cur.is_day !== 0 };
+  } catch { /* попробуем через сервер */ }
+  if (!c && loggedIn()) c = await weatherViaServer(p.lat, p.lon);
+  if (!c || typeof c.code !== 'number') throw new Error('bad weather');
+  return { sky: skyFromCode(c.code), temp: Number(c.temp) || 0, day: c.day !== false, at: t };
 }
 
 export interface CityHit extends Place {
@@ -26,7 +33,13 @@ export interface CityHit extends Place {
 }
 
 export async function findCity(q: string): Promise<CityHit[]> {
-  const j = await get(`https://geocoding-api.open-meteo.com/v1/search?count=6&language=ru&name=${encodeURIComponent(q.trim())}`);
+  let j: { results?: Record<string, unknown>[] } | null = null;
+  try {
+    j = await get(`https://geocoding-api.open-meteo.com/v1/search?count=6&language=ru&name=${encodeURIComponent(q.trim())}`);
+  } catch (e) {
+    if (!loggedIn()) throw e;
+    j = await cityViaServer(q.trim());
+  }
   return (j?.results ?? []).map((r: Record<string, unknown>) => ({
     city: String(r.name),
     region: [r.admin1, r.country].filter(Boolean).join(', '),

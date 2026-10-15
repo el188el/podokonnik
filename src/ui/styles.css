@@ -1382,3 +1382,4 @@ button:focus:not(:focus-visible) { outline: none; }
 .ricon .ico { display: block; }
 .btn.primary .ico, .chip.on .ico { stroke: currentColor; }
 .btn:disabled .ico { opacity: .7; }
+.weather-ic { display: grid; place-items: center; color: var(--ink); opacity: .85; }

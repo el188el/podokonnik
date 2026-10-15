@@ -724,6 +724,39 @@ async function payInvoice(playerId: string, b: Body) {
   return link ? json({ link }) : fail('invoice', 502);
 }
 
+// Погода и поиск города через сервер — запасной путь, если Open-Meteo не открывается
+// с телефона (мобильный интернет с ограничениями, блокировки). Никаких данных не храним.
+async function getJson(url: string) {
+  const ctl = new AbortController();
+  const timer = setTimeout(() => ctl.abort(), 8000);
+  try {
+    const r = await fetch(url, { signal: ctl.signal });
+    if (!r.ok) throw new Error('http ' + r.status);
+    return await r.json();
+  } finally {
+    clearTimeout(timer);
+  }
+}
+const coord = (v: unknown, lim: number) => (typeof v === 'number' && Number.isFinite(v) && Math.abs(v) <= lim ? Math.round(v * 10) / 10 : null);
+
+async function weather(b: Body) {
+  const lat = coord(b.lat, 90), lon = coord(b.lon, 180);
+  if (lat === null || lon === null) return fail('bad_place');
+  const j = await getJson(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=weather_code,temperature_2m,is_day`).catch(() => null);
+  const c = j?.current;
+  if (!c || typeof c.weather_code !== 'number') return fail('weather', 502);
+  return json({ code: c.weather_code, temp: Number(c.temperature_2m) || 0, day: c.is_day !== 0 });
+}
+
+async function citySearch(b: Body) {
+  const q = str(b.q, 40).trim();
+  if (q.length < 2) return json({ results: [] });
+  const j = await getJson(`https://geocoding-api.open-meteo.com/v1/search?count=6&language=ru&name=${encodeURIComponent(q)}`).catch(() => null);
+  if (!j) return fail('geo', 502);
+  const results = (j.results ?? []).slice(0, 6).map((r: Body) => ({ name: r.name, admin1: r.admin1, country: r.country, latitude: r.latitude, longitude: r.longitude }));
+  return json({ results });
+}
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: CORS });
   const route = new URL(req.url).pathname.replace(/^.*\/api/, '') || '/';
@@ -766,6 +799,8 @@ Deno.serve(async (req) => {
       case '/plus/claim': return await plusClaim(playerId, body);
       case '/login/start': return await loginStart(playerId, body);
       case '/login/unlink': return await loginUnlink(playerId, body);
+      case '/weather': return await weather(body);
+      case '/city': return await citySearch(body);
       default: return fail('not_found', 404);
     }
   } catch (e) {

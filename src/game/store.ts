@@ -117,6 +117,7 @@ interface Store {
   tool: Tool;
   coops: api.CoopView[] | null; // общие подоконники (null — ещё не загружали)
   coopOn: number | null;        // открыт общий подоконник
+  weatherState?: 'loading' | 'error'; // как идёт загрузка погоды
   arrange: boolean;             // режим перестановки декора
 }
 
@@ -740,15 +741,19 @@ let weatherTry = 0;
 export async function refreshWeather(force = false) {
   const g = get().game;
   const place = g.settings.place;
-  if (!place || !navigator.onLine) return;
+  if (!place || get().weatherState === 'loading') return;
   const t = now();
   if (!force && ((g.weather && t - g.weather.at < 30 * 60e3) || Date.now() - weatherTry < 5 * 60e3)) return;
   weatherTry = Date.now();
+  set({ weatherState: 'loading' });
   try {
     const w = await fetchWeather(place, t);
     if (get().game.settings.place !== place) return;
     mut((g) => { g.weather = w; });
-  } catch { /* нет сети — попробуем позже */ }
+    set({ weatherState: undefined });
+  } catch {
+    set({ weatherState: 'error' }); // нет сети — попробуем позже
+  }
 }
 
 export function setPlace(place: Place | null) {

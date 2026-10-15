@@ -1,8 +1,9 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { closeSheet, now, refreshWeather, setPlace, toast, useStore } from '../../game/store';
 import { SKY, tempText, weatherAt, weatherTip } from '../../game/weather';
 import { cityName, findCity, locate, type CityHit } from '../../net/weather';
 import { Btn } from '../kit/kit';
+import { Icon } from '../kit/icons';
 
 /** Погода за окном: город по геолокации или поиском. */
 export function WeatherSheet() {
@@ -12,6 +13,9 @@ export function WeatherSheet() {
   const [q, setQ] = useState('');
   const [hits, setHits] = useState<CityHit[] | null>(null);
   const [busy, setBusy] = useState(false);
+  const ws = useStore((s) => s.weatherState);
+  // открыли, а свежей сводки нет — сразу спрашиваем
+  useEffect(() => { if (place && !w) refreshWeather(true); }, [place?.city]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const search = async () => {
     if (q.trim().length < 2) return;
@@ -33,12 +37,14 @@ export function WeatherSheet() {
 
   return (
     <div>
-      <div className="gicon">{w ? SKY[w.sky].icon : '🌦'}</div>
+      <div className="gicon weather-ic"><Icon name={w ? w.sky : 'partly'} size={56} stroke={1.8} /></div>
       <h2 className="center">Погода за окном</h2>
       {place ? (
         <>
           <p className="center"><b>{place.city}</b>{w && <> · {SKY[w.sky].name}, {tempText(w.temp)}</>}</p>
-          <p className="muted center small">{w ? weatherTip(w) : 'Узнаём погоду…'}</p>
+          <p className="muted center small">
+            {w ? weatherTip(w) : ws === 'error' ? 'Не получилось узнать погоду: нет связи с сервисом погоды. Проверь интернет и нажми «Обновить».' : 'Узнаём погоду…'}
+          </p>
         </>
       ) : (
         <p className="muted center small">
@@ -57,8 +63,8 @@ export function WeatherSheet() {
           <b>{h.city}</b> <span className="muted small">{h.region}</span>
         </button>
       ))}
-      <Btn disabled={busy} onClick={geo}>📍 Определить по геолокации</Btn>
-      {place && <Btn kind="soft" onClick={() => refreshWeather(true)}>🔄 Обновить</Btn>}
+      <Btn disabled={busy} onClick={geo}><Icon name="pin" size={18} className="inl" /> Определить по геолокации</Btn>
+      {place && <Btn kind="soft" disabled={ws === 'loading'} onClick={() => refreshWeather(true)}><Icon name="refresh" size={18} className="inl" /> {ws === 'loading' ? 'Обновляем…' : 'Обновить'}</Btn>}
       {place && <Btn kind="ghost" onClick={() => setPlace(null)}>Выключить погоду</Btn>}
       <p className="muted small center">Храним только город и координаты с точностью ~10 км. Погода — Open-Meteo.</p>
       <Btn kind="ghost" onClick={closeSheet}>Закрыть</Btn>

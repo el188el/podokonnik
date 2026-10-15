@@ -325,3 +325,7 @@ export const plusClaim = (code: string) => call<{ status: 'ok' | 'gone' | 'own' 
 
 /** Сколько друзей пришло по приглашению (active — дошли до 2 уровня). */
 export const invites = () => call<{ joined: number; active: number }>('/invites', {});
+
+/** Погода и поиск города через наш сервер — если Open-Meteo с телефона не открывается. */
+export const weatherViaServer = (lat: number, lon: number) => call<{ code: number; temp: number; day: boolean }>('/weather', { lat, lon }, { timeout: 12e3 });
+export const cityViaServer = (q: string) => call<{ results: Record<string, unknown>[] }>('/city', { q }, { timeout: 12e3 });
