@@ -3,11 +3,10 @@ import { useState } from 'react';
 import { BOOST_COOLDOWN, LIGHT_NAME, SHOWOFF_MS, STAGE_NAME, ZONE_NAME } from '../../game/constants';
 import { FORM_BY_ID } from '../../game/products';
 import { BREED_COOLDOWN, canBreed, hueOf } from '../../game/breeding';
-import { POT_SHAPES, POTS } from '../../game/shop';
 import { canCut, cramped, ctxFor, cutLeft, fmt, isSad, lightLevel, need, neighborsOf, nextStageAt, stageProgress } from '../../game/sim';
 import { DIFFICULTY_LABEL, sp } from '../../game/species';
 import {
-  adsLeft, addDrain, buyItem, toggleVent, boostBlock, boostPlant, breedPartners, drainTray, freshSoil, treat, feed, mist, pollinate, watchAd, move, now, openSheet, ownsPot, ownsShape, wipeLeaves, setPotShape, plantInPot, removePlant, renamePlant, setPot, takeCutting, toast, useStore, water,
+  adsLeft, addDrain, buyItem, toggleVent, boostBlock, boostPlant, breedPartners, drainTray, freshSoil, treat, feed, mist, pollinate, watchAd, move, now, openSheet, wipeLeaves, plantInPot, removePlant, renamePlant, takeCutting, useStore, water,
 } from '../../game/store';
 import { adsAvailable } from '../../net/ads';
 import { ageDays, ageMark, daysText, nextAgeMark } from '../../game/age';
@@ -26,6 +25,7 @@ import type { Plant } from '../../game/types';
 import type { Ancestor } from '../../game/types';
 import { Icon, TONE } from '../kit/icons';
 import { Emo, rich } from '../kit/rich';
+import { PotDesigner } from './PotDesigner';
 
 export function PlantCard({ id }: { id: string }) {
   const g = useStore((s) => s.game);
@@ -196,27 +196,7 @@ export function PlantCard({ id }: { id: string }) {
       )}
       {!potted && <Btn onClick={() => move(p.id, p.zone === 'glass' ? 'deep' : 'glass')}>{rich(p.zone === 'glass' ? '↓ В глубину' : '↑ К стеклу')}</Btn>}
 
-      {potted && pots && (
-        <div className="block">
-          <h3><Emo e="🎨" /> Горшок: {rich(POTS[p.pot]?.name ?? 'Глиняный')} · {rich(POT_SHAPES[p.shape ?? 'classic']?.name)}</h3>
-          <div className="pots shapes">
-            {Object.keys(POT_SHAPES).map((k) => (
-              <button key={k} className={'pot-pick' + ((p.shape ?? 'classic') === k ? ' on' : '')} onClick={() => (ownsShape(g, k) ? setPotShape(p.id, k) : toast('Эта форма продаётся в магазине 🛒 — раздел «Горшки»'))}>
-                <PlantArt sp={p.sp} stage={2} pot={p.pot} shape={k} seed={p.id} className="mini" potView />
-                <span>{rich(ownsShape(g, k) ? POT_SHAPES[k].name : '🔒 ' + POT_SHAPES[k].name)}</span>
-              </button>
-            ))}
-          </div>
-          <div className="pots">
-            {Object.keys(POTS).map((k) => (
-              <button key={k} className={'pot-pick' + (p.pot === k ? ' on' : '')} onClick={() => (ownsPot(g, k) ? setPot(p.id, k) : toast('Этот дизайн продаётся в магазине 🛒 — покупается один раз, навсегда'))}>
-                <PlantArt sp={p.sp} stage={2} pot={k} shape={p.shape} seed={p.id} className="mini" potView />
-                <span>{rich(ownsPot(g, k) ? POTS[k].name : '🔒 ' + POTS[k].name)}</span>
-              </button>
-            ))}
-          </div>
-        </div>
-      )}
+      {potted && pots && <PotDesigner p={p} />}
 
       {canBreed(p.sp) && p.blooming && (
         <div className="block breed">

@@ -8,7 +8,7 @@ import { isPlus, logoutTelegram, now, openSheet, setName, setSetting, startOver,
 import { platform } from '../../platform';
 import { CONFIG } from '../../config';
 import { linkedAccount, online, sendSettings } from '../../net/api';
-import { Bar, Btn, Leaves } from '../kit/kit';
+import { Bar, Btn } from '../kit/kit';
 import { Icon } from '../kit/icons';
 import { Emo, rich } from '../kit/rich';
 
@@ -30,10 +30,9 @@ export function Profile() {
     ['🎂 Старейшее растение, дней', Math.max(0, ...g.plants.map((p) => ageDays(p, t)))],
   ];
   return (
-    <div className="tab">
+    <div className="tab profile">
       <div className="tab-head">
         <h1>Профиль</h1>
-        <Leaves n={g.leaves} />
       </div>
 
       <section className="panel">

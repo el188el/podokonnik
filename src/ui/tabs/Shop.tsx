@@ -96,7 +96,7 @@ export function Shop() {
               {grp && <h3 className="shop-group">{rich(grp)}</h3>}
               <div className="row-item">
                 <div className="ricon">
-                  {it.pack && it.cat === 'pots' ? <span className="pot-stack"><Emo e="📦" /></span> : it.gives ? <span className="pot-stack"><Emo e="🪴" />×{it.count}</span> : it.size ? <PlantArt sp="chlorophytum" stage={2} size={it.size} seed="pot" potView /> : it.shape ? <PlantArt sp="chlorophytum" stage={2} shape={it.shape} pot="white" seed="pot" potView /> : it.cat === 'pots' ? <PlantArt sp="chlorophytum" stage={2} pot={potIdOf(it.id)} seed="pot" potView /> : hasDecorArt(it.id) ? <DecorArt id={it.id} scale={1.5} className="shop-decor" /> : rich(it.icon)}
+                  {it.pack && it.cat === 'pots' ? <span className="pot-stack"><Emo e="📦" /></span> : it.gives ? <span className="pot-stack"><PlantArt sp="chlorophytum" stage={2} size={1} seed="pot" potView />×{it.count}</span> : it.size ? <PlantArt sp="chlorophytum" stage={2} size={it.size} seed="pot" potView /> : it.shape ? <PlantArt sp="chlorophytum" stage={2} shape={it.shape} pot="white" seed="pot" potView /> : it.cat === 'pots' ? <PlantArt sp="chlorophytum" stage={2} pot={potIdOf(it.id)} seed="pot" potView /> : hasDecorArt(it.id) ? <DecorArt id={it.id} scale={1.5} className="shop-decor" /> : rich(it.icon)}
                 </div>
                 <div className="rtext">
                   <b>{rich(it.name)}</b>

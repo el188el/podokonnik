@@ -99,6 +99,7 @@ export type Sheet =
   | { kind: 'pots'; plant?: string }
   | { kind: 'orders' }
   | { kind: 'howto' }
+  | { kind: 'achievements' }
   | { kind: 'todo' }
   | null;
 
@@ -1128,7 +1129,7 @@ export function renamePlant(plantId: string, nick: string) {
 const NAME_REWARD = 5;
 
 export function setPot(plantId: string, pot: string) {
-  mut((g) => { const p = findPlant(g, plantId); if (p && (pot === 'terracotta' || g.owned['pot_' + pot])) p.pot = pot; });
+  mut((g) => { const p = findPlant(g, plantId); if (p && ownsPot(g, pot)) p.pot = pot; });
 }
 
 export const ownsShape = (g: GameState, shape: string) => shape === 'classic' || (g.owned['shape_' + shape] ?? 0) > 0;

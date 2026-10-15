@@ -1,7 +1,7 @@
 import { ACHIEVEMENTS } from '../../game/achievements';
 import { QUEST_BONUS, QUEST_TEXT, STREAK_REWARDS, WEEKLY_CHEST, WEEKLY_TEXT, weekLeftMs } from '../../game/quests';
 import { approx } from '../../game/sim';
-import { claimQuest, claimQuestBonus, claimWeekly, claimWeeklyChest, now, useStore } from '../../game/store';
+import { claimQuest, claimQuestBonus, claimWeekly, claimWeeklyChest, now, openSheet, useStore } from '../../game/store';
 import { Bar, Btn } from '../kit/kit';
 import { Icon, Money, TONE, type IconName } from '../kit/icons';
 import { rich } from '../kit/rich';
@@ -94,25 +94,14 @@ export function Quests() {
         </section>
       )}
 
-      <section className="panel">
-        <h3>Достижения · {g.achievements.length}/{ACHIEVEMENTS.length}</h3>
-        <div className="ach-list">
-          {ACHIEVEMENTS.map((a) => {
-            const done = g.achievements.includes(a.id);
-            const pr = a.progress?.(g);
-            return (
-              <div key={a.id} className={'ach' + (done ? ' done' : '')}>
-                <span className="aicon">{done ? rich(a.icon) : <Icon name="lock" size={22} tone="#9aa9a2" />}</span>
-                <div>
-                  <b>{rich(a.title)}</b>
-                  <span className="muted small">{rich(a.text)} · <Money n={a.reward} size={14} /></span>
-                  {!done && pr && <Bar value={pr[0] / pr[1]} label={`${pr[0]}/${pr[1]}`} />}
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      </section>
+      <button className="panel ach-link" onClick={() => openSheet({ kind: 'achievements' })}>
+        <span className="ach-link-ic"><Icon name="trophy" size={24} /></span>
+        <span className="ach-link-t">
+          <b>Достижения</b>
+          <small>Получено {g.achievements.length} из {ACHIEVEMENTS.length}</small>
+        </span>
+        <Icon name="chevron" size={20} className="ach-chev" />
+      </button>
     </div>
   );
 }

@@ -4,7 +4,7 @@ import { claimInvite, useStore } from '../../game/store';
 import * as api from '../../net/api';
 import { Btn } from '../kit/kit';
 import { shareInvite } from '../share';
-import { Icon, Money, TONE } from '../kit/icons';
+import { Icon, Money } from '../kit/icons';
 import { rich } from '../kit/rich';
 
 /** Лестница приглашений: друзья приходят по ссылке — награды растут. */
@@ -16,28 +16,30 @@ export function InviteLadder() {
   const next = INVITE_LADDER.find((s) => active < s.n);
   return (
     <section className="panel invite">
-      <h3 className="ih3"><Icon name="friends" size={20} tone={TONE.share} />Позови друзей — забери награды</h3>
-      <p className="muted small">
-        Друг получит <Money n={30} plus size={13} /> на старт, а ты — <Money n={50} plus size={13} /> сразу и награды лестницы. Друг засчитывается, когда дорастёт до 2 уровня.
-        {inv && <> Пришли по ссылке: <b>{inv.joined}</b>, засчитано: <b>{active}</b>.</>}
-      </p>
-      <div className="ladder">
+      <div className="inv-head">
+        <span className="inv-ic"><Icon name="friends" size={24} /></span>
+        <div>
+          <h3>Позови друзей</h3>
+          <p>Другу <Money n={30} plus size={13} /> на старт, тебе — <Money n={50} plus size={13} /> и награды ниже</p>
+        </div>
+      </div>
+      <div className="inv-steps">
         {INVITE_LADDER.map((s) => {
           const got = claimed.includes(s.n);
           const ready = active >= s.n && !got;
           return (
-            <div key={s.n} className={'ladder-step' + (got ? ' got' : ready ? ' ready' : '')}>
-              <span className="ladder-n">{got ? <Icon name="check" size={18} /> : s.n}</span>
-              <div className="ladder-body">
-                <b>{rich(s.icon)} {rich(s.title)}</b>
-                <span className="small muted">{s.n} {rich(s.n === 1 ? 'друг' : s.n < 5 ? 'друга' : 'друзей')} · {rich(s.text)}</span>
-              </div>
-              {ready && <Btn small kind="gold" onClick={() => claimInvite(s.n, active)}>Забрать</Btn>}
-            </div>
+            <button key={s.n} className={'inv-step' + (got ? ' got' : ready ? ' ready' : active >= s.n ? '' : ' todo')} disabled={!ready} onClick={() => claimInvite(s.n, active)}>
+              <span className="inv-n">{got ? <Icon name="check" size={14} /> : s.n}</span>
+              <span className="inv-art">{rich(s.icon)}</span>
+              <b>{rich(s.title)}</b>
+              <small>{rich(s.text)}</small>
+              {ready && <i className="inv-get">Забрать</i>}
+            </button>
           );
         })}
       </div>
-      <Btn kind="gold" onClick={shareInvite}>{rich(next ? `Пригласить друга · до «${next.title}» ещё ${next.n - active}` : 'Пригласить ещё')}</Btn>
+      <p className="inv-note">Друг засчитывается на 2 уровне.{inv && <> Пришли: {inv.joined}, засчитано: {active}.</>}</p>
+      <Btn kind="primary" onClick={shareInvite}>{rich(next ? `Пригласить друга · ещё ${next.n - active} до награды` : 'Пригласить ещё')}</Btn>
     </section>
   );
 }
