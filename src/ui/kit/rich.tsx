@@ -79,7 +79,8 @@ export function Emo({ e, size = '1.15em' }: { e: string; size?: string | number 
   const g = EMOJI[key(e)];
   if (!g) return <>{e}</>;
   const [C, color, fill] = g;
-  return <C className="emo" size={size} color={color} strokeWidth={2.3} fill={fill === 'soft' ? color + '59' : fill ? color : 'none'} aria-hidden focusable={false} />;
+  // размер — в style: общие правила вида «.карточка svg { width: 76px }» не раздуют значок
+  return <C className="emo" size={size} style={{ width: size, height: size }} color={color} strokeWidth={2.3} fill={fill === 'soft' ? color + '59' : fill ? color : 'none'} aria-hidden focusable={false} />;
 }
 
 /** Строка с эмодзи → текст с иконками. Не строку (число, элемент) возвращает как есть. */

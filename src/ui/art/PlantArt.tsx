@@ -959,11 +959,11 @@ function StickerFx({ id }: { id: string }) {
   return (
     <defs>
       <filter id={id} x="-25%" y="-20%" width="150%" height="140%" colorInterpolationFilters="sRGB">
-        <feMorphology in="SourceAlpha" operator="dilate" radius="4.2" result="w0" />
+        <feMorphology in="SourceAlpha" operator="dilate" radius="2" result="w0" />
         <feFlood floodColor="#ffffff" />
         <feComposite in2="w0" operator="in" result="white" />
-        <feGaussianBlur in="w0" stdDeviation="2.4" />
-        <feOffset dy="2.4" result="sb" />
+        <feGaussianBlur in="w0" stdDeviation="1.6" />
+        <feOffset dy="1.6" result="sb" />
         <feFlood floodColor="#3b2a22" floodOpacity="0.16" />
         <feComposite in2="sb" operator="in" result="shadow" />
         <feMerge><feMergeNode in="shadow" /><feMergeNode in="white" /><feMergeNode in="SourceGraphic" /></feMerge>

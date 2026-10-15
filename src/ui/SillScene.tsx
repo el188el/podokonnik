@@ -137,13 +137,16 @@ function LiveCat({ id, tint, x0, row0, arrange, onCat, onMove, onHide, bed }: { 
   // пришёл из другой комнаты — входит с края
   const entering = Date.now() - catTrip.at < 1500;
   const [x, setX] = useState(entering ? -0.15 : x0);
-  const [row, setRow] = useState(row0);
+  const [row, setRow] = useState<'sill' | 'table' | 'bed'>(row0);
   const [move, setMove] = useState<{ dur: number; left: boolean; jump?: boolean; run?: boolean } | null>(null);
+  // проснулся: стоит пару секунд, а потом снова ложится
+  const [awake, setAwake] = useState(0);
+  const wake = (ms = 3500) => { setAwake(Date.now() + ms); setTimeout(() => setAwake((a) => (a && a <= Date.now() ? 0 : a)), ms + 50); };
   const [away, setAway] = useState(false);
   const [pet, setPet] = useState(0);
-  const [bottoms, setBottoms] = useState<{ sill: number; table: number } | null>(null);
+  const [bottoms, setBottoms] = useState<{ sill: number; table: number; bed: number } | null>(null);
   const ref = useRef<HTMLButtonElement>(null);
-  const cur = useRef({ x: entering ? -0.15 : x0, row: row0 });
+  const cur = useRef<{ x: number; row: 'sill' | 'table' | 'bed' }>({ x: entering ? -0.15 : x0, row: row0 });
   const timer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   const inBed = bed.who === id;
   const bedRef = useRef(bed);
@@ -158,7 +161,10 @@ function LiveCat({ id, tint, x0, row0, arrange, onCat, onMove, onHide, bed }: { 
       const d = rows.querySelector<HTMLElement>('.row-deep');
       if (!g || !d) return;
       const H = rows.clientHeight;
-      setBottoms({ sill: H - (g.offsetTop + g.offsetHeight) - 2, table: H - (d.offsetTop + d.offsetHeight) - 2 });
+      const rb = rows.getBoundingClientRect();
+      const bedEl = rows.closest('.scene')?.querySelector('.cat-bed');
+      const bed = bedEl ? rb.bottom - bedEl.getBoundingClientRect().bottom + 10 : H - (g.offsetTop + g.offsetHeight) + 60;
+      setBottoms({ sill: H - (g.offsetTop + g.offsetHeight) - 2, table: H - (d.offsetTop + d.offsetHeight) - 2, bed });
     };
     measure();
     const ro = new ResizeObserver(measure);
@@ -174,33 +180,42 @@ function LiveCat({ id, tint, x0, row0, arrange, onCat, onMove, onHide, bed }: { 
     cur.current = { ...c, x: to };
     setX(to);
     clearTimeout(timer.current);
-    timer.current = setTimeout(() => { setMove(null); then?.(); }, dur * 1000);
+    timer.current = setTimeout(() => { setMove(null); wake(); then?.(); }, dur * 1000);
+  };
+  /** Прыжок по дуге: на другой ряд или в лежанку. */
+  const hop = (to: number, toRow: 'sill' | 'table' | 'bed', then?: () => void) => {
+    const c = cur.current;
+    const dur = 0.7;
+    setMove({ dur, left: to < c.x, jump: true });
+    cur.current = { x: to, row: toRow };
+    setX(to); setRow(toRow);
+    clearTimeout(timer.current);
+    timer.current = setTimeout(() => { setMove(null); wake(); then?.(); }, dur * 1000 + 250);
   };
   const plan = (wait = 12000 + Math.random() * 20000) => {
     clearTimeout(timer.current);
     timer.current = setTimeout(() => {
       const b = bedRef.current;
       if (b.who === id) {
-        // проснулся в лежанке — спрыгивает на подоконник
+        // проснулся в лежанке — встаёт и спрыгивает на подоконник
         b.set(null);
-        cur.current = { x: 0.16, row: 'sill' };
-        setX(0.16); setRow('sill');
-        return plan();
+        cur.current = { x: 0.16, row: 'bed' };
+        setX(0.16); setRow('bed'); wake(1200);
+        timer.current = setTimeout(() => hop(0.26, 'sill', () => plan()), 900);
+        return;
       }
       // есть лежанка и она свободна — чаще всего идёт спать туда
       if (b.has && !b.who && Math.random() < 0.6) {
         if (cur.current.row !== 'sill') { cur.current = { ...cur.current, row: 'sill' }; setRow('sill'); }
-        return walkTo(0.16, () => { bedRef.current.set(id); plan(40000 + Math.random() * 50000); });
+        return walkTo(0.16, () => hop(0.16, 'bed', () => { bedRef.current.set(id); plan(40000 + Math.random() * 50000); }));
       }
+      // сначала просыпается и встаёт, потом идёт или прыгает
       const c = cur.current;
-      const jump = Math.random() < 0.35;
-      const to = jump ? Math.min(0.92, Math.max(0.08, c.x + (Math.random() - 0.5) * 0.3)) : 0.05 + Math.random() * 0.9;
-      const dur = jump ? 0.75 : Math.max(2, Math.abs(to - c.x) * 9);
-      setMove({ dur, left: to < c.x, jump });
-      cur.current = { x: to, row: jump ? (c.row === 'sill' ? 'table' : 'sill') : c.row };
-      setX(to);
-      setRow(cur.current.row);
-      timer.current = setTimeout(() => { setMove(null); plan(); }, dur * 1000 + (jump ? 300 : 0));
+      wake(1500);
+      timer.current = setTimeout(() => {
+        if (Math.random() < 0.35) hop(Math.min(0.92, Math.max(0.08, c.x + (Math.random() - 0.5) * 0.3)), c.row === 'sill' ? 'table' : 'sill', () => plan());
+        else walkTo(0.05 + Math.random() * 0.9, () => plan());
+      }, 700);
     }, wait);
   };
   useEffect(() => {
@@ -230,6 +245,7 @@ function LiveCat({ id, tint, x0, row0, arrange, onCat, onMove, onHide, bed }: { 
     const tool = useStore.getState().tool;
     if (tool === 'water' || tool === 'mist') return flee();
     setPet(Date.now());
+    wake();
     onCat?.();
   };
   // тап по лежанке приходит сюда же
@@ -240,18 +256,19 @@ function LiveCat({ id, tint, x0, row0, arrange, onCat, onMove, onHide, bed }: { 
     return () => window.removeEventListener('cat-bed-tap', h);
   }); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const drag = useDrag(true, tap, (nx, r) => { setMove(null); cur.current = { x: nx, row: r }; setX(nx); setRow(r); onMove?.(id, nx, r); });
+  const drag = useDrag(true, tap, (nx, r) => { clearTimeout(timer.current); setMove(null); cur.current = { x: nx, row: r }; setX(nx); setRow(r); wake(); onMove?.(id, nx, r); plan(); });
+  const up = !!move || awake > Date.now();
   const tr = move ? (move.jump ? `left ${move.dur}s ease-in-out, bottom ${move.dur}s cubic-bezier(.45,0,.55,1)` : `left ${move.dur}s ${move.run ? 'ease-in' : 'linear'}`) : undefined;
   const hidden = away || inBed || !bottoms;
   return (
     <button
       ref={ref}
-      className={'cat-live' + (move ? ' walking' : '') + (move?.run ? ' running' : '') + (move?.jump ? ' jumping' : '') + (move?.left ? ' to-left' : '') + (drag.dragging ? ' dragging' : '')}
+      className={'cat-live' + (move ? ' walking' : up ? ' standing' : '') + (move?.run ? ' running' : '') + (move?.jump ? ' jumping' : '') + (move?.left ? ' to-left' : '') + (drag.dragging ? ' dragging' : '')}
       style={{ left: `${x * 100}%`, bottom: bottoms ? bottoms[row] : undefined, visibility: hidden ? 'hidden' : undefined, pointerEvents: hidden ? 'none' : undefined, transition: tr, ['--jump' as string]: `${move?.dur ?? 0.75}s`, ...drag.style }}
       aria-label={`${CAT_NAMES[id] ?? 'Котик'}: погладить или перетащить`}
       {...drag.handlers}
     >
-      <span className="cat-flip"><span className="cat-hop"><DecorArt id={move ? 'cat_walk' : 'cat'} tint={tint} scale={move ? 1.15 : 1.25} /></span></span>
+      <span className="cat-flip"><span className="cat-hop"><DecorArt id={up ? 'cat_walk' : 'cat'} tint={tint} scale={up ? 1.15 : 1.25} /></span></span>
       {pet > 0 && <span className="purr" key={pet}><Emo e="💕" /></span>}
       {arrange && <HideX id={id} onHide={onHide} />}
     </button>

@@ -619,7 +619,7 @@ export function DecorArt({ id, scale = 1, className = '', on = true, tint }: { i
             <feMorphology in="SourceAlpha" operator="dilate" radius="0.7" result="o" />
             <feFlood floodColor="#3b2a22" />
             <feComposite in2="o" operator="in" result="line" />
-            <feMorphology in="SourceAlpha" operator="dilate" radius="2.4" result="w0" />
+            <feMorphology in="SourceAlpha" operator="dilate" radius="1.2" result="w0" />
             <feFlood floodColor="#ffffff" />
             <feComposite in2="w0" operator="in" result="white" />
             <feMerge><feMergeNode in="white" /><feMergeNode in="line" /><feMergeNode in="SourceGraphic" /></feMerge>
