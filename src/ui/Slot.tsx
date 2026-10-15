@@ -110,6 +110,25 @@ export function Slot({ plant: p, sill, slot }: { plant: Plant; sill: string; slo
   const fresh = fx && Date.now() - fx.at < 1400;
   const age = ageMark(p, t);
   const want = useStore((st) => wantsTool(st.tool, p, t));
+  // область нажатия — по рамке нарисованного растения с горшком, а не по всей ячейке
+  const [hit, setHit] = useState<{ left: number; top: number; width: number; height: number } | null>(null);
+  useLayoutEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const measure = () => {
+      const g = el.querySelector('.plant-svg > g');
+      if (!g) return;
+      const a = el.getBoundingClientRect(), b = g.getBoundingClientRect();
+      const pad = 4;
+      const next = { left: Math.round(b.left - a.left - pad), top: Math.round(b.top - a.top - pad), width: Math.round(b.width + pad * 2), height: Math.round(b.height + pad * 2) };
+      setHit((h) => (h && h.left === next.left && h.top === next.top && h.width === next.width && h.height === next.height ? h : next));
+    };
+    measure();
+    const tm = setTimeout(measure, 450); // после анимации появления
+    const ro = new ResizeObserver(measure);
+    ro.observe(el);
+    return () => { clearTimeout(tm); ro.disconnect(); };
+  }, [p.stage, p.pot, p.shape, p.potSize]);
 
   function reset() {
     clearTimeout(st.current.timer);
@@ -211,6 +230,7 @@ export function Slot({ plant: p, sill, slot }: { plant: Plant; sill: string; slo
     >
       {bubble && !covered && <FloatBubble anchor={ref} text={bubble.text} cls={bubble.cls} k={bubble.text.startsWith('🌱 ') ? 'roots' : bubble.text} />}
       {p.stage === 0 && !p.rootStart && <div className="finger"><Emo e="👆" /></div>}
+      {hit && <i className="hit" style={hit} aria-hidden />}
       {want && <i className="want-ring" aria-hidden />}
       {roundPending && <div className="round-dot" title="загляни в обходе" aria-label="не осмотрено в обходе" />}
       {p.problem && <div className={'pest pest-' + p.problem.kind} style={{ opacity: 0.45 + 0.55 * p.problem.sev }}>{p.problem.kind === 'gnats' ? <><i /><i /><i /></> : null}</div>}

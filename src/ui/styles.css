@@ -1487,3 +1487,5 @@ button:focus:not(:focus-visible) { outline: none; }
 .scene .window .cat-bed.busy .decor-svg { animation: cat-breathe 3.2s ease-in-out infinite; transform-origin: 50% 0; }
 .cat-live.running .decor-svg { animation-duration: 0.25s; }
 .cat-live.running .leg.l1, .cat-live.running .leg.l4, .cat-live.running .leg.l2, .cat-live.running .leg.l3 { animation-duration: 0.22s; }
+/* область нажатия — рамка вокруг самого растения с горшком (между листьями тоже попадает) */
+.scene .slot .hit { position: absolute; pointer-events: auto; z-index: 1; }
