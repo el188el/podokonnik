@@ -1474,3 +1474,16 @@ button:focus:not(:focus-visible) { outline: none; }
 .tool-tip-wrap .tool-tip { position: relative; left: auto; right: auto; bottom: auto; transform: none; pointer-events: auto; max-width: 100%; }
 .slot.want .want-ring { z-index: 0; }
 .slot.want .art { position: relative; z-index: 1; }
+
+/* нажатие по растению — только по самому рисунку (горшок, листья), а не по пустому месту над ним:
+   так кота, если он заслоняет цветок, есть смысл отодвинуть */
+.scene .slot { pointer-events: none; }
+.scene .slot .plant-svg :is(path, circle, ellipse, rect, polygon) { pointer-events: visiblePainted; }
+.scene .slot .finger { pointer-events: auto; }
+
+/* лежанка-гамак на стекле */
+.scene .window .cat-bed { position: absolute; left: 5%; top: 12%; z-index: 3; border: 0; background: none; padding: 0; cursor: pointer; -webkit-tap-highlight-color: transparent; }
+.scene .window .cat-bed .decor-svg { display: block; filter: drop-shadow(0 2px 2px #0002); }
+.scene .window .cat-bed.busy .decor-svg { animation: cat-breathe 3.2s ease-in-out infinite; transform-origin: 50% 0; }
+.cat-live.running .decor-svg { animation-duration: 0.25s; }
+.cat-live.running .leg.l1, .cat-live.running .leg.l4, .cat-live.running .leg.l2, .cat-live.running .leg.l3 { animation-duration: 0.22s; }

@@ -1,4 +1,5 @@
 import { clone } from './constants';
+import { CAT_IDS } from './cat';
 import { create } from 'zustand';
 import * as api from '../net/api';
 import { ADS_PER_DAY, showRewardedAd } from '../net/ads';
@@ -1260,8 +1261,24 @@ export function unlockSill(id: string) {
   });
 }
 
+/** Когда котик ушёл в другую комнату: там он «входит» с края, а не появляется сразу. */
+export const catTrip = { at: 0 };
+
 export function setActiveSill(id: string) {
-  mut((g) => { g.activeSill = id; });
+  mut((g) => {
+    if (g.activeSill === id) return;
+    const from = g.sills.find((s) => s.id === g.activeSill);
+    const to = g.sills.find((s) => s.id === id);
+    g.activeSill = id;
+    if (!from || !to) return;
+    // котики ходят за хозяином: переносим их (и лежанку не трогаем — она висит на окне)
+    const cats = from.decor.filter((d) => CAT_IDS.includes(d));
+    if (!cats.length) return;
+    from.decor = from.decor.filter((d) => !CAT_IDS.includes(d));
+    to.decor = [...to.decor.filter((d) => !CAT_IDS.includes(d)), ...cats];
+    if (to.pos) for (const c of cats) delete to.pos[c];
+    catTrip.at = Date.now();
+  });
 }
 
 // ─────────────────── соседка ───────────────────

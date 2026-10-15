@@ -106,6 +106,7 @@ export const ITEMS: ShopItem[] = [
   // ещё декор: окно
   { id: 'paper_snow', cat: 'decor', place: 'window', name: 'Бумажные снежинки', icon: '❄️', price: 40, desc: 'Вырезанные из салфеток и приклеенные на стекло.', months: [12, 1, 2] },
   { id: 'feeder', cat: 'decor', place: 'window', name: 'Кормушка за окном', icon: '🐦', price: 90, desc: 'Синички прилетают в гости.' },
+  { id: 'cat_bed', cat: 'decor', place: 'window', name: 'Лежанка на окно', icon: '🐈', price: 120, desc: 'Гамак на присосках прямо на стекле. Котик будет спать в нём чаще всего — и не мешать цветам.' },
   { id: 'suncatcher', cat: 'decor', place: 'window', name: 'Ловец солнца', icon: '🌈', price: 110, desc: 'Пускает радуги по комнате.', level: 4 },
   // подоконник
   { id: 'matryoshka', cat: 'decor', place: 'sill', name: 'Матрёшка', icon: '🪆', price: 70, desc: 'Внутри ещё шесть.' },

@@ -11,6 +11,7 @@ import { DecorArt, hasDecorArt } from './art/DecorArt';
 import { CAT_DEFAULT_COLOR, CAT_IDS, CAT_NAMES } from '../game/cat';
 import type { Sky } from '../game/weather';
 import { Emo, rich } from './kit/rich';
+import { catTrip, toast, useStore } from '../game/store';
 
 export interface SceneProps {
   decor: string[];
@@ -130,15 +131,24 @@ function Deco({ id, x, on, arrange, onItem, onMove, onHide }: { id: string; x: n
  * с подоконника на столик и обратно. Нажми — погладить, потяни — переставить.
  * Живёт поверх обоих рядов, чтобы прыжок был одним движением.
  */
-function LiveCat({ id, tint, x0, row0, arrange, onCat, onMove, onHide }: { id: string; tint?: string; x0: number; row0: 'sill' | 'table'; arrange?: boolean; onCat?: () => void; onMove?: SceneProps['onMove']; onHide?: (id: string) => void }) {
-  const [x, setX] = useState(x0);
+type Bed = { has: boolean; who: string | null; set: (who: string | null) => void };
+
+function LiveCat({ id, tint, x0, row0, arrange, onCat, onMove, onHide, bed }: { id: string; tint?: string; x0: number; row0: 'sill' | 'table'; arrange?: boolean; onCat?: () => void; onMove?: SceneProps['onMove']; onHide?: (id: string) => void; bed: Bed }) {
+  // пришёл из другой комнаты — входит с края
+  const entering = Date.now() - catTrip.at < 1500;
+  const [x, setX] = useState(entering ? -0.15 : x0);
   const [row, setRow] = useState(row0);
-  const [move, setMove] = useState<{ dur: number; left: boolean; jump?: boolean } | null>(null);
+  const [move, setMove] = useState<{ dur: number; left: boolean; jump?: boolean; run?: boolean } | null>(null);
+  const [away, setAway] = useState(false);
   const [pet, setPet] = useState(0);
   const [bottoms, setBottoms] = useState<{ sill: number; table: number } | null>(null);
   const ref = useRef<HTMLButtonElement>(null);
-  const cur = useRef({ x: x0, row: row0 });
-  useEffect(() => { cur.current = { x: x0, row: row0 }; setX(x0); setRow(row0); }, [x0, row0]);
+  const cur = useRef({ x: entering ? -0.15 : x0, row: row0 });
+  const timer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+  const inBed = bed.who === id;
+  const bedRef = useRef(bed);
+  bedRef.current = bed;
+  useEffect(() => { if (!entering) { cur.current = { x: x0, row: row0 }; setX(x0); setRow(row0); } }, [x0, row0]); // eslint-disable-line react-hooks/exhaustive-deps
   // где «пол» у каждого ряда — считаем от низа контейнера рядов
   useEffect(() => {
     const rows = ref.current?.closest('.rows') as HTMLElement | null;
@@ -155,32 +165,89 @@ function LiveCat({ id, tint, x0, row0, arrange, onCat, onMove, onHide }: { id: s
     ro.observe(rows);
     return () => ro.disconnect();
   }, []);
+
+  /** Пройти к точке; по приходу — then(). */
+  const walkTo = (to: number, then?: () => void, run = false) => {
+    const c = cur.current;
+    const dur = run ? 0.7 : Math.max(1.6, Math.abs(to - c.x) * 9);
+    setMove({ dur, left: to < c.x, run });
+    cur.current = { ...c, x: to };
+    setX(to);
+    clearTimeout(timer.current);
+    timer.current = setTimeout(() => { setMove(null); then?.(); }, dur * 1000);
+  };
+  const plan = (wait = 12000 + Math.random() * 20000) => {
+    clearTimeout(timer.current);
+    timer.current = setTimeout(() => {
+      const b = bedRef.current;
+      if (b.who === id) {
+        // проснулся в лежанке — спрыгивает на подоконник
+        b.set(null);
+        cur.current = { x: 0.16, row: 'sill' };
+        setX(0.16); setRow('sill');
+        return plan();
+      }
+      // есть лежанка и она свободна — чаще всего идёт спать туда
+      if (b.has && !b.who && Math.random() < 0.6) {
+        if (cur.current.row !== 'sill') { cur.current = { ...cur.current, row: 'sill' }; setRow('sill'); }
+        return walkTo(0.16, () => { bedRef.current.set(id); plan(40000 + Math.random() * 50000); });
+      }
+      const c = cur.current;
+      const jump = Math.random() < 0.35;
+      const to = jump ? Math.min(0.92, Math.max(0.08, c.x + (Math.random() - 0.5) * 0.3)) : 0.05 + Math.random() * 0.9;
+      const dur = jump ? 0.75 : Math.max(2, Math.abs(to - c.x) * 9);
+      setMove({ dur, left: to < c.x, jump });
+      cur.current = { x: to, row: jump ? (c.row === 'sill' ? 'table' : 'sill') : c.row };
+      setX(to);
+      setRow(cur.current.row);
+      timer.current = setTimeout(() => { setMove(null); plan(); }, dur * 1000 + (jump ? 300 : 0));
+    }, wait);
+  };
   useEffect(() => {
     if (reduced() || arrange) return;
-    let timer: ReturnType<typeof setTimeout>;
-    const plan = () => {
-      timer = setTimeout(() => {
-        const c = cur.current;
-        const jump = Math.random() < 0.35;
-        const to = jump ? Math.min(0.92, Math.max(0.08, c.x + (Math.random() - 0.5) * 0.3)) : 0.05 + Math.random() * 0.9;
-        const dur = jump ? 0.75 : Math.max(2, Math.abs(to - c.x) * 9);
-        setMove({ dur, left: to < c.x, jump });
-        cur.current = { x: to, row: jump ? (c.row === 'sill' ? 'table' : 'sill') : c.row };
-        setX(to);
-        setRow(cur.current.row);
-        timer = setTimeout(() => { setMove(null); plan(); }, dur * 1000 + (jump ? 300 : 0));
-      }, 12000 + Math.random() * 20000);
-    };
-    plan();
-    return () => clearTimeout(timer);
-  }, [arrange]);
-  const drag = useDrag(true, () => { setPet(Date.now()); onCat?.(); }, (nx, r) => { setMove(null); cur.current = { x: nx, row: r }; setX(nx); setRow(r); onMove?.(id, nx, r); });
-  const tr = move ? (move.jump ? `left ${move.dur}s ease-in-out, bottom ${move.dur}s cubic-bezier(.45,0,.55,1)` : `left ${move.dur}s linear`) : undefined;
+    if (entering) walkTo(x0, () => plan());
+    else plan(bed.has && !bed.who ? 3000 + Math.random() * 5000 : undefined);
+    return () => clearTimeout(timer.current);
+  }, [arrange, bed.has]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  /** Брызнули водой — обиделся, убежал за край и вернулся через полминуты. */
+  const flee = () => {
+    if (bedRef.current.who === id) bedRef.current.set(null);
+    const left = cur.current.x < 0.5;
+    toast(`💦 Мяу! ${CAT_NAMES[id] ?? 'Котик'} не любит брызги — убегает, но скоро вернётся`);
+    walkTo(left ? -0.3 : 1.3, () => {
+      setAway(true);
+      timer.current = setTimeout(() => {
+        const from = left ? 1.3 : -0.3;
+        cur.current = { x: from, row: 'sill' };
+        setX(from); setRow('sill');
+        setAway(false);
+        setTimeout(() => walkTo(0.2 + Math.random() * 0.6, () => plan()), 60);
+      }, 20000 + Math.random() * 20000);
+    }, true);
+  };
+  const tap = () => {
+    const tool = useStore.getState().tool;
+    if (tool === 'water' || tool === 'mist') return flee();
+    setPet(Date.now());
+    onCat?.();
+  };
+  // тап по лежанке приходит сюда же
+  useEffect(() => {
+    if (!inBed) return;
+    const h = (e: Event) => { if ((e as CustomEvent).detail === id) tap(); };
+    window.addEventListener('cat-bed-tap', h);
+    return () => window.removeEventListener('cat-bed-tap', h);
+  }); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const drag = useDrag(true, tap, (nx, r) => { setMove(null); cur.current = { x: nx, row: r }; setX(nx); setRow(r); onMove?.(id, nx, r); });
+  const tr = move ? (move.jump ? `left ${move.dur}s ease-in-out, bottom ${move.dur}s cubic-bezier(.45,0,.55,1)` : `left ${move.dur}s ${move.run ? 'ease-in' : 'linear'}`) : undefined;
+  const hidden = away || inBed || !bottoms;
   return (
     <button
       ref={ref}
-      className={'cat-live' + (move ? ' walking' : '') + (move?.jump ? ' jumping' : '') + (move?.left ? ' to-left' : '') + (drag.dragging ? ' dragging' : '')}
-      style={{ left: `${x * 100}%`, bottom: bottoms ? bottoms[row] : undefined, visibility: bottoms ? undefined : 'hidden', transition: tr, ['--jump' as string]: `${move?.dur ?? 0.75}s`, ...drag.style }}
+      className={'cat-live' + (move ? ' walking' : '') + (move?.run ? ' running' : '') + (move?.jump ? ' jumping' : '') + (move?.left ? ' to-left' : '') + (drag.dragging ? ' dragging' : '')}
+      style={{ left: `${x * 100}%`, bottom: bottoms ? bottoms[row] : undefined, visibility: hidden ? 'hidden' : undefined, pointerEvents: hidden ? 'none' : undefined, transition: tr, ['--jump' as string]: `${move?.dur ?? 0.75}s`, ...drag.style }}
       aria-label={`${CAT_NAMES[id] ?? 'Котик'}: погладить или перетащить`}
       {...drag.handlers}
     >
@@ -206,6 +273,9 @@ export function SillScene({ decor, tod, winter, sky, theme, win = 'E', cell, han
   const lamp = windowD.includes('lamp') || decor.includes('lamp');
   const lampOn = lamp && !off.includes('lamp');
   const cats = CAT_IDS.filter((c) => decor.includes(c));
+  const [bedWho, setBedWho] = useState<string | null>(null);
+  const hasBed = windowD.includes('cat_bed') && !!onCat;
+  const bed: Bed = { has: hasBed, who: hasBed && bedWho && cats.includes(bedWho) ? bedWho : null, set: setBedWho };
   const isOn = (d: string) => !off.includes(d);
   const xOf = (d: string, i: number) => pos[d]?.x ?? DEFAULT_X[i] ?? 0.5;
   const deco = (d: string, i: number) => <Deco key={d} id={d} x={xOf(d, i)} on={isOn(d)} arrange={arrange} onItem={onItem} onMove={onMove} onHide={onHide} />;
@@ -236,6 +306,11 @@ export function SillScene({ decor, tod, winter, sky, theme, win = 'E', cell, han
           {windowD.includes('suncatcher') && <div className="suncatcher"><DecorArt id="suncatcher" /></div>}
         </div>
         <div className="frame" />
+        {windowD.includes('cat_bed') && (
+          <button className={'cat-bed' + (bed.who ? ' busy' : '')} onClick={() => (bed.who ? window.dispatchEvent(new CustomEvent('cat-bed-tap', { detail: bed.who })) : onItem?.('cat_bed'))} aria-label="Лежанка для котика">
+            <DecorArt id="cat_bed" on={!!bed.who} tint={bed.who ? catColors?.[bed.who] ?? CAT_DEFAULT_COLOR[bed.who] : undefined} scale={1.35} />
+          </button>
+        )}
         {windowD.includes('paper_snow') && <div className="paper-snow">{[0, 1, 2, 3].map((i) => <span key={i}><DecorArt id="snowflake" scale={[1.1, 1.4, 0.8, 1][i]} /></span>)}</div>}
         {windowD.includes('garland') && <div className={'garland' + (isOn('garland') ? '' : ' off')} onClick={onItem ? () => onItem('garland') : undefined} />}
         {windowD.includes('tulle') && (
@@ -296,7 +371,7 @@ export function SillScene({ decor, tod, winter, sky, theme, win = 'E', cell, han
           </div>
         </div>
         <div className="table" />
-        {onCat && cats.map((c) => <LiveCat key={c} id={c} tint={catColors?.[c] ?? CAT_DEFAULT_COLOR[c]} x0={pos[c]?.x ?? CAT_X[c]} row0={rowOf(c)} arrange={arrange} onCat={onCat} onMove={onMove} onHide={onHide} />)}
+        {onCat && cats.map((c) => <LiveCat key={c + ':' + catTrip.at} id={c} tint={catColors?.[c] ?? CAT_DEFAULT_COLOR[c]} x0={pos[c]?.x ?? CAT_X[c]} row0={rowOf(c)} arrange={arrange} onCat={onCat} onMove={onMove} onHide={onHide} bed={bed} />)}
       </div>
     </div>
   );

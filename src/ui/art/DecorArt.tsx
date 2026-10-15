@@ -19,9 +19,9 @@ export interface DrawOpts { on: boolean; now: number; tint?: string }
 
 /** Окрасы котиков. */
 export const CAT_COLORS: Record<string, { name: string; main: string; shade: string; eye: string; patch?: string; patch2?: string }> = {
-  ginger: { name: 'Рыжий', main: '#f08a3c', shade: '#d8702a', eye: '#5b3a24' },
-  grey: { name: 'Серый', main: '#9aa3ab', shade: '#7d868e', eye: '#2e3236' },
-  black: { name: 'Чёрный', main: '#3a3a40', shade: '#26262b', eye: '#f6e27a' },
+  ginger: { name: 'Рыжий', main: '#f3a25c', shade: '#d9793a', eye: '#5b3a24' },
+  grey: { name: 'Серый', main: '#a7b0b8', shade: '#7d868e', eye: '#2e3236' },
+  black: { name: 'Чёрный', main: '#4a4a52', shade: '#2c2c31', eye: '#f6e27a' },
   white: { name: 'Белый', main: '#f4f1ea', shade: '#d9d4c8', eye: '#4a6a8a' },
   tabby: { name: 'Полосатый', main: '#a07a52', shade: '#6b4f33', eye: '#2e2418' },
   cream: { name: 'Кремовый', main: '#f3d6a8', shade: '#d9b27c', eye: '#5b3a24' },
@@ -29,24 +29,73 @@ export const CAT_COLORS: Record<string, { name: string; main: string; shade: str
 };
 const catTint = (id?: string) => CAT_COLORS[id ?? 'ginger'] ?? CAT_COLORS.ginger;
 
+const CL = { stroke: '#3b2a22', strokeWidth: 1.6, strokeLinejoin: 'round' as const, strokeLinecap: 'round' as const };
+type CatC = { main: string; shade: string; eye: string; patch?: string; patch2?: string };
+const belly = (hex: string) => {
+  const n = parseInt(hex.slice(1), 16);
+  const c = (v: number) => Math.round(v + (255 - v) * 0.55);
+  return `#${((c(n >> 16) << 16) | (c((n >> 8) & 255) << 8) | c(n & 255)).toString(16).padStart(6, '0')}`;
+};
+const PINK = '#f4a3a8';
+
+/** Спящий котик клубочком. */
+function CatSleep({ c, noShadow }: { c: CatC; noShadow?: boolean }) {
+  const lt = belly(c.main);
+  return (<>
+    {!noShadow && <ellipse cx="30" cy="38.5" rx="25" ry="2.4" fill="#0000001f" />}
+    <path d="M10 36 C2 36 3 24 12 20 C20 15 34 14 42 19 C50 23 52 33 47 36 Z" fill={c.main} {...CL} />
+    {c.patch && <path d="M14 30 C14 23 20 20 26 21 C28 25 24 31 14 30 Z" fill={c.patch} />}
+    {c.patch2 && <path d="M28 19 C32 16 38 17 39 20 C36 23 31 23 28 19 Z" fill={c.patch2} />}
+    <path d="M16 34 C16 27 24 24 32 26 C36 27 38 31 37 34 Z" fill={lt} />
+    <path d="M18 22 q4 -2 8 0 M26 20 q4 -2 8 0" stroke={c.shade} strokeWidth="2.2" fill="none" strokeLinecap="round" />
+    <path d="M47 35 C54 35 56 28 52 26" stroke={CL.stroke} strokeWidth="7.2" fill="none" strokeLinecap="round" />
+    <path d="M47 35 C54 35 56 28 52 26" stroke={c.main} strokeWidth="4.4" fill="none" strokeLinecap="round" />
+    <path d="M6 37 C2 30 8 24 14 30 C16 33 26 36 34 36 L34 37.5 Z" fill={c.main} {...CL} />
+    <path d="M30.5 14.5 L32 5.5 L38.5 11.5 Z" fill={c.main} {...CL} />
+    <path d="M44 11.5 L50 5 L51.5 14 Z" fill={c.main} {...CL} />
+    <path d="M32.6 12.6 L33.3 8.4 L36.2 11.1 Z M46.3 11.4 L49.3 8.2 L49.9 12.4 Z" fill={PINK} />
+    <ellipse cx="41" cy="21" rx="12" ry="10" fill={c.main} {...CL} />
+    <path d="M33 25.5 C35 30 47 30 49 25.5 C47 28 35 28 33 25.5 Z" fill={lt} />
+    <path d="M34.5 20.5 q2.5 2.4 5 0 M43 20.5 q2.5 2.4 5 0" stroke={CL.stroke} strokeWidth="1.4" fill="none" strokeLinecap="round" />
+    <ellipse cx="35" cy="24.2" rx="2.2" ry="1.3" fill={PINK} opacity=".8" />
+    <ellipse cx="47.6" cy="24.2" rx="2.2" ry="1.3" fill={PINK} opacity=".8" />
+    <path d="M40.2 23.2 h2 l-1 1.2 Z" fill="#e57f8a" {...CL} strokeWidth={0.8} />
+  </>);
+}
+
+/** Котик идёт: лапы и хвост анимируются классами leg l1…l4 и tail. */
+function CatWalk({ c }: { c: CatC }) {
+  const lt = belly(c.main);
+  const leg = (x: number, cls: string, fill: string) => <g className={'leg ' + cls}><rect x={x} y="27" width="6" height="14" rx="3" fill={fill} {...CL} strokeWidth={1.4} /></g>;
+  return (<>
+    <ellipse cx="36" cy="42.5" rx="26" ry="2.2" fill="#0000001f" />
+    {leg(16, 'l1', c.shade)}{leg(43, 'l2', c.shade)}
+    <g className="tail">
+      <path d="M14 22 C4 18 4 6 11 4" stroke={CL.stroke} strokeWidth="7.4" fill="none" strokeLinecap="round" />
+      <path d="M14 22 C4 18 4 6 11 4" stroke={c.main} strokeWidth="4.6" fill="none" strokeLinecap="round" />
+    </g>
+    <path d="M12 24 C12 15 22 13 34 14 C46 15 56 16 56 26 C56 33 48 34 34 34 C20 34 12 32 12 24 Z" fill={c.main} {...CL} />
+    {c.patch && <path d="M18 18 C22 14 30 15 30 20 C28 25 20 25 18 18 Z" fill={c.patch} />}
+    {c.patch2 && <path d="M36 15 C40 14 46 16 45 20 C42 22 37 20 36 15 Z" fill={c.patch2} />}
+    <path d="M22 32 C28 29 42 29 48 32 C42 34 28 34 22 32 Z" fill={lt} />
+    <path d="M24 17 q3 3 0 6 M31 16 q3 3 0 6 M38 16 q3 3 0 6" stroke={c.shade} strokeWidth="2" fill="none" strokeLinecap="round" />
+    {leg(21, 'l3', c.main)}{leg(48, 'l4', c.main)}
+    <path d="M51.5 10.5 L53 1.5 L59 7.5 Z" fill={c.main} {...CL} />
+    <path d="M60.5 7.5 L66 1.5 L67 10.5 Z" fill={c.main} {...CL} />
+    <path d="M53.5 8.5 L54.2 4.5 L57 7.2 Z M62 7 L65 3.8 L65.6 8 Z" fill={PINK} />
+    <ellipse cx="59.5" cy="16" rx="10" ry="8.8" fill={c.main} {...CL} />
+    <path d="M52 19.5 C54 23.5 65 23.5 67 19.5 C65 22 54 22 52 19.5 Z" fill={lt} />
+    <circle cx="56" cy="15" r="1.5" fill={CL.stroke} /><circle cx="63.5" cy="15" r="1.5" fill={CL.stroke} />
+    <circle cx="56.5" cy="14.4" r=".5" fill="#fff" /><circle cx="64" cy="14.4" r=".5" fill="#fff" />
+    <ellipse cx="53.5" cy="18.5" rx="2" ry="1.2" fill={PINK} opacity=".8" />
+    <ellipse cx="66" cy="18.5" rx="2" ry="1.2" fill={PINK} opacity=".8" />
+    <path d="M58.8 17.6 h1.8 l-.9 1.1 Z" fill="#e57f8a" {...CL} strokeWidth={0.8} />
+  </>);
+}
+
 const ART: Record<string, { w: number; h: number; draw: (o: DrawOpts) => ReactNode }> = {
   // ─────────── на подоконнике ───────────
-  cat: { w: 58, h: 40, draw: (o) => {
-    const c = catTint(o.tint);
-    return (<>
-      {shadow(30, 38, 24)}
-      <path d="M8 35 Q0 34 2 26 Q4 20 8 24" stroke={c.main} strokeWidth="5" fill="none" strokeLinecap="round" />
-      <path d="M8 37 Q4 22 18 18 Q30 14 40 20 Q50 26 48 37 Z" fill={c.main} />
-      {c.patch && <path d="M14 34 Q14 24 22 22 Q28 22 28 30 Q24 36 14 34 Z" fill={c.patch} />}
-      {c.patch2 && <path d="M30 22 Q36 18 40 22 Q40 28 34 28 Q30 26 30 22 Z" fill={c.patch2} />}
-      <path d="M14 30 q6 -4 12 0 M20 25 q6 -4 12 0" stroke={c.shade} strokeWidth="2.2" fill="none" strokeLinecap="round" />
-      <path d="M35.5 17 L38 6.5 L44 13 Z M45 13 L51 6 L53 16 Z" fill={c.main} />
-      <circle cx="44" cy="22" r="10" fill={c.main} />
-      <path d="M37.8 13.5 l1.3 -4 l2.4 2.8 Z M48.5 12 l2.6 -2.8 l.4 4 Z" fill={C.pink} />
-      <path d="M39 22 q2 2 4 0 M46 22 q2 2 4 0" stroke={c.eye} strokeWidth="1.3" fill="none" strokeLinecap="round" />
-      <circle cx="44.5" cy="25.5" r="1.1" fill={C.pink} />
-    </>);
-  } },
+  cat: { w: 58, h: 40, draw: (o) => <CatSleep c={catTint(o.tint)} /> },
   radio: { w: 46, h: 32, draw: (o) => (<>
     {shadow(23, 30, 20)}
     <rect x="3" y="8" width="40" height="22" rx="4" fill={C.wood} />
@@ -529,28 +578,18 @@ const ART: Record<string, { w: number; h: number; draw: (o: DrawOpts) => ReactNo
     <rect x="70" y="12" width="20" height="5" rx="2" fill="#57525f" />
     <circle cx="80" cy="14.5" r="1.4" fill={o.on ? '#9cff9c' : '#999'} />
   </>) },
-  cat_walk: { w: 70, h: 44, draw: (o) => {
-    const c = catTint(o.tint);
-    return (<>
-      {shadow(36, 42, 26)}
-      <g className="leg l1"><rect x="18" y="26" width="5" height="15" rx="2.5" fill={c.shade} /></g>
-      <g className="leg l2"><rect x="44" y="26" width="5" height="15" rx="2.5" fill={c.shade} /></g>
-      <path d="M10 22 Q4 10 10 4" stroke={c.main} strokeWidth="5" fill="none" strokeLinecap="round" className="tail" />
-      <ellipse cx="34" cy="24" rx="24" ry="10" fill={c.main} />
-      {c.patch && <ellipse cx="24" cy="22" rx="8" ry="6" fill={c.patch} />}
-      {c.patch2 && <ellipse cx="40" cy="20" rx="6" ry="4.5" fill={c.patch2} />}
-      <path d="M22 18 q4 -3 8 0 M32 17 q4 -3 8 0" stroke={c.shade} strokeWidth="2" fill="none" strokeLinecap="round" />
-      <g className="leg l3"><rect x="22" y="27" width="5" height="15" rx="2.5" fill={c.main} /></g>
-      <g className="leg l4"><rect x="48" y="27" width="5" height="15" rx="2.5" fill={c.main} /></g>
-      {/* уши рисуем под головой — основание всегда закрыто, ухо не «отрывается» */}
-      <path d="M50.5 12 L52 2 L58.5 9 Z M58.5 9 L64 1 L66 12 Z" fill={c.main} />
-      <circle cx="58" cy="15" r="9" fill={c.main} />
-      <path d="M52.6 8 l.6 -4 l2.6 2.6 Z M60.6 7 l2.6 -3 l.8 3.8 Z" fill={C.pink} />
-      <circle cx="61" cy="14" r="1.4" fill={c.eye} />
-      <path d="M65 17 q1.5 1 3 0" stroke={c.eye} strokeWidth="1" fill="none" />
-      <circle cx="66.5" cy="16" r="1" fill={C.pink} />
-    </>);
-  } },
+  cat_walk: { w: 70, h: 44, draw: (o) => <CatWalk c={catTint(o.tint)} /> },
+  // лежанка-гамак на присосках: крепится к стеклу, котик спит в ней чаще всего
+  cat_bed: { w: 80, h: 46, draw: (o) => (<>
+    <circle cx="8" cy="6" r="5" fill="#dfeef3" fillOpacity=".85" {...CL} strokeWidth={1.3} />
+    <circle cx="72" cy="6" r="5" fill="#dfeef3" fillOpacity=".85" {...CL} strokeWidth={1.3} />
+    <path d="M9 10 L15 22 M71 10 L65 22" stroke={CL.stroke} strokeWidth="1.6" />
+    <path d="M8 22 C14 18 66 18 72 22" fill="#e8a477" {...CL} />
+    {o.on && <g transform="translate(12 -3)"><CatSleep c={catTint(o.tint)} noShadow /></g>}
+    <path d="M5 21 H75 C73 37 57 44 40 44 C23 44 7 37 5 21 Z" fill="#f2c4a0" {...CL} />
+    <path d="M14 30 C26 35 54 35 66 30" stroke="#fff" strokeWidth="2" strokeDasharray="3 3" fill="none" opacity=".75" />
+    <path d="M10 25 q3 -2 6 0" stroke="#fff" strokeWidth="2" fill="none" opacity=".5" strokeLinecap="round" />
+  </>) },
   suncatcher: { w: 26, h: 44, draw: () => (<>
     <path d="M13 0 v10" stroke={C.grey} strokeWidth="1" />
     <circle cx="13" cy="18" r="8" fill="none" stroke={C.gold} strokeWidth="1.6" />
@@ -561,7 +600,7 @@ const ART: Record<string, { w: number; h: number; draw: (o: DrawOpts) => ReactNo
 };
 
 /** Стикерный контур и белая кайма — у предметов. Котики, свет и прозрачные вещи — без неё. */
-const NO_STICKER = new Set(['cat', 'cat2', 'cat3', 'cat_walk', 'lamp', 'lamp_table', 'growlamp', 'candle', 'lantern', 'garland', 'suncatcher', 'tulle', 'paper_snow', 'snowflake', 'carpet', 'hangers', 'glass_dome']);
+const NO_STICKER = new Set(['cat', 'cat2', 'cat3', 'cat_walk', 'cat_bed', 'lamp', 'lamp_table', 'growlamp', 'candle', 'lantern', 'garland', 'suncatcher', 'tulle', 'paper_snow', 'snowflake', 'carpet', 'hangers', 'glass_dome']);
 const STICKER = { has: (id: string) => !!ART[id] && !NO_STICKER.has(id) };
 
 export const hasDecorArt = (id: string) => !!ART[id] || id === 'cat2' || id === 'cat3';
