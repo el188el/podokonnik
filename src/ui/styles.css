@@ -1324,3 +1324,32 @@ button:focus:not(:focus-visible) { outline: none; }
 /* зелёный текст (ссылки, активная вкладка) — темнее, чтобы читался на светлом */
 .tabbar .on, .linkish { color: #276b3e; }
 :root[data-theme='dark'] .tabbar .on, :root[data-theme='dark'] .linkish { color: #7fd39a; }
+
+/* ═════════ разгрузка главного экрана ═════════ */
+.round-dot { right: 8px; top: 30px; width: 10px; height: 10px; padding: 0; border-radius: 50%; background: #4caf6a; box-shadow: 0 0 0 2px #fff; font-size: 0; }
+:root[data-theme='dark'] .round-dot { background: #6fd08e; box-shadow: 0 0 0 2px #1d2622; }
+.float-bubble .bubble.icon { font-size: 15px; padding: 3px 7px; }
+.info-strip { margin-top: 8px; }
+.strip-clim { display: flex; align-items: center; gap: 6px; height: 44px; padding: 0 12px 0 10px; border: 0; border-radius: 16px; background: var(--card, #fff); color: var(--ink); box-shadow: var(--sh-sm); font: inherit; cursor: pointer; }
+.strip-clim > span:first-child { font-size: 20px; }
+.strip-clim .sc-text { display: flex; flex-direction: column; align-items: flex-start; line-height: 1.1; }
+.strip-clim .sc-text b { font-size: 14px; }
+.strip-clim .sc-text small { font-size: 11.5px; color: var(--muted); white-space: nowrap; }
+.strip-clim.alert { box-shadow: inset 0 0 0 2px #f0a35e, var(--sh-sm); }
+.info-strip .tile.more { min-width: 48px; justify-content: center; font-weight: 800; }
+.arrange-bar { flex: none; display: flex; align-items: center; gap: 10px; margin: 8px 16px 0; font-size: 13px; color: var(--muted); }
+.arrange-bar span { flex: 1; }
+.arrange-bar .btn.small { flex: none; }
+.sill-actions { display: flex; flex-wrap: wrap; gap: 8px; margin: 12px 0 4px; }
+.clim-links { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; margin: 8px 0; }
+.todo-list { display: flex; flex-direction: column; gap: 8px; margin: 10px 0; }
+.todo-list .tile { width: 100%; min-height: 48px; text-align: left; padding: 10px 14px; }
+.tool { position: relative; }
+.tool-badge { position: absolute; top: 2px; right: calc(50% - 22px); min-width: 18px; height: 18px; padding: 0 5px; border-radius: 9px; background: #e9eee9; color: #2b3a35; font: 800 11px/18px inherit; font-style: normal; box-shadow: 0 0 0 2px var(--card, #fff); }
+.tool-badge.ready { background: #f0b43c; color: #2a1d10; }
+:root[data-theme='dark'] .tool-badge { background: #33423b; color: #e6efe9; }
+:root[data-theme='dark'] .tool-badge.ready { background: #f0b43c; color: #2a1d10; }
+/* уведомления сверху, чтобы не закрывать инструменты */
+.toasts { top: calc(64px + var(--safe-t, 0px)); bottom: auto; }
+.slot .round-dot { background: #4caf6a; }
+:root[data-theme='dark'] .slot .round-dot { background: #6fd08e; box-shadow: 0 0 0 2px #1d2622; }

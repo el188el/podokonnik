@@ -1,7 +1,7 @@
 import { motion } from 'framer-motion';
-import { WINDOWS } from '../../game/constants';
+import type { GameState } from '../../game/types';
 import { activeEvent, eventSeason, tierOf } from '../../game/events';
-import { isWinter, fmt } from '../../game/sim';
+import { canCut, isWinter, fmt } from '../../game/sim';
 import { sp } from '../../game/species';
 import { now, openSheet, plantAt, setTool, showGift, useStore, waterAll, type Tool } from '../../game/store';
 import { CoopSill } from './CoopSill';
@@ -12,7 +12,7 @@ import { chatter } from '../../game/mood';
 import { ctxFor } from '../../game/sim';
 import { claimFirstChest, moveItem, toggleDecor, petCat, placeOpen, say, setArrange, switchItem, SWITCHABLE, toast } from '../../game/store';
 import { ITEMS, ITEM_BY_ID, placeOf } from '../../game/shop';
-import { climateOf, rhWord, tempWord } from '../../game/climate';
+import { climateOf, tempWord } from '../../game/climate';
 import { darkWall, roomVars } from '../../game/room';
 import { zoneOfSlot } from '../../game/layout';
 import { PlantArt } from '../art/PlantArt';
@@ -50,6 +50,37 @@ function useChatter(sillId: string) {
   }, [sillId]);
 }
 
+
+export type DayTile = { key: string; cls: string; text: string; onClick?: () => void; disabled?: boolean };
+
+/** Дела на сегодня: подарки, просьбы соседей, обход… Сначала то, что можно забрать прямо сейчас. */
+export function dayTiles(g: GameState, t: number): DayTile[] {
+  const sill = g.sills.find((s) => s.id === g.activeSill) ?? g.sills[0];
+  const tiles: DayTile[] = [];
+  if (g.pending.length) tiles.push({ key: 'pending', cls: 'ready', text: `🎁 Черенок от ${g.pending[0].from} ждёт места`, onClick: () => showGift({ ...g.pending[0], ok: true }) });
+  const step = g.tutorial >= TUTORIAL_DONE ? firstStepNow(g) : null;
+  if (step) tiles.push({ key: 'steps', cls: 'steps' + (step.ready ? ' ready' : ''), text: step.ready ? `🧭 ${step.step.title} — забрать +${step.step.leaves} 🍃` : `🧭 ${step.step.icon} ${step.step.title}`, onClick: () => openSheet({ kind: 'firststeps' }) });
+  const chest = firstChest(g, t);
+  if (chest) tiles.push({ key: 'chest', cls: chest.ready ? 'ready' : '', text: `⏳ Подарок первого часа · ${chest.ready ? 'открыть!' : fmt(chest.left)}`, onClick: claimFirstChest, disabled: !chest.ready });
+  if (g.tutorial >= TUTORIAL_DONE && (g.orders?.list.length ?? 0) > 0) {
+    const can = g.orders!.list.some((o) => canFulfil(g, o).ok);
+    tiles.push({ key: 'orders', cls: 'orders' + (can ? ' ready' : ''), text: `📋 Соседи просят: ${g.orders!.list.length}${can ? ' ✓' : ''}`, onClick: () => openSheet({ kind: 'orders' }) });
+  }
+  if (g.tutorial >= TUTORIAL_DONE) {
+    const ready = chestReady(g, t);
+    const n = starterDone(g) ? 0 : starterLeft(g, t).length;
+    tiles.push({ key: 'starter', cls: ready ? 'ready' : '', text: `🎁 Сундучок · ${ready ? (n > 1 ? `забрать (${n})` : 'забрать!') : 'завтра'}`, onClick: () => openSheet({ kind: 'starter' }) });
+  }
+  const round = g.tutorial >= TUTORIAL_DONE ? roundInfo(g, t) : null;
+  if (round) tiles.push({ key: 'round', cls: 'round' + (round.done ? ' done' : ''), text: `${round.label === 'утренний' ? '🌅' : '🌙'} Обход ${round.done ? '✓' : `${round.checked}/${round.total} · +15 🍃`}` });
+  // сначала то, что можно забрать прямо сейчас (подарки, награды), потом остальное
+
+  if (g.neighbor && t < g.neighbor.until) tiles.push({ key: 'neighbor', cls: '', text: `👵 Соседка поливает · ещё ${fmt(g.neighbor.until - t)}`, onClick: () => openSheet({ kind: 'neighbor' }) });
+  if ((g.owned.pot ?? 0) === 0) tiles.push({ key: 'pots', cls: 'alert', text: '🪴 Горшки закончились', onClick: () => openSheet({ kind: 'pots' }) });
+  void sill;
+  return tiles.sort((x, y) => Number(/ready|alert/.test(y.cls)) - Number(/ready|alert/.test(x.cls)));
+}
+
 function OwnSill() {
   const g = useStore((s) => s.game);
   const arrange = useStore((s) => s.arrange);
@@ -62,7 +93,6 @@ function OwnSill() {
   const decor = sill.decor.filter((d) => (g.owned[d] ?? 0) > 0);
   // весь купленный декор, который можно поставить или убрать (кашпо и обои — в профиле)
   const stash = ITEMS.filter((it) => it.cat === 'decor' && !it.consumable && it.place && it.place !== 'spot' && it.place !== 'wallpaper' && (g.owned[it.id] ?? 0) > 0).map((it) => it.id);
-  const neighbor = g.neighbor && t < g.neighbor.until;
   const ev = activeEvent(t);
   const evp = ev ? g.events?.[eventSeason(ev, t)] : undefined;
   const evReady = ev && evp ? ev.tiers.some((n, i) => evp.tokens >= n && (!evp.free.includes(i) || (evp.premium && !evp.prem.includes(i)))) : false;
@@ -91,55 +121,21 @@ function OwnSill() {
     );
   };
 
-  // плитки справа от события: что сейчас важно
-  const tiles: { key: string; cls: string; text: string; onClick?: () => void; disabled?: boolean }[] = [];
-  if (g.pending.length) tiles.push({ key: 'pending', cls: 'ready', text: `🎁 Черенок от ${g.pending[0].from} ждёт места`, onClick: () => showGift({ ...g.pending[0], ok: true }) });
-  const step = g.tutorial >= TUTORIAL_DONE ? firstStepNow(g) : null;
-  if (step) tiles.push({ key: 'steps', cls: 'steps' + (step.ready ? ' ready' : ''), text: step.ready ? `🧭 ${step.step.title} — забрать +${step.step.leaves} 🍃` : `🧭 ${step.step.icon} ${step.step.title}`, onClick: () => openSheet({ kind: 'firststeps' }) });
-  const chest = firstChest(g, t);
-  if (chest) tiles.push({ key: 'chest', cls: chest.ready ? 'ready' : '', text: `⏳ Подарок первого часа · ${chest.ready ? 'открыть!' : fmt(chest.left)}`, onClick: claimFirstChest, disabled: !chest.ready });
-  if (g.tutorial >= TUTORIAL_DONE && (g.orders?.list.length ?? 0) > 0) {
-    const can = g.orders!.list.some((o) => canFulfil(g, o).ok);
-    tiles.push({ key: 'orders', cls: 'orders' + (can ? ' ready' : ''), text: `📋 Соседи просят: ${g.orders!.list.length}${can ? ' ✓' : ''}`, onClick: () => openSheet({ kind: 'orders' }) });
-  }
-  if (g.tutorial >= TUTORIAL_DONE) {
-    const ready = chestReady(g, t);
-    const n = starterDone(g) ? 0 : starterLeft(g, t).length;
-    tiles.push({ key: 'starter', cls: ready ? 'ready' : '', text: `🎁 Сундучок · ${ready ? (n > 1 ? `забрать (${n})` : 'забрать!') : 'завтра'}`, onClick: () => openSheet({ kind: 'starter' }) });
-  }
-  const round = g.tutorial >= TUTORIAL_DONE ? roundInfo(g, t) : null;
-  if (round) tiles.push({ key: 'round', cls: 'round' + (round.done ? ' done' : ''), text: `${round.label === 'утренний' ? '🌅' : '🌙'} Обход ${round.done ? '✓' : `${round.checked}/${round.total} · +15 🍃`}` });
-  // сначала то, что можно забрать прямо сейчас (подарки, награды), потом остальное
-  const shown = [...tiles].sort((x, y) => Number(/ready/.test(y.cls)) - Number(/ready/.test(x.cls))); // все — лента листается вбок
+  const tiles = dayTiles(g, t);
+  const shown = tiles.slice(0, 2);
+  const more = tiles.length - shown.length;
+  const clim = climateOf(g, sill, t);
+  const climBad = clim.draft || clim.bugs || clim.temp < 16 || clim.temp > 29 || clim.rh < 30;
 
   return (
     <div className="sillview fit">
-      <div className="sillbar">
-        <button className="chip win" onClick={() => openSheet({ kind: 'window', sill: sill.id })}>
-          🪟 {sill.window ? WINDOWS[sill.window].short : 'Окно?'}
-        </button>
-        {platform().kind !== 'discord' && (
-          <button className="chip" onClick={() => openSheet({ kind: 'weather' })} aria-label="Погода за окном">
-            {w ? `${SKY[w.sky].icon} ${tempText(w.temp)}` : '🌦'}
-          </button>
-        )}
-        {(() => {
-          const c = climateOf(g, sill, t);
-          const meter = sill.decor.includes('hygrometer') && (g.owned.hygrometer ?? 0) > 0;
-          const bad = c.draft || c.bugs || c.temp < 16 || c.temp > 29 || c.rh < 30;
-          return (
-            <button className={'chip climate-chip' + (bad ? ' alert' : '')} onClick={() => openSheet({ kind: 'climate' })} aria-label="Климат в комнате">
-              🌡 {meter ? `${Math.round(c.temp)}° · ${c.rh}%` : `${tempWord(c.temp)} · ${rhWord(c.rh)}`}{sill.vent ? ' · 🪟' : ''}
-            </button>
-          );
-        })()}
-        {neighbor && <button className="chip" onClick={() => openSheet({ kind: 'neighbor' })}>👵 соседка</button>}
-        {(g.owned.pot ?? 0) === 0 && <button className="chip alert" onClick={() => openSheet({ kind: 'pots' })} aria-label="Горшки">🪴 0</button>}
-        {stash.length > 0 && (
-          <button className={'chip arrange-chip' + (arrange ? ' on' : '')} onClick={() => setArrange(!arrange)}>{arrange ? '✓ Готово' : '🛋 Переставить'}</button>
-        )}
-      </div>
-      {arrange && <p className="arrange-hint">Перетаскивай предметы и котиков, ✕ — убрать · <button className="linkish" onClick={() => openSheet({ kind: 'room' })}>🎨 цвета комнаты и котиков</button></p>}
+      {arrange && (
+        <div className="arrange-bar">
+          <span>Перетаскивай предметы и котиков, ✕ — убрать</span>
+          <button className="linkish" onClick={() => openSheet({ kind: 'room' })}>🎨 Цвета</button>
+          <button className="btn small primary" onClick={() => setArrange(false)}>Готово</button>
+        </div>
+      )}
       {arrange && (
         <div className="stash" aria-label="Твой декор">
           {stash.map((id) => {
@@ -153,8 +149,14 @@ function OwnSill() {
         </div>
       )}
 
-      {g.tutorial < TUTORIAL_DONE ? <Guide /> : (ev || shown.length > 0) && (
+      {g.tutorial < TUTORIAL_DONE ? <Guide /> : !arrange && (
         <div className="info-strip">
+          {platform().kind !== 'discord' && (
+            <button className={'strip-clim' + (climBad ? ' alert' : '')} onClick={() => openSheet({ kind: 'climate' })} aria-label="Погода и климат в комнате">
+              <span>{w ? SKY[w.sky].icon : '🌡'}</span>
+              <span className="sc-text"><b>{w ? tempText(w.temp) : `${Math.round(clim.temp)}°`}</b><small>{climBad ? 'неуютно' : 'дома ' + tempWord(clim.temp)}</small></span>
+            </button>
+          )}
           {ev && (
             <button className={`strip-event theme-${ev.theme}`} onClick={() => openSheet({ kind: 'event' })}>
               <span className="se-icon">{ev.token}</span>
@@ -165,6 +167,7 @@ function OwnSill() {
           {shown.map((x) => (
             <button key={x.key} className={'tile ' + x.cls} onClick={x.onClick} disabled={x.disabled || !x.onClick}>{x.text}</button>
           ))}
+          {more > 0 && <button className="tile more" onClick={() => openSheet({ kind: 'todo' })} aria-label={`Ещё дела: ${more}`}>+{more}</button>}
         </div>
       )}
 
@@ -255,13 +258,16 @@ function Toolbar({ sill }: { sill: string }) {
   const potted = g.plants.filter((p) => p.sill === sill && p.stage >= 2);
   if (!potted.length) return null;
   const thirsty = potted.filter((p) => p.moisture < 0.5).length;
+  const cuts = potted.filter((p) => canCut(p, now())).length;
   return (
     <div className="toolbar">
       <div className="tools">
         {TOOLS.map(([k, icon, label]) => (
           <button key={k} className={'tool' + (tool === k ? ' on' : '')} onClick={() => setTool(tool === k && k !== 'look' ? 'look' : k)} aria-pressed={tool === k}>
             <span>{icon}</span>
-            <small>{k === 'feed' ? `${label} ${g.owned.feed ?? 0}` : label}</small>
+            <small>{label}</small>
+            {k === 'feed' && (g.owned.feed ?? 0) > 0 && <i className="tool-badge">{g.owned.feed}</i>}
+            {k === 'cut' && cuts > 0 && <i className="tool-badge ready">{cuts}</i>}
           </button>
         ))}
         {thirsty >= 2 && (

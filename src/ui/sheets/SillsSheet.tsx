@@ -1,6 +1,6 @@
 // Выбор подоконника: свои комнаты и общие с друзьями.
 
-import { closeSheet, openSheet, setActiveSill, setTab, showCoop, TUTORIAL_DONE, useStore } from '../../game/store';
+import { closeSheet, openSheet, setActiveSill, setArrange, setTab, showCoop, TUTORIAL_DONE, useStore } from '../../game/store';
 import { WINDOWS } from '../../game/constants';
 import { loggedIn } from '../../net/api';
 import { Btn } from '../kit/kit';
@@ -24,6 +24,13 @@ export function SillsSheet() {
           </button>
         ))}
       </div>
+      {!coopOn && (
+        <div className="sill-actions">
+          <button className="chip" onClick={() => { setTab('sill'); setArrange(true); closeSheet(); }}>🛋 Переставить предметы</button>
+          <button className="chip" onClick={() => openSheet({ kind: 'room' })}>🎨 Цвета комнаты</button>
+          <button className="chip" onClick={() => openSheet({ kind: 'window', sill: g.activeSill })}>🧭 Сторона окна</button>
+        </div>
+      )}
       {(coops.length > 0 || canCoop) && <h3>💞 Общие с друзьями</h3>}
       <div className="list">
         {coops.map((c) => (

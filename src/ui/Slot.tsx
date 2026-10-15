@@ -42,7 +42,8 @@ function bubbleFor(p: Plant, t: number, flash?: { text: string; until: number })
   if (bad === 'dark') return { text: isLightSad(p) ? 'Темновато… 🌥' : 'Темновато', cls: '' };
   if (cramped(p, t)) return { text: 'Тесно в горшке 🪴', cls: '' };
   if (p.from && !p.showoffDone && t - (p.claimedAt ?? p.createdAt) >= SHOWOFF_MS) return { text: '📸 Покажи', cls: 'ready' };
-  if (canCut(p, t)) return { text: '✂️ Черенок', cls: 'ready' };
+  // черенки готовы — показываем только с инструментом «Черенок» (иначе ножницы над каждым горшком)
+  if (canCut(p, t) && useStore.getState().tool === 'cut') return { text: '✂️', cls: 'ready icon' };
   return null;
 }
 
@@ -193,11 +194,11 @@ export function Slot({ plant: p, sill, slot }: { plant: Plant; sill: string; slo
     >
       {bubble && !covered && <FloatBubble anchor={ref} text={bubble.text} cls={bubble.cls} k={bubble.text.startsWith('🌱 ') ? 'roots' : bubble.text} />}
       {p.stage === 0 && !p.rootStart && <div className="finger">👆</div>}
-      {roundPending && <div className="round-dot" title="загляни в обходе">👀</div>}
+      {roundPending && <div className="round-dot" title="загляни в обходе" aria-label="не осмотрено в обходе" />}
       {p.problem && <div className={'pest pest-' + p.problem.kind} style={{ opacity: 0.45 + 0.55 * p.problem.sev }}>{p.problem.kind === 'gnats' ? <><i /><i /><i /></> : null}</div>}
       {meter && p.stage >= 2 && <div className={'meter-chip' + (p.moisture > 1 ? ' over' : p.moisture < 0.25 ? ' low' : '')}>💧{Math.round(p.moisture * 100)}%</div>}
       {p.boostUntil && t < p.boostUntil && <div className="boost-glow" />}
-      {age && age.days >= 30 && <div className="age-badge" title={age.title}>{age.icon}</div>}
+
       <motion.div
         className="art"
         key={p.stage}

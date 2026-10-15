@@ -3,7 +3,9 @@
 import { climateOf, coldLimit, rhWord, tempWord, zoneTemp } from '../../game/climate';
 import { ITEM_BY_ID } from '../../game/shop';
 import { sp } from '../../game/species';
-import { buyItem, now, switchItem, toggleCurtains, toggleVent, useStore } from '../../game/store';
+import { buyItem, now, openSheet, switchItem, toggleCurtains, toggleVent, useStore } from '../../game/store';
+import { WINDOWS } from '../../game/constants';
+import { SKY, weatherAt } from '../../game/weather';
 import { tempText } from '../../game/weather';
 import { Btn } from '../kit/kit';
 
@@ -38,6 +40,10 @@ export function ClimateSheet() {
         <div className="clim-big"><span>🌡</span><b>{meter ? `${Math.round(c.temp)}°` : tempWord(c.temp)}</b><small>в комнате</small></div>
         <div className="clim-big"><span>💧</span><b>{meter ? `${c.rh}%` : rhWord(c.rh)}</b><small>влажность</small></div>
         <div className="clim-big"><span>🏙</span><b>{tempText(c.out)}</b><small>на улице</small></div>
+      </div>
+      <div className="clim-links">
+        <button className="chip" onClick={() => openSheet({ kind: 'weather' })}>{(() => { const w = weatherAt(g, t); return w ? `${SKY[w.sky].icon} Погода за окном` : '🌦 Погода за окном'; })()}</button>
+        <button className="chip" onClick={() => openSheet({ kind: 'window', sill: sill.id })}>🧭 Окно: {sill.window ? WINDOWS[sill.window].short : 'выбрать'}</button>
       </div>
       {!meter && <p className="muted small center">Точные цифры покажет термогигрометр.</p>}
       <p className="small muted center">{c.heating ? 'Идёт отопление: батареи греют, но сушат воздух.' : 'Отопления нет — температура зависит от улицы.'} Комфорт: 18–26°, влажность 40–60%.</p>

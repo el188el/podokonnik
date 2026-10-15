@@ -97,6 +97,7 @@ export type Sheet =
   | { kind: 'place'; slot: number }
   | { kind: 'pots'; plant?: string }
   | { kind: 'orders' }
+  | { kind: 'todo' }
   | null;
 
 export type Tab = 'sill' | 'shop' | 'friends' | 'herbarium' | 'quests' | 'profile';

@@ -35,6 +35,7 @@ import { PlaceSheet } from './PlaceSheet';
 import { PotsSheet } from './PotsSheet';
 import { OrdersSheet } from './OrdersSheet';
 import { StarterSheet } from './StarterSheet';
+import { TodoSheet } from './TodoSheet';
 
 export function Sheets() {
   const sheet = useStore((s) => s.sheet);
@@ -69,6 +70,7 @@ export function Sheets() {
       {sheet?.kind === 'place' && <PlaceSheet slot={sheet.slot} />}
       {sheet?.kind === 'pots' && <PotsSheet plant={sheet.plant} />}
       {sheet?.kind === 'orders' && <OrdersSheet />}
+      {sheet?.kind === 'todo' && <TodoSheet />}
       {sheet?.kind === 'starter' && <StarterSheet />}
       </Safe>
     </Sheet>
