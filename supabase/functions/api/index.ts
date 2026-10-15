@@ -1,7 +1,8 @@
 // API игры: вход (Telegram или гость), синхронизация сохранения,
 // подарки с глобальной проверкой «одна ссылка — один получатель», входящие награды.
 
-import { verifyInitData, signSession, verifySession } from '../_shared/crypto.ts';
+import { hex, hmac, verifyInitData, signSession, verifySession } from '../_shared/crypto.ts';
+import { observeSync } from '../_shared/anticheat.ts';
 import { db } from '../_shared/db.ts';
 import { BOT_TOKEN, TG_BOT, TG_CHANNEL, appLink, env, secret } from '../_shared/env.ts';
 import { publicView, thirstyCount, VISIT_DAY_LIMIT, VISIT_HOST_LIMIT, VISIT_REWARD, type FriendWater } from '../_shared/game/social.ts';
@@ -25,6 +26,40 @@ const CODE = /^[A-Za-z0-9]{8,32}$/;
 
 type Body = Record<string, unknown>;
 const str = (v: unknown, max = 64) => (typeof v === 'string' ? v.slice(0, max) : '');
+
+// ─────────────────── античит: сеть и лимиты ───────────────────
+const INIT_DATA_MAX_AGE = 86400;      // initData Telegram живёт сутки
+const DEVICE_REG_PER_IP_DAY = 3;      // новых гостевых аккаунтов с одной сети в сутки
+const GIFTS_PER_DAY = 10;             // ссылок-подарков в сутки
+const TRACK_PER_HOUR = 600;           // событий аналитики в час
+const DAY = 86400e3;
+
+/** Хеш IP (сам адрес не храним). */
+async function ipHash(req: Request): Promise<string | null> {
+  const ip = (req.headers.get('x-forwarded-for') ?? '').split(',')[0].trim() || req.headers.get('cf-connecting-ip') || '';
+  return ip ? hex(await hmac(BOT_TOKEN || 'podokonnik', `ip:${ip}`)).slice(0, 32) : null;
+}
+
+/** Новичок (меньше суток) из той же сети, что и другой игрок, — вероятно, второй аккаунт. */
+async function sameNetFresh(fresh: string, other: string, ip: string | null) {
+  const { data } = await db.from('players').select('id, created_at, reg_ip, last_ip').in('id', [fresh, other]);
+  const me = data?.find((x) => x.id === fresh), o = data?.find((x) => x.id === other);
+  if (!me || !o || Date.now() - Date.parse(me.created_at) > DAY) return false;
+  const mine = new Set([ip, me.reg_ip, me.last_ip].filter(Boolean));
+  return [o.reg_ip, o.last_ip].some((x) => x && mine.has(x));
+}
+
+/** Отложенная награда за приглашение: друг из Telegram, дошёл до 2 уровня и играет сутки. */
+async function payReferral(playerId: string) {
+  const { data: me } = await db.from('players').select('name, tg_id, level, created_at, referrer, referral_paid').eq('id', playerId).maybeSingle();
+  if (!me?.referrer || me.referral_paid || !me.tg_id || me.level < 2 || Date.now() - Date.parse(me.created_at) < DAY) return;
+  const { data: upd } = await db.from('players').update({ referral_paid: true }).eq('id', playerId).eq('referral_paid', false).select('id');
+  if (!upd?.length) return;
+  const name = me.name || 'Новый друг';
+  await db.from('inbox').insert({ player_id: me.referrer, kind: 'referral', payload: { name } });
+  const { data: ref } = await db.from('players').select('tg_id').eq('id', me.referrer).maybeSingle();
+  if (ref?.tg_id) await send(ref.tg_id, `👯 <b>${escHtml(name)}</b>, приглашённый тобой, освоился на подоконнике! Тебе +50 🍃`, { text: '🪴 Открыть подоконник', url: appLink() });
+}
 
 async function pendingInbox(playerId: string) {
   const { data } = await db.from('inbox').select('id, kind, payload, created_at').eq('player_id', playerId).is('delivered_at', null).order('id').limit(20);
@@ -62,12 +97,10 @@ async function linkReferrer(playerId: string, referrer: string, newName: string)
   if (!ref) return;
   const { data: upd } = await db.from('players').update({ referrer }).eq('id', playerId).is('referrer', null).select('id');
   if (!upd?.length) return;
-  await db.from('inbox').insert([
-    { player_id: referrer, kind: 'referral', payload: { name: newName } },
-    { player_id: playerId, kind: 'welcome', payload: {} },
-  ]);
+  // +50 пригласившему — позже, в payReferral (античит: фермы аккаунтов)
+  await db.from('inbox').insert({ player_id: playerId, kind: 'welcome', payload: {} });
   if (ref.tg_id) {
-    await send(ref.tg_id, `👯 <b>${escHtml(newName || 'Новый друг')}</b> пришёл(ла) по твоему приглашению! Тебе +50 🍃`, { text: '🪴 Открыть подоконник', url: appLink() });
+    await send(ref.tg_id, `👯 <b>${escHtml(newName || 'Новый друг')}</b> пришёл(ла) по твоему приглашению! Когда освоится (2 уровень), тебе +50 🍃`, { text: '🪴 Открыть подоконник', url: appLink() });
   }
 }
 
@@ -93,7 +126,7 @@ async function discordLogin(code: string): Promise<{ id: string; name: string; a
   }
 }
 
-async function auth(b: Body) {
+async function auth(b: Body, ip: string | null = null) {
   const tz = Number.isFinite(Number(b.tz)) ? Math.max(-720, Math.min(840, Math.round(Number(b.tz)))) : 180;
   let playerId: string;
   let isNew = false;
@@ -122,7 +155,7 @@ async function auth(b: Body) {
       isNew = true;
     }
   } else if (initData) {
-    const v = await verifyInitData(initData, BOT_TOKEN);
+    const v = await verifyInitData(initData, BOT_TOKEN, INIT_DATA_MAX_AGE);
     if (!v) return fail('bad_init_data', 401);
     start = v.startParam ?? start;
     name = [v.user.first_name, v.user.last_name].filter(Boolean).join(' ').slice(0, 48);
@@ -146,6 +179,11 @@ async function auth(b: Body) {
       playerId = ex.id;
       await db.from('players').update({ tz_offset: tz, last_seen: new Date().toISOString(), platform }).eq('id', playerId);
     } else {
+      if (ip) {
+        const { count } = await db.from('players').select('id', { count: 'exact', head: true })
+          .eq('reg_ip', ip).not('device_id', 'is', null).gt('created_at', new Date(Date.now() - DAY).toISOString());
+        if ((count ?? 0) >= DEVICE_REG_PER_IP_DAY) return fail('limit', 429);
+      }
       const { data, error } = await db.from('players').insert({ device_id: deviceId, name, tz_offset: tz, platform }).select('id').single();
       if (error) return fail('db', 500);
       playerId = data.id;
@@ -159,6 +197,7 @@ async function auth(b: Body) {
     await befriend(playerId, start.slice(1), name);
   }
 
+  if (ip) await db.from('players').update(isNew ? { reg_ip: ip, last_ip: ip } : { last_ip: ip }).eq('id', playerId);
   if (await isBanned(playerId)) return fail('banned', 403);
 
   return json({
@@ -194,10 +233,13 @@ async function sync(playerId: string, b: Body) {
     return json({ version: 1, serverTime: Date.now(), inbox: await pendingInbox(playerId) });
   }
   if (cur.version !== version) return json({ conflict: true, save: cur, serverTime: Date.now(), inbox: await pendingInbox(playerId) });
+  const { data: meta } = await db.from('saves').select('updated_at').eq('player_id', playerId).maybeSingle();
   const { data } = await db.from('saves')
     .update({ state, version: version + 1, device, updated_at: new Date().toISOString() })
     .eq('player_id', playerId).eq('version', version).select('version');
   if (!data?.length) return json({ conflict: true, save: await loadSave(playerId), serverTime: Date.now() });
+  await observeSync(playerId, { ...cur, updated_at: meta?.updated_at }, state, version + 1);
+  if (level >= 2) await payReferral(playerId).catch((e) => console.warn('referral', e));
   return json({ version: version + 1, serverTime: Date.now(), inbox: await pendingInbox(playerId), plusUntil: await plusUntil(playerId), live: await liveList() });
 }
 
@@ -205,11 +247,14 @@ async function giftCreate(playerId: string, b: Body) {
   const code = str(b.code, 32);
   const spId = str(b.sp, 32);
   if (!CODE.test(code) || species(spId).id !== spId) return fail('bad_gift');
+  const { count } = await db.from('gifts').select('code', { count: 'exact', head: true })
+    .eq('sender', playerId).gt('created_at', new Date(Date.now() - DAY).toISOString());
+  if ((count ?? 0) >= GIFTS_PER_DAY) return fail('limit', 429);
   await db.from('gifts').upsert({ code, sender: playerId, sp: spId, from_name: str(b.from, 24), note: Number(b.note) || 0 }, { onConflict: 'code', ignoreDuplicates: true });
   return json({ ok: true });
 }
 
-async function giftClaim(playerId: string, b: Body) {
+async function giftClaim(playerId: string, b: Body, ip: string | null = null) {
   const code = str(b.code, 32);
   const spId = str(b.sp, 32);
   if (!CODE.test(code) || species(spId).id !== spId) return fail('bad_gift');
@@ -219,12 +264,14 @@ async function giftClaim(playerId: string, b: Body) {
   if (r.status === 'ok' && r.sender) {
     const { data: me } = await db.from('players').select('name, created_at, referrer').eq('id', playerId).single();
     const name = me?.name || 'Друг';
-    await db.from('inbox').insert({ player_id: r.sender, kind: 'gift_claimed', payload: { sp: r.sp, name } });
+    // второй аккаунт из той же сети: черенок получает, но без +10 отправителю и без реферала
+    const twin = await sameNetFresh(playerId, r.sender, ip).catch(() => false);
+    if (!twin) await db.from('inbox').insert({ player_id: r.sender, kind: 'gift_claimed', payload: { sp: r.sp, name } });
     // подарок от друга привёл нового игрока — это тоже приглашение
-    if (me && !me.referrer && Date.now() - Date.parse(me.created_at) < 86400e3) await linkReferrer(playerId, r.sender, name);
+    if (!twin && me && !me.referrer && Date.now() - Date.parse(me.created_at) < 86400e3) await linkReferrer(playerId, r.sender, name);
     await befriend(playerId, r.sender, name, true);
     const { data: snd } = await db.from('players').select('tg_id').eq('id', r.sender).single();
-    if (snd?.tg_id) await send(snd.tg_id, `🎁 <b>${escHtml(name)}</b> забрал(а) твой черенок: ${species(r.sp).name.toLowerCase()} уже в стакане с водой! +10 🍃`, { text: '🪴 Открыть подоконник', url: appLink() });
+    if (!twin && snd?.tg_id) await send(snd.tg_id, `🎁 <b>${escHtml(name)}</b> забрал(а) твой черенок: ${species(r.sp).name.toLowerCase()} уже в стакане с водой! +10 🍃`, { text: '🪴 Открыть подоконник', url: appLink() });
   }
   return json({ status: r.status });
 }
@@ -384,6 +431,11 @@ async function visitWater(playerId: string, b: Body) {
 async function trackEvents(playerId: string, b: Body) {
   const list = Array.isArray(b.events) ? b.events.slice(0, 50) : [];
   const now = Date.now();
+  if (list.length) {
+    const { count } = await db.from('analytics_events').select('id', { count: 'exact', head: true })
+      .eq('player_id', playerId).gt('created_at', new Date(now - 3600e3).toISOString());
+    if ((count ?? 0) >= TRACK_PER_HOUR) return json({ ok: true, n: 0 });
+  }
   const rows = list
     .filter((e): e is { name: string; props?: Record<string, unknown>; at?: number } => !!e && typeof (e as { name?: unknown }).name === 'string')
     .filter((e) => /^[a-z_]{2,40}$/.test(e.name))
@@ -817,7 +869,7 @@ Deno.serve(async (req) => {
     if (route === '/time') return json({ serverTime: Date.now() });
     if (req.method !== 'POST') return fail('method', 405);
     const body = (await req.json().catch(() => ({}))) as Body;
-    if (route === '/auth') return await auth(body);
+    if (route === '/auth') return await auth(body, await ipHash(req));
     if (route === '/login/poll') return await loginPoll(body);
 
     const token = req.headers.get('authorization')?.replace(/^Bearer\s+/i, '');
@@ -827,7 +879,7 @@ Deno.serve(async (req) => {
     switch (route) {
       case '/sync': return await sync(playerId, body);
       case '/gift/create': return await giftCreate(playerId, body);
-      case '/gift/claim': return await giftClaim(playerId, body);
+      case '/gift/claim': return await giftClaim(playerId, body, await ipHash(req));
       case '/inbox/ack': return await inboxAck(playerId, body);
       case '/settings': return await settings(playerId, body);
       case '/promo/redeem': return await promoRedeem(playerId, body);
