@@ -56,6 +56,8 @@ jobs:
           TG_CHANNEL: ${{ vars.VITE_TG_CHANNEL }}
           DISCORD_CLIENT_ID: ${{ vars.VITE_DISCORD_CLIENT_ID }}
           DISCORD_CLIENT_SECRET: ${{ secrets.DISCORD_CLIENT_SECRET }}
+          SUPPORT_SECRET: ${{ secrets.SUPPORT_SECRET }}
+          SUPPORT_HOOK: ${{ secrets.SUPPORT_HOOK }}
         run: |
           set -- TELEGRAM_BOT_TOKEN="$BOT_TOKEN" SITE_URL="$SITE_URL"
           [ -n "$TG_BOT" ] && set -- "$@" TG_BOT="$TG_BOT"
@@ -64,6 +66,8 @@ jobs:
           [ -n "$TG_CHANNEL" ] && set -- "$@" TG_CHANNEL="$TG_CHANNEL"
           [ -n "$DISCORD_CLIENT_ID" ] && set -- "$@" DISCORD_CLIENT_ID="$DISCORD_CLIENT_ID"
           [ -n "$DISCORD_CLIENT_SECRET" ] && set -- "$@" DISCORD_CLIENT_SECRET="$DISCORD_CLIENT_SECRET"
+          [ -n "$SUPPORT_SECRET" ] && set -- "$@" SUPPORT_SECRET="$SUPPORT_SECRET"
+          [ -n "$SUPPORT_HOOK" ] && set -- "$@" SUPPORT_HOOK="$SUPPORT_HOOK"
           supabase secrets set --project-ref "$REF" "$@"
 
       - name: Функции
@@ -78,7 +82,7 @@ jobs:
           curl -sf "$API/setWebhook" -H 'Content-Type: application/json' \
             -d "{\"url\":\"https://$REF.supabase.co/functions/v1/bot\",\"secret_token\":\"$SECRET\",\"allowed_updates\":[\"message\",\"pre_checkout_query\",\"callback_query\",\"my_chat_member\"]}" > /dev/null
           curl -sf "$API/setMyCommands" -H 'Content-Type: application/json' \
-            -d '{"commands":[{"command":"start","description":"Открыть подоконник"},{"command":"notify","description":"Вкл/выкл напоминания"},{"command":"help","description":"Как играть"},{"command":"paysupport","description":"Помощь с покупками"},{"command":"terms","description":"Условия покупок"},{"command":"plant","description":"Растение для группового чата"}]}' > /dev/null
+            -d '{"commands":[{"command":"start","description":"Открыть подоконник"},{"command":"notify","description":"Вкл/выкл напоминания"},{"command":"help","description":"Как играть"},{"command":"support","description":"Написать в поддержку"},{"command":"paysupport","description":"Помощь с покупками"},{"command":"terms","description":"Условия покупок"},{"command":"plant","description":"Растение для группового чата"}]}' > /dev/null
           curl -sf "$API/setChatMenuButton" -H 'Content-Type: application/json' \
             -d "{\"menu_button\":{\"type\":\"web_app\",\"text\":\"🪴 Играть\",\"web_app\":{\"url\":\"$SITE_URL\"}}}" > /dev/null
           echo "Бот подключён"
