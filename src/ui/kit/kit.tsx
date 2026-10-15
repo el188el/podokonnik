@@ -1,5 +1,5 @@
-import { AnimatePresence, motion } from 'framer-motion';
-import { Component, useEffect, type MouseEvent, type PointerEvent, type ReactNode } from 'react';
+import { AnimatePresence, animate, motion, useMotionValue, type MotionValue } from 'framer-motion';
+import { Component, useEffect, useRef, type MouseEvent, type PointerEvent, type ReactNode } from 'react';
 import { platform } from '../../platform';
 
 // Окно открывается по отпусканию пальца, а следом браузер шлёт «клик» —
@@ -13,6 +13,56 @@ function guardedClose(e: MouseEvent, onClose: () => void) {
   onClose();
 }
 
+/**
+ * Свайп вниз закрывает окно — с любого места, если окно прокручено до самого верха.
+ * Слушаем touch-события напрямую (не pointer): браузер не отменяет их, когда начинает скролл.
+ */
+function useSwipeClose(open: boolean, onClose: () => void): [React.RefObject<HTMLDivElement | null>, MotionValue<number>] {
+  const ref = useRef<HTMLDivElement>(null);
+  const y = useMotionValue(0);
+  useEffect(() => {
+    const el = ref.current;
+    if (!open || !el) return;
+    y.set(0);
+    let y0 = 0, x0 = 0, t0 = 0, decided = false, active = false;
+    const skip = (t: EventTarget | null) => t instanceof Element && !!t.closest('input, textarea, select, .no-swipe, .stash, .pots, .size-pick, .partners');
+    const start = (e: TouchEvent) => {
+      if (e.touches.length !== 1 || skip(e.target)) { decided = true; active = false; return; }
+      y0 = e.touches[0].clientY; x0 = e.touches[0].clientX; t0 = Date.now(); decided = false; active = false;
+    };
+    const move = (e: TouchEvent) => {
+      const dy = e.touches[0].clientY - y0, dx = e.touches[0].clientX - x0;
+      if (!decided) {
+        if (Math.abs(dy) < 8 && Math.abs(dx) < 8) return;
+        decided = true;
+        active = dy > 0 && Math.abs(dy) > Math.abs(dx) * 1.2 && el.scrollTop <= 0;
+      }
+      if (!active) return;
+      e.preventDefault();
+      y.set(Math.max(0, dy));
+    };
+    const end = () => {
+      if (!active) return;
+      active = false;
+      const dy = y.get();
+      const speed = dy / Math.max(1, Date.now() - t0);
+      if (dy > 110 || (dy > 40 && speed > 0.6)) onClose();
+      else animate(y, 0, { type: 'spring', damping: 30, stiffness: 400 });
+    };
+    el.addEventListener('touchstart', start, { passive: true });
+    el.addEventListener('touchmove', move, { passive: false });
+    el.addEventListener('touchend', end);
+    el.addEventListener('touchcancel', end);
+    return () => {
+      el.removeEventListener('touchstart', start);
+      el.removeEventListener('touchmove', move);
+      el.removeEventListener('touchend', end);
+      el.removeEventListener('touchcancel', end);
+    };
+  }, [open, onClose, y]);
+  return [ref, y];
+}
+
 export function Sheet({ open, onClose, children, wide }: { open: boolean; onClose: () => void; children: ReactNode; wide?: boolean }) {
   useEffect(() => {
     if (!open) return;
@@ -24,23 +74,28 @@ export function Sheet({ open, onClose, children, wide }: { open: boolean; onClos
       {open && (
         <motion.div className="backdrop" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onPointerDown={backdropDown} onClick={(e) => guardedClose(e, onClose)}>
           <motion.div
-            className={'sheet' + (wide ? ' wide' : '')}
+            className="sheet-slide"
             initial={{ y: '100%' }}
             animate={{ y: 0 }}
             exit={{ y: '100%' }}
             transition={{ type: 'spring', damping: 30, stiffness: 320 }}
-            onClick={(e) => e.stopPropagation()}
-            drag="y"
-            dragConstraints={{ top: 0, bottom: 0 }}
-            dragElastic={{ top: 0, bottom: 0.6 }}
-            dragListener={false}
+            onClick={(e) => { if (e.target === e.currentTarget) guardedClose(e, onClose); }}
           >
-            <div className="grip" />
-            {children}
+            <SheetBody open={open} onClose={onClose} wide={wide}>{children}</SheetBody>
           </motion.div>
         </motion.div>
       )}
     </AnimatePresence>
+  );
+}
+
+function SheetBody({ open, onClose, wide, children }: { open: boolean; onClose: () => void; wide?: boolean; children: ReactNode }) {
+  const [ref, y] = useSwipeClose(open, onClose);
+  return (
+    <motion.div ref={ref} className={'sheet' + (wide ? ' wide' : '')} style={{ y }} onClick={(e) => e.stopPropagation()}>
+      <div className="grip" />
+      {children}
+    </motion.div>
   );
 }
 
