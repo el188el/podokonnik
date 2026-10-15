@@ -259,6 +259,7 @@ export interface GameState {
   contest?: { week: string; entered: boolean; votes: number }; // награды конкурса за неделю
   weekly?: { week: string; list: WeeklyQuest[]; chest: boolean; days: string[] }; // большие задания недели
   inboxSeen?: number[]; // обработанные награды с сервера
+  liveClaimed?: number[]; // забранные черенки дня из ивентов панели
   plusUntil?: number;   // «Садовник+» активен до
   events?: Record<string, EventProgress>; // прогресс ивентов по сезонам (autumn-2026)
   twins?: Twin[];       // двойники настоящих растений

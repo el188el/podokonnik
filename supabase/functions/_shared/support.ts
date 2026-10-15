@@ -1,10 +1,11 @@
 // Поддержка: сообщения игроков боту превращаются в обращения (support_tickets / support_messages).
 // О новом сообщении бот сообщает панели поддержки по адресу SUPPORT_HOOK (секрет функции),
 // а панель отвечает игроку через этот же бот — запросом с заголовком X-Support-Secret.
+// Так же панель делает рассылки: бот игры отправляет пачку сообщений с учётом лимитов Telegram.
 
 import { safeEqual } from './crypto.ts';
 import { db } from './db.ts';
-import { BOT_TOKEN, env } from './env.ts';
+import { BOT_TOKEN, appLink, env } from './env.ts';
 import { json } from './http.ts';
 import { tg } from './tg.ts';
 
@@ -44,12 +45,62 @@ export async function supportIn(from: SupportFrom, text: string, photo?: string,
   return fresh;
 }
 
+const BROADCAST_BATCH = 300; // получателей за один запрос панели
+const PER_SECOND = 25;        // лимит Telegram — около 30 сообщений в секунду
+
+type Delivery = 'sent' | 'blocked' | 'failed';
+
+/** Одно сообщение рассылки. 403 (бот заблокирован, аккаунт удалён) и «chat not found» — blocked. */
+async function deliver(chatId: number, b: { text: string; photo?: string; button?: boolean }, retry = true): Promise<Delivery> {
+  const markup = b.button !== false && appLink() ? { reply_markup: { inline_keyboard: [[{ text: '🪴 Открыть подоконник', url: appLink() }]] } } : {};
+  const body = b.photo
+    ? { chat_id: chatId, photo: b.photo, caption: b.text.slice(0, 1024), ...markup }
+    : { chat_id: chatId, text: b.text, link_preview_options: { is_disabled: true }, ...markup };
+  try {
+    const r = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/${b.photo ? 'sendPhoto' : 'sendMessage'}`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body),
+    });
+    const j = await r.json();
+    if (j.ok) return 'sent';
+    if (j.error_code === 429 && retry) {
+      await new Promise((ok) => setTimeout(ok, Math.min(30, Number(j.parameters?.retry_after) || 1) * 1000));
+      return deliver(chatId, b, false);
+    }
+    if (j.error_code === 403 || /chat not found|user is deactivated/i.test(String(j.description))) return 'blocked';
+    console.warn('broadcast', j.description);
+    return 'failed';
+  } catch {
+    return 'failed';
+  }
+}
+
+/** Рассылка пачкой: не больше PER_SECOND сообщений в секунду. */
+export async function broadcast(chatIds: number[], b: { text: string; photo?: string; button?: boolean }) {
+  const out: { chat_id: number; status: Delivery }[] = [];
+  for (let i = 0; i < chatIds.length; i += PER_SECOND) {
+    const t0 = Date.now();
+    const part = chatIds.slice(i, i + PER_SECOND);
+    const res = await Promise.all(part.map((id) => deliver(id, b)));
+    part.forEach((id, k) => out.push({ chat_id: id, status: res[k] }));
+    const wait = 1100 - (Date.now() - t0);
+    if (wait > 0 && i + PER_SECOND < chatIds.length) await new Promise((ok) => setTimeout(ok, wait));
+  }
+  return out;
+}
+
 /** Запрос панели поддержки к боту: ответить игроку или показать фото из обращения. */
 export async function supportApi(req: Request): Promise<Response | null> {
   const got = req.headers.get('x-support-secret');
   if (got === null) return null;
   if (!SUPPORT_SECRET || !safeEqual(got, SUPPORT_SECRET)) return new Response('forbidden', { status: 403 });
-  const b = await req.json().catch(() => ({})) as { action?: string; ticket?: number; text?: string; file_id?: string };
+  const b = await req.json().catch(() => ({})) as { action?: string; ticket?: number; text?: string; file_id?: string; chat_ids?: unknown[]; photo?: string; button?: boolean };
+  if (b.action === 'broadcast') {
+    const ids = (Array.isArray(b.chat_ids) ? b.chat_ids : []).map(Number).filter((x) => Number.isSafeInteger(x) && x > 0).slice(0, BROADCAST_BATCH);
+    const text = String(b.text ?? '').trim().slice(0, 4000);
+    const photo = b.photo ? String(b.photo).slice(0, 512) : undefined;
+    if (!ids.length || !text) return json({ error: 'bad_args' }, 400);
+    return json({ results: await broadcast(ids, { text, photo, button: b.button !== false }) });
+  }
   if (b.action === 'send') {
     const { data: t } = await db.from('support_tickets').select('id, tg_id').eq('id', Number(b.ticket)).maybeSingle();
     const text = String(b.text ?? '').trim().slice(0, 4000);

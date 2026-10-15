@@ -28,6 +28,7 @@ import { QUEST_BONUS, WEEKLY_CHEST, dayKey, bumpQuest, bumpWeekly, rollDay, roll
 import { ITEM_BY_ID, ITEMS, placeOf, potIdOf } from './shop';
 import { advance, badLight, bestZone, canCut, ctxFor, hasDecorOn, pour, WATER_REWARD_MS, WET_FULL, fmt, needSize, POT_SIZE_ITEM, POT_SIZE_NAME, potSizeOf, tight, hasLamp, neighborsOf, stageMarks, type SimEvent } from './sim';
 import { activeEvent, EVENT_TOKENS, eventSeason, tierOf, type GameEvent, type PassReward } from './events';
+import { leavesMul, liveCutting, livePrice, setLive } from './liveops';
 import { FORM_BY_ID, FORMS, PRODUCT_BY_ID, RARE_DROP, formsOf } from './products';
 import { replayFriendWaters, type FriendWater } from './social';
 import { SPECIES, sp } from './species';
@@ -121,10 +122,14 @@ interface Store {
   coopOn: number | null;        // открыт общий подоконник
   weatherState?: 'loading' | 'error'; // как идёт загрузка погоды
   arrange: boolean;             // режим перестановки декора
+  banned?: boolean;             // аккаунт заблокирован
+  live?: number;                // счётчик обновлений ивентов из панели (для перерисовки)
 }
 
 /** Инструмент в руке: что произойдёт по тапу на растение. */
 export type Tool = 'water' | 'mist' | 'feed' | 'cut' | 'look';
+
+api.onServer({ live: (x) => applyLive(x), banned: () => useStore.setState({ banned: true }) });
 
 const initial = newState(Date.now());
 export const useStore = create<Store>(() => ({
@@ -511,8 +516,9 @@ function applyInbox(items: api.InboxItem[]) {
       } else if (it.kind === 'purchase') {
         const pr = PRODUCT_BY_ID[String(it.payload.product)];
         if (pr?.kind === 'leaves') {
-          g.leaves += Number(it.payload.leaves) || pr.leaves || 0;
-          toast(`🍃 +${pr.leaves} листиков. Спасибо за поддержку!`);
+          const n = Number(it.payload.leaves) || pr.leaves || 0;
+          g.leaves += n;
+          toast(it.payload.note ? `🎁 ${String(it.payload.note)}: +${n} 🍃` : `🍃 +${n} листиков. Спасибо за поддержку!`);
         } else if (pr?.kind === 'form') {
           const f = FORM_BY_ID[String(it.payload.form)];
           if (f) {
@@ -523,7 +529,7 @@ function applyInbox(items: api.InboxItem[]) {
           const e = activeEvent(now());
           if (e) {
             eventProgress(g, e, now()).premium = true;
-            toast(`${e.token} Сезонный пропуск «${e.title}» открыт — забирай награды!`);
+            toast(it.payload.note ? `🎁 ${String(it.payload.note)}: сезонный пропуск «${e.title}» открыт!` : `${e.token} Сезонный пропуск «${e.title}» открыт — забирай награды!`);
           }
         } else if (pr?.kind === 'plus') {
           g.plusUntil = Math.max(g.plusUntil ?? 0, Number(it.payload.plusUntil) || 0);
@@ -567,6 +573,8 @@ function applyInbox(items: api.InboxItem[]) {
       } else if (it.kind === 'coop_join') {
         toast(`💞 ${name} присоединил(ась) к подоконнику «${String(it.payload.sill ?? '')}»`);
         setTimeout(loadCoops, 300);
+      } else if (it.kind === 'admin_gift') {
+        adminGift(g, it.payload);
       } else if (it.kind === 'tester') {
         grantTester(g, now());
       } else if (it.kind === 'water_reward') {
@@ -580,6 +588,87 @@ function applyInbox(items: api.InboxItem[]) {
     g.inboxSeen = [...seen].slice(-100);
   });
   api.inboxAck(ids);
+}
+
+/** Подарок из панели или по промокоду: листики, пропуск, «Садовник+», черенок, предмет — с подписью. */
+function adminGift(g: GameState, x: Record<string, unknown>) {
+  const got: string[] = [];
+  const leaves = Math.max(0, Math.min(100000, Math.round(Number(x.leaves) || 0)));
+  if (leaves) { g.leaves += leaves; got.push(`+${leaves} 🍃`); }
+  if (x.pass) {
+    const e = activeEvent(now());
+    if (e) { eventProgress(g, e, now()).premium = true; got.push(`пропуск «${e.title}»`); }
+  }
+  const plusUntil = Number(x.plusUntil) || 0;
+  if (plusUntil > Date.now()) {
+    g.plusUntil = Math.max(g.plusUntil ?? 0, plusUntil);
+    g.owned.pot_gold = 1;
+    got.push(`«Садовник+» на ${Number(x.plusDays) || Math.ceil((plusUntil - Date.now()) / D)} дн.`);
+  }
+  const f = x.form ? FORM_BY_ID[String(x.form)] : undefined;
+  const spId = !f && x.sp ? String(x.sp) : '';
+  if (f) {
+    g.cuttings.push({ id: makeCode(8), sp: f.sp, form: f.id, at: Date.now() });
+    discover(g, f.sp);
+    got.push(`черенок «${f.name}»`);
+  } else if (spId && sp(spId).id === spId) {
+    g.cuttings.push({ id: makeCode(8), sp: spId, at: Date.now() });
+    discover(g, spId);
+    got.push(`черенок ${sp(spId).gen}`);
+  }
+  const item = x.item ? ITEM_BY_ID[String(x.item)] : undefined;
+  if (item) {
+    const n = Math.max(1, Math.min(99, Math.round(Number(x.count) || 1)));
+    const id = item.gives ?? item.id;
+    g.owned[id] = (g.owned[id] ?? 0) + (item.consumable || item.gives ? n * (item.count ?? 1) : 1);
+    got.push(`${item.icon} ${item.name}${n > 1 ? ` ×${n}` : ''}`);
+  }
+  const note = String(x.note ?? '').slice(0, 80) || 'Подарок';
+  toast(`🎁 ${note}${got.length ? ': ' + got.join(', ') : ''}`);
+  haptic('success');
+}
+
+/** Ивенты из панели: обновить список и перерисовать (баннер, цены). */
+function applyLive(raw: unknown) {
+  if (raw === undefined) return;
+  setLive(raw);
+  useStore.setState((s) => ({ live: (s.live ?? 0) + 1 }));
+}
+
+/** Забрать редкий черенок дня из ивента. */
+export function claimLiveCutting() {
+  mut((g, t) => {
+    const e = liveCutting(t, g.liveClaimed);
+    const f = e?.form ? FORM_BY_ID[e.form] : undefined;
+    if (!e || !f) return;
+    if (g.cuttings.length >= MAX_CUTTINGS) { toast('Слишком много черенков в запасе'); return; }
+    g.liveClaimed = [...(g.liveClaimed ?? []), e.id].slice(-50);
+    g.cuttings.push({ id: makeCode(8), sp: f.sp, form: f.id, at: t });
+    discover(g, f.sp);
+    track('live_cutting', { form: f.id });
+    haptic('success');
+    toast(`✨ Черенок «${f.name}» в запасе — поставь в воду!`);
+  });
+}
+
+/** Промокод: сервер проверяет и кладёт награду во входящие. */
+export async function redeemPromo(code: string): Promise<string> {
+  if (!api.loggedIn()) return 'Промокоды работают, когда есть интернет';
+  const r = await api.promoRedeem(code).catch(() => null);
+  if (!r) return 'Не получилось проверить код. Попробуй ещё раз';
+  if (r.status === 'ok') {
+    applyInbox(r.inbox ?? []);
+    track('promo', { code: code.toUpperCase() });
+    return '';
+  }
+  return ({ not_found: 'Такого кода нет', expired: 'Срок действия кода закончился', used_up: 'Код уже закончился', already: 'Ты уже активировал(а) этот код', bad_code: 'Проверь, правильно ли введён код' } as Record<string, string>)[r.status] ?? 'Код не подошёл';
+}
+
+/** Сообщение в поддержку из игры: становится обращением, ответ придёт от бота. */
+export async function sendSupport(text: string): Promise<boolean> {
+  const r = await api.supportSend(text).catch(() => null);
+  if (r) track('support', {});
+  return !!r;
 }
 
 function syncPlus() {
@@ -687,7 +776,7 @@ export async function boot() {
   rollWeekly(g, t);
   catchUpPerks(g);
   rollOrders(g, t);
-  if (fresh && g.streak.claimedDay !== g.streak.day && g.plants.length) popup({ kind: 'streak', count: g.streak.count, reward: streakReward(g.streak.count) * (isPlus(g) ? 2 : 1) });
+  if (fresh && g.streak.claimedDay !== g.streak.day && g.plants.length) popup({ kind: 'streak', count: g.streak.count, reward: streakReward(g.streak.count) * (isPlus(g) ? 2 : 1) * leavesMul(now()) });
   after(g);
   scheduleSave();
   if (server) {
@@ -695,6 +784,8 @@ export async function boot() {
     applyInbox(server.inbox);
     syncPlus();
     loadCoops();
+    // ивенты из панели могут начаться, пока игра открыта
+    setInterval(() => { if (document.visibilityState === 'visible') api.liveRefresh(); }, 10 * 60e3);
   }
 }
 
@@ -728,7 +819,7 @@ export function tick() {
   rollWeekly(g, t);
   if (rollOrders(g, t) && (g.orders?.list.length ?? 0) > 0 && document.visibilityState === 'visible') toast('📋 Соседи оставили записку на доске объявлений');
   if (rollDay(g, t, isPlus(g, t)) && g.plants.length && g.streak.claimedDay !== g.streak.day) {
-    popup({ kind: 'streak', count: g.streak.count, reward: streakReward(g.streak.count) * (isPlus(g) ? 2 : 1) });
+    popup({ kind: 'streak', count: g.streak.count, reward: streakReward(g.streak.count) * (isPlus(g) ? 2 : 1) * leavesMul(now()) });
   }
   after(g);
   set({ game: g });
@@ -1184,8 +1275,9 @@ export function buyItem(id: string) {
     if (it.months && !it.months.includes(new Date(t).getMonth() + 1)) { toast('Этот товар бывает только в сезон'); return false; }
     if (!it.consumable && (g.owned[id] ?? 0) > 0) { toast('Уже есть 🙂'); return false; }
     if (it.needs && !(g.owned[it.needs] ?? 0)) { toast(`Сначала — ${ITEM_BY_ID[it.needs]?.name ?? 'предыдущий товар'}`); return false; }
-    if (g.leaves < it.price) { toast('Не хватает листиков 🍃'); haptic('warning'); return false; }
-    g.leaves -= it.price;
+    const price = livePrice(it.price, t);
+    if (g.leaves < price) { toast('Не хватает листиков 🍃'); haptic('warning'); return false; }
+    g.leaves -= price;
     const ids = it.pack ?? [id];
     if (it.gives) g.owned[it.gives] = (g.owned[it.gives] ?? 0) + (it.count ?? 1);
     else for (const x of ids) g.owned[x] = (g.owned[x] ?? 0) + 1;
@@ -1210,9 +1302,10 @@ export function buySpecies(spId: string) {
   return mut((g, t) => {
     const s = sp(spId);
     if (g.level < s.unlockLevel) { toast(`Откроется на ${s.unlockLevel} уровне`); return false; }
-    if (g.leaves < s.price) { toast('Не хватает листиков 🍃'); haptic('warning'); return false; }
+    const price = livePrice(s.price, t);
+    if (g.leaves < price) { toast('Не хватает листиков 🍃'); haptic('warning'); return false; }
     if (g.cuttings.length >= MAX_CUTTINGS) { toast('Слишком много черенков в запасе'); return false; }
-    g.leaves -= s.price;
+    g.leaves -= price;
     g.cuttings.push({ id: makeCode(8), sp: spId, at: t });
     g.stats.bought += 1;
     discover(g, spId);
@@ -1296,7 +1389,7 @@ export function claimStreak() {
   mut((g) => {
     if (g.streak.claimedDay === g.streak.day) return;
     g.streak.claimedDay = g.streak.day;
-    const r = streakReward(g.streak.count) * (isPlus(g) ? 2 : 1);
+    const r = streakReward(g.streak.count) * (isPlus(g) ? 2 : 1) * leavesMul(now());
     g.leaves += r;
     if (g.streak.count % 7 === 0) g.owned.feed = (g.owned.feed ?? 0) + 2;
   });
@@ -1307,7 +1400,7 @@ export function claimQuest(id: string) {
     const q = g.quests.list.find((x) => x.id === id);
     if (!q || q.claimed || q.progress < q.target) return;
     q.claimed = true;
-    g.leaves += q.reward * (isPlus(g) ? 2 : 1);
+    g.leaves += q.reward * (isPlus(g) ? 2 : 1) * leavesMul(now());
     g.stats.questsDone += 1;
     addXp(g, XP.quest);
     eventToken(g, 'quest', now());
@@ -1319,10 +1412,10 @@ export function claimQuestBonus() {
   mut((g) => {
     if (g.quests.bonusClaimed || !g.quests.list.every((q) => q.claimed)) return;
     g.quests.bonusClaimed = true;
-    g.leaves += QUEST_BONUS * (isPlus(g) ? 2 : 1);
+    g.leaves += QUEST_BONUS * (isPlus(g) ? 2 : 1) * leavesMul(now());
     g.owned.feed = (g.owned.feed ?? 0) + 1;
     haptic('success');
-    toast(`Все задания дня! +${QUEST_BONUS} 🍃 и подкормка 🧪`);
+    toast(`Все задания дня! +${QUEST_BONUS * (isPlus(g) ? 2 : 1) * leavesMul(now())} 🍃 и подкормка 🧪`);
   });
 }
 
@@ -1331,11 +1424,11 @@ export function claimWeekly(id: string) {
     const q = g.weekly?.list.find((x) => x.id === id);
     if (!q || q.claimed || q.progress < q.target) return;
     q.claimed = true;
-    g.leaves += q.reward * (isPlus(g) ? 2 : 1);
+    g.leaves += q.reward * (isPlus(g) ? 2 : 1) * leavesMul(now());
     addXp(g, XP.quest * 3);
     track('weekly_claim', { kind: q.kind });
     haptic('success');
-    toast(`🏆 +${q.reward * (isPlus(g) ? 2 : 1)} 🍃`);
+    toast(`🏆 +${q.reward * (isPlus(g) ? 2 : 1) * leavesMul(now())} 🍃`);
   });
 }
 

@@ -14,6 +14,7 @@ import { activeEvent } from '../_shared/game/events.ts';
 import { FORM_BY_ID } from '../_shared/game/products.ts';
 import { hueOf } from '../_shared/game/breeding.ts';
 import { escHtml, send } from '../_shared/tg.ts';
+import { supportIn } from '../_shared/support.ts';
 import { COOP_MAX_MEMBERS, COOP_MAX_PER_PLAYER, cleanAction, coopAct, coopAdvance, newCoop, type CoopState } from '../_shared/game/coop.ts';
 import type { WindowSide } from '../_shared/game/types.ts';
 import { CONTEST_PRIZES, CONTEST_VOTES, contestShot, prevWeekKey, themeOf, weekEndsAt, weekKey } from '../_shared/game/contest.ts';
@@ -28,6 +29,20 @@ const str = (v: unknown, max = 64) => (typeof v === 'string' ? v.slice(0, max) :
 async function pendingInbox(playerId: string) {
   const { data } = await db.from('inbox').select('id, kind, payload, created_at').eq('player_id', playerId).is('delivered_at', null).order('id').limit(20);
   return data ?? [];
+}
+
+/** Ивенты-модификаторы из панели: идущие и те, что начнутся в ближайшие двое суток. */
+async function liveList() {
+  const now = new Date();
+  const { data } = await db.from('live_events').select('id, kind, title, params, starts_at, ends_at')
+    .eq('disabled', false).gt('ends_at', now.toISOString()).lt('starts_at', new Date(now.getTime() + 2 * 86400e3).toISOString())
+    .order('starts_at').limit(20);
+  return (data ?? []).map((e) => ({ ...(e.params ?? {}), id: e.id, kind: e.kind, title: e.title, starts: Date.parse(e.starts_at), ends: Date.parse(e.ends_at) }));
+}
+
+async function isBanned(playerId: string) {
+  const { data } = await db.from('bans').select('player_id').eq('player_id', playerId).maybeSingle();
+  return !!data;
 }
 
 async function plusUntil(playerId: string) {
@@ -144,8 +159,11 @@ async function auth(b: Body) {
     await befriend(playerId, start.slice(1), name);
   }
 
+  if (await isBanned(playerId)) return fail('banned', 403);
+
   return json({
     token: await signSession(playerId, await secret('session')),
+    live: await liveList(),
     playerId,
     linked: await linkInfo(playerId),
     serverTime: Date.now(),
@@ -180,7 +198,7 @@ async function sync(playerId: string, b: Body) {
     .update({ state, version: version + 1, device, updated_at: new Date().toISOString() })
     .eq('player_id', playerId).eq('version', version).select('version');
   if (!data?.length) return json({ conflict: true, save: await loadSave(playerId), serverTime: Date.now() });
-  return json({ version: version + 1, serverTime: Date.now(), inbox: await pendingInbox(playerId), plusUntil: await plusUntil(playerId) });
+  return json({ version: version + 1, serverTime: Date.now(), inbox: await pendingInbox(playerId), plusUntil: await plusUntil(playerId), live: await liveList() });
 }
 
 async function giftCreate(playerId: string, b: Body) {
@@ -214,6 +232,33 @@ async function giftClaim(playerId: string, b: Body) {
 async function inboxAck(playerId: string, b: Body) {
   const ids = Array.isArray(b.ids) ? b.ids.map(Number).filter(Number.isFinite).slice(0, 50) : [];
   if (ids.length) await db.from('inbox').update({ delivered_at: new Date().toISOString() }).eq('player_id', playerId).in('id', ids);
+  return json({ ok: true });
+}
+
+/** Промокод из панели: проверка и выдача — одной транзакцией в базе (redeem_promo). */
+async function promoRedeem(playerId: string, b: Body) {
+  const code = str(b.code, 40).trim().toUpperCase();
+  if (!/^[A-Z0-9_-]{3,32}$/.test(code)) return json({ status: 'bad_code' });
+  const { count } = await db.from('promo_redemptions').select('code', { count: 'exact', head: true })
+    .eq('player_id', playerId).gt('created_at', new Date(Date.now() - 3600e3).toISOString());
+  if ((count ?? 0) >= 20) return fail('limit', 429);
+  const { data, error } = await db.rpc('redeem_promo', { p_code: code, p_player: playerId });
+  if (error) return fail('db', 500);
+  const status = String(data);
+  return json({ status, ...(status === 'ok' ? { inbox: await pendingInbox(playerId), plusUntil: await plusUntil(playerId) } : {}) });
+}
+
+/** «Написать в поддержку» из игры: сообщение становится обращением, ответ придёт от бота. */
+async function supportMessage(playerId: string, b: Body) {
+  const text = str(b.text, 2000).trim();
+  if (!text) return fail('empty');
+  const { data: me } = await db.from('players').select('tg_id, name, username').eq('id', playerId).single();
+  if (!me?.tg_id) return fail('telegram_only', 403);
+  // не чаще раза в 15 секунд — от случайных повторных нажатий и флуда
+  const { count } = await db.from('support_tickets').select('id', { count: 'exact', head: true })
+    .eq('tg_id', me.tg_id).gt('updated_at', new Date(Date.now() - 15e3).toISOString());
+  if ((count ?? 0) > 0) return fail('limit', 429);
+  await supportIn({ id: Number(me.tg_id), first_name: me.name ?? '', username: me.username ?? undefined }, `🎮 Из игры:\n${text}`);
   return json({ ok: true });
 }
 
@@ -778,12 +823,16 @@ Deno.serve(async (req) => {
     const token = req.headers.get('authorization')?.replace(/^Bearer\s+/i, '');
     const playerId = await verifySession(token, await secret('session'));
     if (!playerId) return fail('unauthorized', 401);
+    if (await isBanned(playerId)) return fail('banned', 403);
     switch (route) {
       case '/sync': return await sync(playerId, body);
       case '/gift/create': return await giftCreate(playerId, body);
       case '/gift/claim': return await giftClaim(playerId, body);
       case '/inbox/ack': return await inboxAck(playerId, body);
       case '/settings': return await settings(playerId, body);
+      case '/promo/redeem': return await promoRedeem(playerId, body);
+      case '/support': return await supportMessage(playerId, body);
+      case '/live': return json({ live: await liveList() });
       case '/friends': return await friendsList(playerId);
       case '/friends/add': return await friendAdd(playerId, body);
       case '/invites': return await invites(playerId);

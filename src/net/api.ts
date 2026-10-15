@@ -32,6 +32,9 @@ export interface ServerSave {
 }
 
 let net: NetState = loadNet();
+/** Что ещё сервер присылает в ответах: ивенты из панели и признак блокировки. */
+const hooks: { live?: (raw: unknown) => void; banned?: () => void } = {};
+export const onServer = (h: typeof hooks) => { Object.assign(hooks, h); };
 let skew = 0;
 let plus = 0;
 /** До какого момента активен «Садовник+» по данным сервера. */
@@ -74,7 +77,9 @@ async function call<T>(path: string, body: unknown, opts: { auth?: boolean; keep
       net.token = undefined;
       saveNet();
     }
+    if (r.status === 403 && j.error === 'banned') hooks.banned?.();
     if (!r.ok) throw new Error(j.error || `http ${r.status}`);
+    if (j.live !== undefined) hooks.live?.(j.live);
     if (typeof j.serverTime === 'number') skew = j.serverTime - Date.now();
     if (typeof j.plusUntil === 'number') plus = j.plusUntil;
     return j as T;
@@ -206,6 +211,9 @@ export async function payInvoice(product: string): Promise<string> {
   return r.link;
 }
 
+export const liveRefresh = () => call('/live', {}).catch(() => null);
+export const promoRedeem = (code: string) => call<{ status: string; inbox?: InboxItem[] }>('/promo/redeem', { code });
+export const supportSend = (text: string) => call<{ ok: boolean }>('/support', { text });
 export const inboxAck = (ids: number[]) => (ids.length ? call('/inbox/ack', { ids }).catch(() => null) : null);
 export const sendSettings = (s: { notify?: boolean }) => call('/settings', s).catch(() => null);
 
