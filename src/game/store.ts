@@ -938,9 +938,17 @@ export function mist(plantId: string, insist = true) {
       toast(`💧 ${s.name}: на мокрых листьях появятся пятна и плесень. Протри салфеткой${hasDecorOn(g, g.sills.find((x) => x.id === p.sill) ?? g.sills[0], 'fan') ? ' — или вентилятор высушит за полчаса' : ' или включи вентилятор'}`);
       return true;
     }
-    const fresh = !(p.mistUntil && t < p.mistUntil);
+    // засчитываем опрыскивание, если с прошлого раза прошло 3 часа (раньше — только когда эффект кончился)
+    const fresh = !p.mistedAt || t - p.mistedAt >= WATER_REWARD_MS;
     p.mistUntil = t + (s.mist === 'love' ? MIST_MS : MIST_MS / 2);
-    if (fresh) { addXp(g, XP.mist); quest(g, 'mist'); eventToken(g, 'mist', t); }
+    p.mistedAt = t;
+    if (fresh) {
+      addXp(g, XP.mist);
+      eventToken(g, 'mist', t);
+      // дневное задание — про любителей влажного воздуха, недельное — про любое опрыскивание
+      if (s.mist === 'love') quest(g, 'mist');
+      else weekly(g, 'mist');
+    }
     say(p.id, s.mist === 'love' ? 'Спасибо! 😊' : 'Освежилось 🌿');
     haptic('light');
     // влажность мешает клещу
