@@ -1210,3 +1210,43 @@ b, strong { font-weight: 800; }
 .float-bubble .bubble::after { left: var(--arrow, 50%); margin-left: -5px; }
 .tile { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .scene.has-hang { --hang: clamp(46px, calc(var(--cellh) * 0.5), 78px); }
+
+/* событие и важное — одной лентой */
+.info-strip { flex: none; display: flex; gap: 8px; margin: 10px 0 0; padding: 0 16px 2px; overflow-x: auto; scrollbar-width: none; -webkit-overflow-scrolling: touch; }
+.info-strip::-webkit-scrollbar { display: none; }
+.info-strip > * { flex: none; }
+.strip-event { position: relative; display: flex; align-items: center; gap: 8px; border: 0; border-radius: 16px; padding: 6px 12px 6px 8px; font: inherit; color: #2a1d10; box-shadow: var(--sh-sm); cursor: pointer; height: 44px; }
+.strip-event.theme-autumn { background: linear-gradient(135deg, #ffe0b8, #ffc98a); }
+.strip-event.theme-winter { background: linear-gradient(135deg, #e3f1ff, #c9e2fb); }
+.strip-event.theme-spring { background: linear-gradient(135deg, #ffe3ef, #e1f6e9); }
+.strip-event.theme-summer { background: linear-gradient(135deg, #fff3b8, #d6f2c4); }
+.se-icon { font-size: 22px; }
+.se-text { display: flex; flex-direction: column; align-items: flex-start; line-height: 1.1; }
+.se-text b { font-size: 13px; white-space: nowrap; }
+.se-text small { font-size: 11px; opacity: 0.75; }
+.se-dot { position: absolute; top: 5px; right: 5px; width: 9px; height: 9px; border-radius: 50%; background: #e0574f; }
+.info-strip .tile { height: 44px; display: flex; align-items: center; max-width: 220px; padding: 0 12px; }
+.room-sheet .cat-h { display: flex; align-items: center; gap: 6px; }
+.room-sheet .cat-h svg { width: 34px; height: auto; }
+/* режим перестановки: убрать/вернуть декор */
+.deco-x { position: absolute; top: -6px; right: -6px; width: 20px; height: 20px; border-radius: 50%; background: #e2554a; color: #fff; font-size: 11px; line-height: 20px; text-align: center; box-shadow: 0 1px 4px rgba(0,0,0,.3); cursor: pointer; z-index: 3; }
+.cat-live .deco-x { top: 0; right: 4px; }
+.stash { display: flex; gap: 6px; overflow-x: auto; padding: 2px 2px 6px; scrollbar-width: none; }
+.stash::-webkit-scrollbar { display: none; }
+.stash-item { flex: 0 0 auto; display: flex; flex-direction: column; align-items: center; gap: 1px; min-width: 58px; padding: 5px 6px; border-radius: 12px; border: 1px dashed var(--line, #d8cfc0); background: var(--card, #fff); opacity: .65; }
+.stash-item span { font-size: 20px; }
+.stash-item small { font-size: 10px; color: var(--muted, #8a8174); }
+.stash-item.on { opacity: 1; border-style: solid; border-color: var(--accent, #6aa36f); }
+/* размеры горшков */
+.size-pick { display: flex; gap: 8px; justify-content: center; margin: 8px 0; }
+.size-opt { display: flex; flex-direction: column; align-items: center; min-width: 64px; padding: 8px 10px; border-radius: 14px; border: 2px solid var(--line, #e3d8c6); background: var(--card, #fff); color: inherit; font: inherit; cursor: pointer; }
+.size-opt b { font-size: 20px; }
+.size-opt small { font-size: 11px; opacity: .7; }
+.size-opt.on { border-color: #4caf6a; box-shadow: 0 0 0 3px #4caf6a33; }
+.block.pot-size.tight { background: #fff1e6; border-radius: 16px; padding: 10px 12px; }
+:root[data-theme='dark'] .block.pot-size.tight { background: #3a2a1e; }
+.pots.shapes { margin-bottom: 8px; }
+.shop-group { margin: 14px 4px 4px; font-size: 15px; }
+/* превью горшков крупным планом */
+.ricon svg.pot-view { width: 60px; height: 50px; }
+.pot-pick svg.pot-view { width: 64px; height: 52px; }

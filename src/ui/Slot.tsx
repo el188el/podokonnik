@@ -1,3 +1,4 @@
+import { potSizeOf } from '../game/sim';
 import { motion } from 'framer-motion';
 import { useEffect, useLayoutEffect, useRef, useState, type RefObject } from 'react';
 import { createPortal } from 'react-dom';
@@ -203,7 +204,7 @@ export function Slot({ plant: p, sill, slot }: { plant: Plant; sill: string; slo
         animate={{ scale: 1 }}
         transition={{ type: 'spring', damping: 9, stiffness: 160 }}
       >
-        <PlantArt sp={p.sp} form={p.form} hue={p.hue} stage={p.stage} seed={p.id} pot={p.pot} bigPot={p.bigPot} blooming={p.blooming} className="plant-svg" />
+        <PlantArt sp={p.sp} form={p.form} hue={p.hue} stage={p.stage} seed={p.id} pot={p.pot} size={potSizeOf(p)} shape={p.shape} blooming={p.blooming} className="plant-svg" />
       </motion.div>
       {fresh && fx.kind === 'water' && (
         <div className="fx" key={fx.at}>

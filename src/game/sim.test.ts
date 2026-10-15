@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { D, H, MIN } from './constants';
 import { decodeGift, encodeGift } from './gifts';
 import { bumpQuest, rollDay } from './quests';
-import { advance, canCut, cramped, isSad, lightBad, stageMarks } from './sim';
+import { advance, canCut, cramped, growthRate, ctxFor, isSad, lightBad, potSizeOf, stageMarks, tight } from './sim';
 import { SPECIES, sp } from './species';
 import { fromLegacy, newPlant, newState } from './storage';
 import type { GameState, Plant } from './types';
@@ -18,7 +18,7 @@ function world(spId = 'chlorophytum', extra: Partial<Plant> = {}): { g: GameStat
   return { g, p };
 }
 
-const potted = (spId: string) => world(spId, { stage: 2, rootStart: T0, plantedAt: T0, moisture: 1 });
+const potted = (spId: string) => world(spId, { stage: 2, rootStart: T0, plantedAt: T0, moisture: 1, potSize: 3 });
 
 describe('укоренение', () => {
   it('первый черенок пускает корни ровно через 2 минуты после воды', () => {
@@ -131,6 +131,36 @@ describe('черенки и пересадка', () => {
     p.stage = 4; p.adultAt = T0;
     expect(cramped(p, T0 + D)).toBe(false);
     expect(cramped(p, T0 + (sp('chlorophytum').repotDays + 1) * D)).toBe(true);
+  });
+});
+
+describe('размер горшка', () => {
+  it('росток в S дорастает до подростка и останавливается — тесно', () => {
+    const { g, p } = world('tradescantia', { stage: 2, rootStart: T0, plantedAt: T0, moisture: 1, potSize: 1 });
+    const [, adult] = stageMarks('tradescantia');
+    for (let t = T0; t < T0 + (adult * 2) * H; t += 12 * H) { advance(g, t); p.moisture = 1; }
+    expect(p.stage).toBe(3);
+    expect(tight(p)).toBe(true);
+    expect(growthRate(p, g.simAt, ctxFor(g, p, g.simAt))).toBe(0);
+    expect(cramped(p, g.simAt)).toBe(true);
+  });
+
+  it('после пересадки в M рост продолжается', () => {
+    const { g, p } = world('tradescantia', { stage: 3, rootStart: T0, plantedAt: T0, moisture: 1, potSize: 1 });
+    p.growth = stageMarks('tradescantia')[0] + 1;
+    expect(tight(p)).toBe(true);
+    p.potSize = 2;
+    expect(tight(p)).toBe(false);
+    expect(growthRate(p, T0, ctxFor(g, p, T0))).toBeGreaterThan(0);
+  });
+
+  it('старые сохранения получают горшок по возрасту, большой — XL', () => {
+    const { g, p } = world('chlorophytum', { stage: 4, rootStart: T0, plantedAt: T0, moisture: 1, adultAt: T0 });
+    const q = newPlant({ sp: 'chlorophytum', sill: 'room', slot: 1, zone: 'glass', stage: 3, bigPot: true, guardUntil: T0 + 1e12 }, T0);
+    g.plants.push(q);
+    advance(g, T0 + H);
+    expect(p.potSize).toBe(3);
+    expect(potSizeOf(q)).toBe(4);
   });
 });
 

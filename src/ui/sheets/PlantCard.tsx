@@ -1,12 +1,13 @@
+import { needSize, POT_SIZE_NAME, potSizeOf, tight } from '../../game/sim';
 import { useState } from 'react';
 import { BOOST_COOLDOWN, LIGHT_NAME, SHOWOFF_MS, STAGE_NAME, ZONE_NAME } from '../../game/constants';
 import { FORM_BY_ID } from '../../game/products';
 import { BREED_COOLDOWN, canBreed, hueOf } from '../../game/breeding';
-import { POTS } from '../../game/shop';
+import { POT_SHAPES, POTS } from '../../game/shop';
 import { canCut, cramped, ctxFor, cutLeft, fmt, isSad, isThirstySad, lightLevel, need, neighborsOf, nextStageAt, stageProgress } from '../../game/sim';
 import { DIFFICULTY_LABEL, sp } from '../../game/species';
 import {
-  adsLeft, addDrain, buyItem, toggleVent, boostBlock, boostPlant, breedPartners, drainTray, freshSoil, treat, closeSheet, feed, mist, pollinate, watchAd, move, now, openSheet, ownsPot, plantInPot, removePlant, renamePlant, setPot, takeCutting, toast, useStore, water,
+  adsLeft, addDrain, buyItem, toggleVent, boostBlock, boostPlant, breedPartners, drainTray, freshSoil, treat, closeSheet, feed, mist, pollinate, watchAd, move, now, openSheet, ownsPot, ownsShape, potsOf, setPotShape, plantInPot, removePlant, renamePlant, setPot, takeCutting, toast, useStore, water,
 } from '../../game/store';
 import { adsAvailable } from '../../net/ads';
 import { ageDays, ageMark, daysText, nextAgeMark } from '../../game/age';
@@ -80,7 +81,7 @@ export function PlantCard({ id }: { id: string }) {
         </div>
       )}
       <div className="card-head">
-        <PlantArt sp={p.sp} form={p.form} hue={p.hue} stage={p.stage} seed={p.id} pot={p.pot} bigPot={p.bigPot} blooming={p.blooming} className={'big' + (isSad(p) ? ' sad' : '') + (mark?.frame ? ' gold-frame' : '')} />
+        <PlantArt sp={p.sp} form={p.form} hue={p.hue} stage={p.stage} seed={p.id} pot={p.pot} size={potSizeOf(p)} shape={p.shape} blooming={p.blooming} className={'big' + (isSad(p) ? ' sad' : '') + (mark?.frame ? ' gold-frame' : '')} />
         <div>
           {editing ? (
             <input
@@ -240,13 +241,25 @@ export function PlantCard({ id }: { id: string }) {
       {!potted && <Btn onClick={() => move(p.id, p.zone === 'glass' ? 'deep' : 'glass')}>{p.zone === 'glass' ? '↓ В глубину' : '↑ К стеклу'}</Btn>}
       <p className="muted small center">Сейчас: {ZONE_NAME[p.zone]}. {s.mist === 'love' ? s.mistTip : ''}</p>
 
+      {potted && (
+        <div className={'block pot-size' + (tight(p) ? ' tight' : '')}>
+          {tight(p) ? (
+            <>
+              <p className="small"><b>😣 Тесно в горшке {POT_SIZE_NAME[potSizeOf(p)]}!</b> Корни упёрлись в стенки — рост остановился, пока не пересадишь в {POT_SIZE_NAME[needSize(p.stage)]}.</p>
+              <Btn kind="gold" onClick={() => openSheet({ kind: 'repot', plant: p.id })}>🪴 Пересадить</Btn>
+            </>
+          ) : cramped(p, t) ? (
+            <Btn kind="gold" onClick={() => openSheet({ kind: 'repot', plant: p.id })}>🏡 Тесновато — пересадить в XL {potsOf(g, 4) > 0 ? `(есть ${potsOf(g, 4)})` : `· ${ITEM_BY_ID.potXL.price} 🍃`}</Btn>
+          ) : (
+            <p className="muted small">
+              🪴 Горшок {POT_SIZE_NAME[potSizeOf(p)]}{potSizeOf(p) >= 4 ? ' — простор, черенки отрастают на 25% быстрее' : p.stage < 4 ? ` · подрастёт — понадобится ${POT_SIZE_NAME[needSize(p.stage + 1)]}` : ''}
+              {potSizeOf(p) < 4 && <> · <button className="linkish" onClick={() => openSheet({ kind: 'repot', plant: p.id })}>пересадить заранее</button></>}
+            </p>
+          )}
+        </div>
+      )}
       {p.stage === 4 && (
         <div className="block">
-          {cramped(p, t) ? (
-            <Btn kind="gold" onClick={() => openSheet({ kind: 'repot', plant: p.id })}>🏡 Пересадить в большой горшок {(g.owned.potL ?? 0) > 0 ? `(есть ${g.owned.potL})` : '· 25 🍃'}</Btn>
-          ) : p.bigPot ? (
-            <p className="muted small">🏡 Уже в большом горшке — черенки отрастают на 25% быстрее.</p>
-          ) : null}
           {canCut(p, t) ? (
             <Btn kind="gold" onClick={() => { const c = takeCutting(p.id); if (c) openSheet({ kind: 'send', cutting: c }); }}>✂️ Взять черенок</Btn>
           ) : (
@@ -293,12 +306,22 @@ export function PlantCard({ id }: { id: string }) {
 
       {potted && (
         <div className="block">
-          <Btn onClick={() => setPots(!pots)}>🎨 Дизайн горшка: {POTS[p.pot]?.name ?? 'Глиняный'}</Btn>
+          <Btn onClick={() => setPots(!pots)}>🎨 Горшок: {POTS[p.pot]?.name ?? 'Глиняный'} · {POT_SHAPES[p.shape ?? 'classic']?.name}</Btn>
+          {pots && (
+            <div className="pots shapes">
+              {Object.keys(POT_SHAPES).map((k) => (
+                <button key={k} className={'pot-pick' + ((p.shape ?? 'classic') === k ? ' on' : '')} onClick={() => (ownsShape(g, k) ? setPotShape(p.id, k) : toast('Эта форма продаётся в магазине 🛒 — раздел «Горшки»'))}>
+                  <PlantArt sp={p.sp} stage={2} pot={p.pot} shape={k} seed={p.id} className="mini" potView />
+                  <span>{ownsShape(g, k) ? POT_SHAPES[k].name : '🔒 ' + POT_SHAPES[k].name}</span>
+                </button>
+              ))}
+            </div>
+          )}
           {pots && (
             <div className="pots">
               {Object.keys(POTS).map((k) => (
                 <button key={k} className={'pot-pick' + (p.pot === k ? ' on' : '')} onClick={() => (ownsPot(g, k) ? setPot(p.id, k) : toast('Этот дизайн продаётся в магазине 🛒 — покупается один раз, навсегда'))}>
-                  <PlantArt sp={p.sp} stage={2} pot={k} seed={p.id} className="mini" />
+                  <PlantArt sp={p.sp} stage={2} pot={k} shape={p.shape} seed={p.id} className="mini" potView />
                   <span>{ownsPot(g, k) ? POTS[k].name : '🔒 ' + POTS[k].name}</span>
                 </button>
               ))}

@@ -1,5 +1,6 @@
 // Общий подоконник: те же растения видят и поливают двое (или вся квартира).
 
+import { potSizeOf } from '../../game/sim';
 import { motion } from 'framer-motion';
 import { useEffect, useMemo, useState } from 'react';
 import { CONFIG, tgAppLink } from '../../config';
@@ -123,7 +124,7 @@ export function CoopSill({ coop }: { coop: CoopView }) {
             <div className={'slot' + (isSad(p) ? ' sad' : '') + (sel === p.id ? ' picked' : '')} role="button" onClick={() => tap(p)}>
               {b && <div className="bubble">{b}</div>}
               <div className="art">
-                <PlantArt sp={p.sp} form={p.form} hue={p.hue} stage={p.stage} seed={p.id} pot={p.pot} bigPot={p.bigPot} blooming={p.blooming} className="plant-svg" />
+                <PlantArt sp={p.sp} form={p.form} hue={p.hue} stage={p.stage} seed={p.id} pot={p.pot} size={potSizeOf(p)} shape={p.shape} blooming={p.blooming} className="plant-svg" />
               </div>
               <div className="label">
                 {p.stage >= 2 && (

@@ -10,8 +10,8 @@ import { FallingTokens } from '../FallingTokens';
 import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react';
 import { chatter } from '../../game/mood';
 import { ctxFor } from '../../game/sim';
-import { claimFirstChest, moveItem, petCat, placeOpen, say, setArrange, switchItem, SWITCHABLE, toast } from '../../game/store';
-import { ITEM_BY_ID, placeOf } from '../../game/shop';
+import { claimFirstChest, moveItem, toggleDecor, petCat, placeOpen, say, setArrange, switchItem, SWITCHABLE, toast } from '../../game/store';
+import { ITEMS, ITEM_BY_ID, placeOf } from '../../game/shop';
 import { climateOf, rhWord, tempWord } from '../../game/climate';
 import { darkWall, roomVars } from '../../game/room';
 import { zoneOfSlot } from '../../game/layout';
@@ -60,6 +60,8 @@ function OwnSill() {
   const tod = timeOfDay(t);
   const winter = isWinter(t);
   const decor = sill.decor.filter((d) => (g.owned[d] ?? 0) > 0);
+  // весь купленный декор, который можно поставить или убрать (кашпо и обои — в профиле)
+  const stash = ITEMS.filter((it) => it.cat === 'decor' && !it.consumable && it.place && it.place !== 'spot' && it.place !== 'wallpaper' && (g.owned[it.id] ?? 0) > 0).map((it) => it.id);
   const neighbor = g.neighbor && t < g.neighbor.until;
   const ev = activeEvent(t);
   const evp = ev ? g.events?.[eventSeason(ev, t)] : undefined;
@@ -108,7 +110,7 @@ function OwnSill() {
   const round = g.tutorial >= TUTORIAL_DONE ? roundInfo(g, t) : null;
   if (round) tiles.push({ key: 'round', cls: 'round' + (round.done ? ' done' : ''), text: `${round.label === 'утренний' ? '🌅' : '🌙'} Обход ${round.done ? '✓' : `${round.checked}/${round.total} · +15 🍃`}` });
   // сначала то, что можно забрать прямо сейчас (подарки, награды), потом остальное
-  const shown = [...tiles].sort((x, y) => Number(/ready/.test(y.cls)) - Number(/ready/.test(x.cls))).slice(0, ev ? (window.innerHeight < 760 ? 2 : 3) : 4);
+  const shown = [...tiles].sort((x, y) => Number(/ready/.test(y.cls)) - Number(/ready/.test(x.cls))); // все — лента листается вбок
 
   return (
     <div className="sillview fit">
@@ -133,20 +135,31 @@ function OwnSill() {
         })()}
         {neighbor && <button className="chip" onClick={() => openSheet({ kind: 'neighbor' })}>👵 соседка</button>}
         {(g.owned.pot ?? 0) === 0 && <button className="chip alert" onClick={() => openSheet({ kind: 'pots' })} aria-label="Горшки">🪴 0</button>}
-        {decor.some((d) => placeOf(d) === 'sill' || placeOf(d) === 'table') && (
+        {stash.length > 0 && (
           <button className={'chip arrange-chip' + (arrange ? ' on' : '')} onClick={() => setArrange(!arrange)}>{arrange ? '✓ Готово' : '🛋 Переставить'}</button>
         )}
       </div>
-      {arrange && <p className="arrange-hint">Перетаскивай предметы и кота: по подоконнику или на столик · <button className="linkish" onClick={() => openSheet({ kind: 'room' })}>🎨 цвета стен и стола</button></p>}
+      {arrange && <p className="arrange-hint">Перетаскивай предметы и котиков, ✕ — убрать · <button className="linkish" onClick={() => openSheet({ kind: 'room' })}>🎨 цвета комнаты и котиков</button></p>}
+      {arrange && (
+        <div className="stash" aria-label="Твой декор">
+          {stash.map((id) => {
+            const here = sill.decor.includes(id);
+            return (
+              <button key={id} className={'stash-item' + (here ? ' on' : '')} onClick={() => toggleDecor(sill.id, id)} title={ITEM_BY_ID[id]?.name}>
+                <span>{ITEM_BY_ID[id]?.icon}</span><small>{here ? 'убрать' : 'поставить'}</small>
+              </button>
+            );
+          })}
+        </div>
+      )}
 
       {g.tutorial < TUTORIAL_DONE ? <Guide /> : (ev || shown.length > 0) && (
-        <div className={'info-grid' + (ev ? '' : ' no-event')}>
+        <div className="info-strip">
           {ev && (
-            <button className={`event-card theme-${ev.theme}`} style={{ gridRow: `span ${Math.max(1, shown.length)}` }} onClick={() => openSheet({ kind: 'event' })}>
-              <span className="ec-icon">{ev.token}</span>
-              <b>{ev.title}</b>
-              <small>ур. {tierOf(ev, evp?.tokens ?? 0)}/{ev.tiers.length} · {evp?.tokens ?? 0} {ev.token}</small>
-              {evReady && <span className="eb-ready">Награда!</span>}
+            <button className={`strip-event theme-${ev.theme}`} onClick={() => openSheet({ kind: 'event' })}>
+              <span className="se-icon">{ev.token}</span>
+              <span className="se-text"><b>{ev.title}</b><small>ур. {tierOf(ev, evp?.tokens ?? 0)}/{ev.tiers.length}</small></span>
+              {evReady && <i className="se-dot" />}
             </button>
           )}
           {shown.map((x) => (
@@ -171,6 +184,8 @@ function OwnSill() {
             onCat={petCat}
             pos={sill.pos}
             off={sill.off}
+            catColors={g.catColors}
+            onHide={(id) => toggleDecor(sill.id, id)}
             vent={sill.vent}
             curtains={sill.curtains}
             draft={climateOf(g, sill, t).draft}

@@ -18,7 +18,7 @@ export const STARTER: StarterGift[] = [
   { icon: '🩶', title: 'Горшок «Бетон»', item: 'pot_concrete' },
   { icon: '🌱', title: 'Черенок колеуса', cutting: 'coleus' },
   { icon: '🍃', title: '100 листиков', leaves: 100 },
-  { icon: '🐈', title: 'Кот Барсик на подоконник', item: 'cat' },
+  { icon: '💜', title: 'Фитолампа над растениями', item: 'lamp' },
   { icon: '🧪', title: 'Подкормка ×3', feed: 3 },
   { icon: '💙', title: 'Горшок «Гжель»', item: 'pot_gzhel' },
   { icon: '✨', title: 'Редкая Традесканция Нанук', cutting: 'tradescantia', form: 'nanouk' },

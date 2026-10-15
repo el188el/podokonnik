@@ -1,3 +1,4 @@
+import { potSizeOf } from '../../game/sim';
 import { motion } from 'framer-motion';
 import { useEffect, useState } from 'react';
 import type { PublicView } from '../../game/social';
@@ -87,7 +88,7 @@ export function Visit({ id, name }: { id: string; name: string }) {
             <button className={'slot guest' + (p.sad ? ' sad' : '')} onClick={() => (p.thirsty ? pour(p.id) : toast(p.stage < 2 ? 'Черенок пускает корни в стакане 🌱' : 'Ему хорошо, поливать не нужно 🌿'))}>
               {p.thirsty && !view.neighbor && <div className="bubble">Хочу пить 💧</div>}
               <div className="art">
-                <PlantArt sp={p.sp} form={p.form} hue={p.hue} stage={p.stage} seed={p.id} pot={p.pot} bigPot={p.bigPot} blooming={p.blooming} className="plant-svg" />
+                <PlantArt sp={p.sp} form={p.form} hue={p.hue} stage={p.stage} seed={p.id} pot={p.pot} size={potSizeOf(p)} shape={p.shape} blooming={p.blooming} className="plant-svg" />
               </div>
               {drops[p.id] && (
                 <div className="fx" key={drops[p.id]}>

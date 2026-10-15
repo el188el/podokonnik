@@ -16,13 +16,27 @@ export interface ShopItem {
   eventOnly?: boolean; // только из сезонного пропуска, в магазине не продаётся
   album?: boolean;     // награда за полную полку альбома
   place?: DecorPlace;  // где стоит декор
+  needs?: string;      // сначала нужно купить этот товар
   pack?: string[];    // набор: что входит
   gives?: string;     // покупка добавляет count штук этого предмета
   count?: number;
   level?: number;
+  group?: string;     // подзаголовок внутри раздела
+  size?: number;      // горшок размера 1 S … 4 XL
+  shape?: string;     // форма горшка
 }
 
-export const POTS: Record<string, { name: string; body: string; rim: string; pattern?: 'gzhel' | 'khokhloma' | 'enamel' | 'glass' | 'concrete' | 'gold' | 'autumn' | 'snow' | 'pastel' }> = {
+/** Формы горшков: покупаются один раз, выбираются в карточке растения. */
+export const POT_SHAPES: Record<string, { name: string }> = {
+  classic: { name: 'Классика' },
+  cylinder: { name: 'Цилиндр' },
+  belly: { name: 'Пузатый' },
+  cube: { name: 'Куб' },
+  bowl: { name: 'Пиала' },
+  legs: { name: 'На ножках' },
+};
+
+export const POTS: Record<string, { name: string; body: string; rim: string; pattern?: 'gzhel' | 'khokhloma' | 'enamel' | 'glass' | 'concrete' | 'gold' | 'autumn' | 'snow' | 'pastel' | 'marble' | 'terrazzo' | 'stripes' }> = {
   terracotta: { name: 'Глиняный', body: '#E07A55', rim: '#c9603d' },
   white: { name: 'Белая керамика', body: '#f4f1ea', rim: '#dcd6ca' },
   gzhel: { name: 'Гжель', body: '#f7f8fc', rim: '#2d4fa8', pattern: 'gzhel' },
@@ -38,15 +52,39 @@ export const POTS: Record<string, { name: string; body: string; rim: string; pat
   berry: { name: 'Земляничный', body: '#e8616f', rim: '#3f8f4e', pattern: 'pastel' },
   sun: { name: 'Солнечный', body: '#f7c844', rim: '#e08a2c' },
   apple: { name: 'Яблочный', body: '#a8cf6a', rim: '#d9483b', pattern: 'autumn' },
+  mint: { name: 'Мятный', body: '#bfe6d3', rim: '#93cdb1' },
+  pink: { name: 'Пудровый', body: '#f3cfc9', rim: '#e0aea6' },
+  black: { name: 'Матовый чёрный', body: '#34343a', rim: '#24242a' },
+  marble: { name: 'Мрамор', body: '#f2f0ec', rim: '#d8d4cc', pattern: 'marble' },
+  terrazzo: { name: 'Терраццо', body: '#ece6dc', rim: '#d3cabb', pattern: 'terrazzo' },
+  stripes: { name: 'Полоска', body: '#f4f1ea', rim: '#2f4f8a', pattern: 'stripes' },
+  ochre: { name: 'Охра', body: '#d9a441', rim: '#b9852a' },
 };
 
 export const ITEMS: ShopItem[] = [
-  // горшки: под каждое растение нужен свой
-  { id: 'pot', cat: 'pots', name: 'Глиняный горшок', icon: '🪴', price: 10, desc: 'Под каждое растение — свой горшок. Цвет и узор задаёт дизайн.', consumable: true },
-  { id: 'pot5', cat: 'pots', name: 'Пять горшков', icon: '🪴', price: 40, desc: 'Запас на целый подоконник — выгоднее на 20%.', consumable: true, gives: 'pot', count: 5 },
-  { id: 'pot12', cat: 'pots', name: 'Двенадцать горшков', icon: '🪴', price: 90, desc: 'Для большой оранжереи — выгоднее на 25%.', consumable: true, gives: 'pot', count: 12, level: 5 },
+  // горшки: под каждое растение нужен свой, и растёт он вместе с растением
+  { id: 'pot', cat: 'pots', group: '📏 Размеры', size: 1, name: 'Горшок S', icon: '🪴', price: 10, desc: 'Маленький — для только что укоренённого черенка.', consumable: true },
+  { id: 'pot5', cat: 'pots', group: '📏 Размеры', size: 1, name: 'Пять горшков S', icon: '🪴', price: 40, desc: 'Запас на целый подоконник — выгоднее на 20%.', consumable: true, gives: 'pot', count: 5 },
+  { id: 'pot12', cat: 'pots', group: '📏 Размеры', size: 1, name: 'Двенадцать горшков S', icon: '🪴', price: 90, desc: 'Для большой оранжереи — выгоднее на 25%.', consumable: true, gives: 'pot', count: 12, level: 5 },
+  { id: 'potM', cat: 'pots', group: '📏 Размеры', size: 2, name: 'Горшок M', icon: '🪴', price: 15, desc: 'Подростку уже тесно в S: без пересадки он грустит и не растёт.', consumable: true },
+  { id: 'potL', cat: 'pots', group: '📏 Размеры', size: 3, name: 'Горшок L', icon: '🪴', price: 25, desc: 'Для взрослого растения.', consumable: true },
+  { id: 'potXL', cat: 'pots', group: '📏 Размеры', size: 4, name: 'Горшок XL', icon: '🪴', price: 45, desc: 'Простор для взрослого: черенки отрастают на 25% быстрее.', consumable: true, level: 3 },
+  { id: 'pots_grow', cat: 'pots', group: '📏 Размеры', size: 2, name: 'Набор «На вырост»', icon: '📦', price: 100, desc: '2 горшка M, 2 L и XL — пересадок хватит надолго. Выгоднее на 25 листиков.', consumable: true, pack: ['potM', 'potM', 'potL', 'potL', 'potXL'] },
+  // формы (один раз — навсегда)
+  { id: 'shape_cylinder', cat: 'pots', group: '🔷 Формы', shape: 'cylinder', name: 'Цилиндр', icon: '🥫', price: 40, desc: 'Ровные стенки — строго и современно.' },
+  { id: 'shape_belly', cat: 'pots', group: '🔷 Формы', shape: 'belly', name: 'Пузатый', icon: '🏺', price: 55, desc: 'Круглый, как бабушкин горшок для герани.' },
+  { id: 'shape_bowl', cat: 'pots', group: '🔷 Формы', shape: 'bowl', name: 'Пиала', icon: '🥣', price: 50, desc: 'Низкая и широкая — суккуленты и кактусы в восторге.' },
+  { id: 'shape_cube', cat: 'pots', group: '🔷 Формы', shape: 'cube', name: 'Куб', icon: '🧊', price: 60, desc: 'Квадратный кашпо в стиле лофт.', level: 3 },
+  { id: 'shape_legs', cat: 'pots', group: '🔷 Формы', shape: 'legs', name: 'На ножках', icon: '🪑', price: 90, desc: 'Мид-сенчури: горшок на деревянных ножках.', level: 5 },
   // дизайны горшков (покупаются один раз — навсегда)
-  { id: 'pot_white', cat: 'pots', name: 'Белая керамика', icon: '🤍', price: 30, desc: 'Чистый скандинавский стиль.' },
+  { id: 'pot_mint', cat: 'pots', group: '🎨 Цвета и узоры', name: 'Мятный', icon: '💚', price: 30, desc: 'Свежий и нежный.' },
+  { id: 'pot_pink', cat: 'pots', group: '🎨 Цвета и узоры', name: 'Пудровый', icon: '🩷', price: 30, desc: 'Пыльная роза — модно и уютно.' },
+  { id: 'pot_ochre', cat: 'pots', group: '🎨 Цвета и узоры', name: 'Охра', icon: '💛', price: 35, desc: 'Тёплый горчичный — как осеннее солнце.' },
+  { id: 'pot_white', cat: 'pots', group: '🎨 Цвета и узоры', name: 'Белая керамика', icon: '🤍', price: 30, desc: 'Чистый скандинавский стиль.' },
+  { id: 'pot_black', cat: 'pots', name: 'Матовый чёрный', icon: '🖤', price: 50, desc: 'Зелень на чёрном смотрится ярче.' },
+  { id: 'pot_stripes', cat: 'pots', name: 'Полоска', icon: '⚓', price: 55, desc: 'Морская тельняшка.' },
+  { id: 'pot_terrazzo', cat: 'pots', name: 'Терраццо', icon: '🍪', price: 70, desc: 'Разноцветная крошка, как в итальянском кафе.', level: 3 },
+  { id: 'pot_marble', cat: 'pots', name: 'Мрамор', icon: '🤍', price: 95, desc: 'Белый с серыми прожилками — роскошь.', level: 6 },
   { id: 'pot_concrete', cat: 'pots', name: 'Бетонный', icon: '🩶', price: 50, desc: 'Лофт на подоконнике.' },
   { id: 'pot_glass', cat: 'pots', name: 'Прозрачный', icon: '🫙', price: 45, desc: 'Видно корни. Орхидеи такой обожают.' },
   { id: 'pot_gzhel', cat: 'pots', name: 'Гжель', icon: '💙', price: 80, desc: 'Синие узоры по белому фарфору.', level: 3 },
@@ -55,6 +93,8 @@ export const ITEMS: ShopItem[] = [
 
   // декор (ставится на подоконник)
   { id: 'tulle', cat: 'decor', place: 'window', name: 'Тюль', icon: '🪟', price: 60, desc: 'Белая занавеска в цветочек. Эффект: рассеивает прямое солнце у стекла — нет ожогов, но светолюбивым становится темновато.' },
+  { id: 'cat2', cat: 'decor', place: 'sill', name: 'Кошка Мурка', icon: '🐈', price: 180, needs: 'cat', desc: 'Второй котик — вдвоём веселее. Окрас можно выбрать в «Цветах комнаты».' },
+  { id: 'cat3', cat: 'decor', place: 'sill', name: 'Кот Пушок', icon: '🐈‍⬛', price: 240, needs: 'cat2', desc: 'Третий котик — настоящая кошачья семья. Больше котиков на подоконнике не поместится.' },
   { id: 'cat', cat: 'decor', place: 'sill', name: 'Кот Барсик', icon: '🐈', price: 120, desc: 'Нажми — погладь (раз в день +5 🍃). Но иногда жуёт хлорофитум и папоротник и сидит в горшках. Ядовитые растения обходит стороной.' },
   { id: 'radio', cat: 'decor', place: 'sill', name: 'Советское радио', icon: '📻', price: 90, desc: '«Маяк» тихонько играет. Пока радио включено, растения на этом подоконнике растут на 5% быстрее. Нажми — включить или выключить.' },
   { id: 'vase', cat: 'decor', place: 'table', name: 'Хрустальная вазочка', icon: '🏺', price: 70, desc: 'Из серванта, для красоты.' },
@@ -144,7 +184,6 @@ export const ITEMS: ShopItem[] = [
   { id: 'boost', cat: 'care', name: 'Стимулятор роста', icon: '⚡', price: 40, desc: 'Сутки растение растёт вдвое быстрее. Не чаще раза в неделю на растение и 3 в день — иначе истощится.', consumable: true, level: 3 },
   { id: 'boost5', cat: 'care', name: 'Пять стимуляторов', icon: '⚡', price: 160, desc: 'Запас стимуляторов роста — выгоднее на 20%.', consumable: true, gives: 'boost', count: 5, level: 3 },
   { id: 'feed', cat: 'care', name: 'Подкормка', icon: '🧪', price: 15, desc: 'Сутки растение растёт в 1,5 раза быстрее.', consumable: true },
-  { id: 'potL', cat: 'care', name: 'Большой горшок (L)', icon: '🪴', price: 25, desc: 'Для пересадки взрослого растения, когда ему тесно.', consumable: true },
   { id: 'neighbor7', cat: 'care', name: 'Соседка на неделю', icon: '👵', price: 60, desc: 'Соседка поливает 7 дней, даже если бесплатный отпуск уже был.', consumable: true },
 
   // наборы
@@ -157,6 +196,36 @@ export const ITEMS: ShopItem[] = [
     id: 'pack_ussr', cat: 'packs', name: '«Квартира 80-х»', icon: '📺', price: 420, level: 5,
     desc: 'Ковёр на стене, часы с маятником, картина «Утро в лесу», матрёшка и журналы. Выгоднее на 100 листиков.',
     pack: ['carpet', 'clock', 'painting', 'matryoshka', 'magazines'],
+  },
+  {
+    id: 'pack_starter', cat: 'packs', name: '«Старт садовода»', icon: '🌱', price: 110,
+    desc: 'Влагомер, 2 горшка M, подкормка ×2 и керамзит. Выгоднее на 40 листиков.',
+    pack: ['meter', 'potM', 'potM', 'feed', 'feed', 'drain'],
+  },
+  {
+    id: 'pack_aid', cat: 'packs', name: '«Аптечка цветовода»', icon: '🩺', price: 70,
+    desc: 'Мыльный раствор, ловушки, Фитоспорин, Фитоверм и свежий грунт — на любой случай. Выгоднее на 25 листиков.',
+    pack: ['soap', 'traps', 'fungicide', 'acaricide', 'soil'],
+  },
+  {
+    id: 'pack_scandi', cat: 'packs', name: '«Сканди»', icon: '🤍', price: 140,
+    desc: 'Белая керамика, горшки-цилиндры, стопка книг и свеча. Выгоднее на 40 листиков.',
+    pack: ['pot_white', 'shape_cylinder', 'books', 'candle', 'tea'],
+  },
+  {
+    id: 'pack_loft', cat: 'packs', name: '«Лофт»', icon: '🧱', price: 260, level: 5,
+    desc: 'Кирпичная стена, матовые чёрные кубы-кашпо и бетонный горшок. Выгоднее на 70 листиков.',
+    pack: ['wp_brick', 'pot_black', 'shape_cube', 'pot_concrete'],
+  },
+  {
+    id: 'pack_cats', cat: 'packs', name: '«Кошачий рай»', icon: '🐾', price: 300,
+    desc: 'Кот Барсик, кошка Мурка, кошачья трава и клубок. Выгоднее на 90 листиков.',
+    pack: ['cat', 'cat2', 'catgrass', 'yarn'],
+  },
+  {
+    id: 'pack_climate', cat: 'packs', name: '«Климат-контроль»', icon: '🌡️', price: 360, level: 4,
+    desc: 'Увлажнитель, термогигрометр, обогреватель и москитная сетка — растения скажут спасибо зимой и летом. Выгоднее на 150 листиков.',
+    pack: ['humidifier', 'hygrometer', 'heater', 'net'],
   },
   {
     id: 'pack_cozy', cat: 'packs', name: '«Уютный вечер»', icon: '🕯️', price: 190,

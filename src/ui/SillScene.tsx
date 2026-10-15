@@ -8,6 +8,7 @@ import { DEEP_ROW, GLASS_ROW, HANG_ROW } from '../game/layout';
 import { ITEM_BY_ID, placeOf } from '../game/shop';
 import type { DecorPos } from '../game/types';
 import { DecorArt, hasDecorArt } from './art/DecorArt';
+import { CAT_DEFAULT_COLOR, CAT_IDS, CAT_NAMES } from '../game/cat';
 import type { Sky } from '../game/weather';
 
 export interface SceneProps {
@@ -33,6 +34,10 @@ export interface SceneProps {
   onMove?: (id: string, x: number, row?: 'sill' | 'table') => void;
   /** Нажали на кота — погладить. */
   onCat?: () => void;
+  /** Убрать предмет с подоконника (режим перестановки). */
+  onHide?: (id: string) => void;
+  /** Окрасы котиков. */
+  catColors?: Record<string, string>;
   /** Форточка открыта, шторы задёрнуты, на улице холодно (сквозняк). */
   vent?: boolean;
   curtains?: boolean;
@@ -41,7 +46,7 @@ export interface SceneProps {
 
 const icon = (id: string) => ITEM_BY_ID[id]?.icon ?? '';
 const DEFAULT_X = [0.04, 0.25, 0.75, 0.96, 0.5]; // промежутки между горшками (по 4 в ряду); середина — коту
-const CAT_X = 0.5;
+const CAT_X: Record<string, number> = { cat: 0.5, cat2: 0.14, cat3: 0.86 };
 const reduced = () => typeof matchMedia !== 'undefined' && matchMedia('(prefers-reduced-motion: reduce)').matches;
 
 /** Куда уронили предмет: ряд (подоконник или столик) и доля ширины. */
@@ -91,7 +96,15 @@ function useDrag(enabled: boolean, onTap: (() => void) | undefined, onDrop: (x: 
   };
 }
 
-function Deco({ id, x, on, arrange, onItem, onMove }: { id: string; x: number; on: boolean; arrange?: boolean; onItem?: (id: string) => void; onMove?: SceneProps['onMove'] }) {
+/** Крестик «убрать с подоконника» в режиме перестановки. */
+function HideX({ id, onHide }: { id: string; onHide?: (id: string) => void }) {
+  if (!onHide) return null;
+  return (
+    <span className="deco-x" role="button" aria-label="Убрать" onPointerDown={(e) => e.stopPropagation()} onPointerUp={(e) => { e.stopPropagation(); onHide(id); }}>✕</span>
+  );
+}
+
+function Deco({ id, x, on, arrange, onItem, onMove, onHide }: { id: string; x: number; on: boolean; arrange?: boolean; onItem?: (id: string) => void; onMove?: SceneProps['onMove']; onHide?: (id: string) => void }) {
   const live = !!onItem;
   const [poke, setPoke] = useState(0);
   const drag = useDrag(!!arrange, live && !arrange ? () => { setPoke(Date.now()); onItem!(id); } : undefined, (nx, row) => onMove?.(id, nx, placeOf(id) === 'wall' ? undefined : row));
@@ -106,6 +119,7 @@ function Deco({ id, x, on, arrange, onItem, onMove }: { id: string; x: number; o
     >
       <span className="deco-in" key={poke}>{art}</span>
       {id === 'radio' && on && !arrange && <span className="notes" aria-hidden><i>♪</i><i>♫</i><i>♪</i></span>}
+      {arrange && <HideX id={id} onHide={onHide} />}
     </button>
   );
 }
@@ -115,7 +129,7 @@ function Deco({ id, x, on, arrange, onItem, onMove }: { id: string; x: number; o
  * с подоконника на столик и обратно. Нажми — погладить, потяни — переставить.
  * Живёт поверх обоих рядов, чтобы прыжок был одним движением.
  */
-function LiveCat({ x0, row0, arrange, onCat, onMove }: { x0: number; row0: 'sill' | 'table'; arrange?: boolean; onCat?: () => void; onMove?: SceneProps['onMove'] }) {
+function LiveCat({ id, tint, x0, row0, arrange, onCat, onMove, onHide }: { id: string; tint?: string; x0: number; row0: 'sill' | 'table'; arrange?: boolean; onCat?: () => void; onMove?: SceneProps['onMove']; onHide?: (id: string) => void }) {
   const [x, setX] = useState(x0);
   const [row, setRow] = useState(row0);
   const [move, setMove] = useState<{ dur: number; left: boolean; jump?: boolean } | null>(null);
@@ -159,26 +173,27 @@ function LiveCat({ x0, row0, arrange, onCat, onMove }: { x0: number; row0: 'sill
     plan();
     return () => clearTimeout(timer);
   }, [arrange]);
-  const drag = useDrag(true, () => { setPet(Date.now()); onCat?.(); }, (nx, r) => { setMove(null); cur.current = { x: nx, row: r }; setX(nx); setRow(r); onMove?.('cat', nx, r); });
+  const drag = useDrag(true, () => { setPet(Date.now()); onCat?.(); }, (nx, r) => { setMove(null); cur.current = { x: nx, row: r }; setX(nx); setRow(r); onMove?.(id, nx, r); });
   const tr = move ? (move.jump ? `left ${move.dur}s ease-in-out, bottom ${move.dur}s cubic-bezier(.45,0,.55,1)` : `left ${move.dur}s linear`) : undefined;
   return (
     <button
       ref={ref}
       className={'cat-live' + (move ? ' walking' : '') + (move?.jump ? ' jumping' : '') + (move?.left ? ' to-left' : '') + (drag.dragging ? ' dragging' : '')}
       style={{ left: `${x * 100}%`, bottom: bottoms ? bottoms[row] : undefined, visibility: bottoms ? undefined : 'hidden', transition: tr, ['--jump' as string]: `${move?.dur ?? 0.75}s`, ...drag.style }}
-      aria-label="Барсик: погладить или перетащить"
+      aria-label={`${CAT_NAMES[id] ?? 'Котик'}: погладить или перетащить`}
       {...drag.handlers}
     >
-      <span className="cat-flip"><span className="cat-hop"><DecorArt id={move ? 'cat_walk' : 'cat'} scale={move ? 1.15 : 1.25} /></span></span>
+      <span className="cat-flip"><span className="cat-hop"><DecorArt id={move ? 'cat_walk' : 'cat'} tint={tint} scale={move ? 1.15 : 1.25} /></span></span>
       {pet > 0 && <span className="purr" key={pet}>💕</span>}
+      {arrange && <HideX id={id} onHide={onHide} />}
     </button>
   );
 }
 
-export function SillScene({ decor, tod, winter, sky, theme, win = 'E', cell, hangCell, className = '', style, pos = {}, off = [], arrange, onItem, onMove, onCat, vent, curtains, draft }: SceneProps) {
+export function SillScene({ decor, tod, winter, sky, theme, win = 'E', cell, hangCell, className = '', style, pos = {}, off = [], arrange, onItem, onMove, onCat, vent, curtains, draft, catColors, onHide }: SceneProps) {
   const at = (place: string) => decor.filter((d) => placeOf(d) === place);
   const windowD = at('window');
-  const ledgeItems = decor.filter((d) => (placeOf(d) === 'sill' || placeOf(d) === 'table') && d !== 'cat');
+  const ledgeItems = decor.filter((d) => (placeOf(d) === 'sill' || placeOf(d) === 'table') && !CAT_IDS.includes(d));
   const rowOf = (d: string) => pos[d]?.row ?? (placeOf(d) === 'table' ? 'table' : 'sill');
   const sillD = ledgeItems.filter((d) => rowOf(d) === 'sill').slice(0, 5);
   const tableD = ledgeItems.filter((d) => rowOf(d) === 'table').slice(0, 5);
@@ -189,10 +204,10 @@ export function SillScene({ decor, tod, winter, sky, theme, win = 'E', cell, han
   const hang = !!hangCell && decor.includes('hangers');
   const lamp = windowD.includes('lamp') || decor.includes('lamp');
   const lampOn = lamp && !off.includes('lamp');
-  const cat = decor.includes('cat');
+  const cats = CAT_IDS.filter((c) => decor.includes(c));
   const isOn = (d: string) => !off.includes(d);
   const xOf = (d: string, i: number) => pos[d]?.x ?? DEFAULT_X[i] ?? 0.5;
-  const deco = (d: string, i: number) => <Deco key={d} id={d} x={xOf(d, i)} on={isOn(d)} arrange={arrange} onItem={onItem} onMove={onMove} />;
+  const deco = (d: string, i: number) => <Deco key={d} id={d} x={xOf(d, i)} on={isOn(d)} arrange={arrange} onItem={onItem} onMove={onMove} onHide={onHide} />;
 
   return (
     <div className={`scene tod-${tod}${winter ? ' winter' : ''}${sky ? ' sky-' + sky : ''}${hang ? ' has-hang' : ''}${lampOn ? ' lamp-on' : ''}${arrange ? ' arranging' : ''} ${className}`} data-win={win} data-wp={wallpaper} style={style}>
@@ -267,7 +282,7 @@ export function SillScene({ decor, tod, winter, sky, theme, win = 'E', cell, han
           ))}
           <div className="ledge-decor">
             {sillD.map(deco)}
-            {cat && !onCat && <span className="deco deco-cat" style={{ left: '50%' }}><DecorArt id="cat" /></span>}
+            {!onCat && cats.map((c) => <span key={c} className="deco deco-cat" style={{ left: `${CAT_X[c] * 100}%` }}><DecorArt id="cat" tint={catColors?.[c] ?? CAT_DEFAULT_COLOR[c]} /></span>)}
           </div>
         </div>
         <div className="ledge" />
@@ -280,7 +295,7 @@ export function SillScene({ decor, tod, winter, sky, theme, win = 'E', cell, han
           </div>
         </div>
         <div className="table" />
-        {cat && onCat && <LiveCat x0={pos.cat?.x ?? CAT_X} row0={rowOf('cat')} arrange={arrange} onCat={onCat} onMove={onMove} />}
+        {onCat && cats.map((c) => <LiveCat key={c} id={c} tint={catColors?.[c] ?? CAT_DEFAULT_COLOR[c]} x0={pos[c]?.x ?? CAT_X[c]} row0={rowOf(c)} arrange={arrange} onCat={onCat} onMove={onMove} onHide={onHide} />)}
       </div>
     </div>
   );

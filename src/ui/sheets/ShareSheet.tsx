@@ -1,5 +1,6 @@
 // Поделиться растением: фото в сторис, таймлапс роста или открытка с подоконника.
 
+import { potSizeOf } from '../../game/sim';
 import { sp } from '../../game/species';
 import { closeSheet, openSheet, useStore } from '../../game/store';
 import { PlantArt } from '../art/PlantArt';
@@ -18,7 +19,7 @@ export function ShareSheet({ id }: { id: string }) {
   return (
     <div className="share-sheet">
       <div className="share-head">
-        <PlantArt sp={p.sp} form={p.form} hue={p.hue} stage={p.stage} seed={p.id} pot={p.pot} bigPot={p.bigPot} blooming={p.blooming} className="mini" />
+        <PlantArt sp={p.sp} form={p.form} hue={p.hue} stage={p.stage} seed={p.id} pot={p.pot} size={potSizeOf(p)} shape={p.shape} blooming={p.blooming} className="mini" />
         <h2>Поделиться: {name}</h2>
       </div>
       <div className="list">

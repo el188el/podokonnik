@@ -15,6 +15,11 @@ export const CAT_TOXIC = ['spathiphyllum', 'dracaena', 'poinsettia', 'aloe', 'sc
 
 export type CatAction = 'chew' | 'sit' | 'sniff' | 'grass';
 
+/** До трёх котиков: у каждого своё имя и окрас по умолчанию. */
+export const CAT_IDS = ['cat', 'cat2', 'cat3'];
+export const CAT_NAMES: Record<string, string> = { cat: 'Барсик', cat2: 'Мурка', cat3: 'Пушок' };
+export const CAT_DEFAULT_COLOR: Record<string, string> = { cat: 'ginger', cat2: 'grey', cat3: 'black' };
+
 export interface CatEvent { action: CatAction; plant: string }
 
 const PER_DAY = 0.7; // примерно раз в полтора дня кот что-нибудь вытворяет

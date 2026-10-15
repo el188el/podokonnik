@@ -15,21 +15,38 @@ const shadow = (cx: number, y: number, rx: number) => <ellipse cx={cx} cy={y} rx
 
 /** Каждый предмет: размер [ширина, высота] и рисунок. */
 /** Состояние предмета для рисунка: включён ли, текущее время (для часов). */
-export interface DrawOpts { on: boolean; now: number }
+export interface DrawOpts { on: boolean; now: number; tint?: string }
+
+/** Окрасы котиков. */
+export const CAT_COLORS: Record<string, { name: string; main: string; shade: string; eye: string; patch?: string; patch2?: string }> = {
+  ginger: { name: 'Рыжий', main: '#f08a3c', shade: '#d8702a', eye: '#5b3a24' },
+  grey: { name: 'Серый', main: '#9aa3ab', shade: '#7d868e', eye: '#2e3236' },
+  black: { name: 'Чёрный', main: '#3a3a40', shade: '#26262b', eye: '#f6e27a' },
+  white: { name: 'Белый', main: '#f4f1ea', shade: '#d9d4c8', eye: '#4a6a8a' },
+  tabby: { name: 'Полосатый', main: '#a07a52', shade: '#6b4f33', eye: '#2e2418' },
+  cream: { name: 'Кремовый', main: '#f3d6a8', shade: '#d9b27c', eye: '#5b3a24' },
+  calico: { name: 'Трёхцветный', main: '#f4f1ea', shade: '#d9d4c8', eye: '#3a2a1a', patch: '#f08a3c', patch2: '#3a3a40' },
+};
+const catTint = (id?: string) => CAT_COLORS[id ?? 'ginger'] ?? CAT_COLORS.ginger;
 
 const ART: Record<string, { w: number; h: number; draw: (o: DrawOpts) => ReactNode }> = {
   // ─────────── на подоконнике ───────────
-  cat: { w: 58, h: 40, draw: () => (<>
-    {shadow(30, 38, 24)}
-    <path d="M8 37 Q4 22 18 18 Q30 14 40 20 Q50 26 48 37 Z" fill={C.orange} />
-    <path d="M14 30 q6 -4 12 0 M20 25 q6 -4 12 0" stroke="#d8702a" strokeWidth="2.2" fill="none" strokeLinecap="round" />
-    <circle cx="44" cy="22" r="10" fill={C.orange} />
-    <path d="M36 15 l2 -8 l5 6 Z M47 13 l5 -6 l1 9 Z" fill={C.orange} />
-    <path d="M38 13 l1.4 -3.6 l2.2 2.8 Z M48.5 11.5 l2.6 -2.8 l.4 4 Z" fill={C.pink} />
-    <path d="M39 22 q2 2 4 0 M46 22 q2 2 4 0" stroke={C.dark} strokeWidth="1.3" fill="none" strokeLinecap="round" />
-    <circle cx="44.5" cy="25.5" r="1.1" fill={C.pink} />
-    <path d="M8 35 Q0 34 2 26 Q4 20 8 24" stroke={C.orange} strokeWidth="5" fill="none" strokeLinecap="round" />
-  </>) },
+  cat: { w: 58, h: 40, draw: (o) => {
+    const c = catTint(o.tint);
+    return (<>
+      {shadow(30, 38, 24)}
+      <path d="M8 35 Q0 34 2 26 Q4 20 8 24" stroke={c.main} strokeWidth="5" fill="none" strokeLinecap="round" />
+      <path d="M8 37 Q4 22 18 18 Q30 14 40 20 Q50 26 48 37 Z" fill={c.main} />
+      {c.patch && <path d="M14 34 Q14 24 22 22 Q28 22 28 30 Q24 36 14 34 Z" fill={c.patch} />}
+      {c.patch2 && <path d="M30 22 Q36 18 40 22 Q40 28 34 28 Q30 26 30 22 Z" fill={c.patch2} />}
+      <path d="M14 30 q6 -4 12 0 M20 25 q6 -4 12 0" stroke={c.shade} strokeWidth="2.2" fill="none" strokeLinecap="round" />
+      <path d="M35.5 17 L38 6.5 L44 13 Z M45 13 L51 6 L53 16 Z" fill={c.main} />
+      <circle cx="44" cy="22" r="10" fill={c.main} />
+      <path d="M37.8 13.5 l1.3 -4 l2.4 2.8 Z M48.5 12 l2.6 -2.8 l.4 4 Z" fill={C.pink} />
+      <path d="M39 22 q2 2 4 0 M46 22 q2 2 4 0" stroke={c.eye} strokeWidth="1.3" fill="none" strokeLinecap="round" />
+      <circle cx="44.5" cy="25.5" r="1.1" fill={C.pink} />
+    </>);
+  } },
   radio: { w: 46, h: 32, draw: (o) => (<>
     {shadow(23, 30, 20)}
     <rect x="3" y="8" width="40" height="22" rx="4" fill={C.wood} />
@@ -460,22 +477,28 @@ const ART: Record<string, { w: number; h: number; draw: (o: DrawOpts) => ReactNo
     <rect x="70" y="12" width="20" height="5" rx="2" fill="#57525f" />
     <circle cx="80" cy="14.5" r="1.4" fill={o.on ? '#9cff9c' : '#999'} />
   </>) },
-  cat_walk: { w: 70, h: 44, draw: () => (<>
-    {shadow(36, 42, 26)}
-    <g className="leg l1"><rect x="18" y="26" width="5" height="15" rx="2.5" fill="#e07a2e" /></g>
-    <g className="leg l2"><rect x="44" y="26" width="5" height="15" rx="2.5" fill="#e07a2e" /></g>
-    <path d="M10 22 Q4 10 10 4" stroke={C.orange} strokeWidth="5" fill="none" strokeLinecap="round" className="tail" />
-    <ellipse cx="34" cy="24" rx="24" ry="10" fill={C.orange} />
-    <path d="M22 18 q4 -3 8 0 M32 17 q4 -3 8 0" stroke="#d8702a" strokeWidth="2" fill="none" strokeLinecap="round" />
-    <g className="leg l3"><rect x="22" y="27" width="5" height="15" rx="2.5" fill={C.orange} /></g>
-    <g className="leg l4"><rect x="48" y="27" width="5" height="15" rx="2.5" fill={C.orange} /></g>
-    <circle cx="58" cy="15" r="9" fill={C.orange} />
-    <path d="M51 9 l1 -8 l6 5 Z M60 6 l5 -6 l2 8 Z" fill={C.orange} />
-    <path d="M53 7 l.6 -4 l2.6 2.4 Z M61.5 5 l2.4 -3 l.8 3.6 Z" fill={C.pink} />
-    <circle cx="61" cy="14" r="1.4" fill={C.dark} />
-    <path d="M65 17 q1.5 1 3 0" stroke={C.dark} strokeWidth="1" fill="none" />
-    <circle cx="66.5" cy="16" r="1" fill={C.pink} />
-  </>) },
+  cat_walk: { w: 70, h: 44, draw: (o) => {
+    const c = catTint(o.tint);
+    return (<>
+      {shadow(36, 42, 26)}
+      <g className="leg l1"><rect x="18" y="26" width="5" height="15" rx="2.5" fill={c.shade} /></g>
+      <g className="leg l2"><rect x="44" y="26" width="5" height="15" rx="2.5" fill={c.shade} /></g>
+      <path d="M10 22 Q4 10 10 4" stroke={c.main} strokeWidth="5" fill="none" strokeLinecap="round" className="tail" />
+      <ellipse cx="34" cy="24" rx="24" ry="10" fill={c.main} />
+      {c.patch && <ellipse cx="24" cy="22" rx="8" ry="6" fill={c.patch} />}
+      {c.patch2 && <ellipse cx="40" cy="20" rx="6" ry="4.5" fill={c.patch2} />}
+      <path d="M22 18 q4 -3 8 0 M32 17 q4 -3 8 0" stroke={c.shade} strokeWidth="2" fill="none" strokeLinecap="round" />
+      <g className="leg l3"><rect x="22" y="27" width="5" height="15" rx="2.5" fill={c.main} /></g>
+      <g className="leg l4"><rect x="48" y="27" width="5" height="15" rx="2.5" fill={c.main} /></g>
+      {/* уши рисуем под головой — основание всегда закрыто, ухо не «отрывается» */}
+      <path d="M50.5 12 L52 2 L58.5 9 Z M58.5 9 L64 1 L66 12 Z" fill={c.main} />
+      <circle cx="58" cy="15" r="9" fill={c.main} />
+      <path d="M52.6 8 l.6 -4 l2.6 2.6 Z M60.6 7 l2.6 -3 l.8 3.8 Z" fill={C.pink} />
+      <circle cx="61" cy="14" r="1.4" fill={c.eye} />
+      <path d="M65 17 q1.5 1 3 0" stroke={c.eye} strokeWidth="1" fill="none" />
+      <circle cx="66.5" cy="16" r="1" fill={C.pink} />
+    </>);
+  } },
   suncatcher: { w: 26, h: 44, draw: () => (<>
     <path d="M13 0 v10" stroke={C.grey} strokeWidth="1" />
     <circle cx="13" cy="18" r="8" fill="none" stroke={C.gold} strokeWidth="1.6" />
@@ -485,13 +508,13 @@ const ART: Record<string, { w: number; h: number; draw: (o: DrawOpts) => ReactNo
   </>) },
 };
 
-export const hasDecorArt = (id: string) => !!ART[id];
+export const hasDecorArt = (id: string) => !!ART[id] || id === 'cat2' || id === 'cat3';
 
 /** Нарисованный предмет декора. scale — во сколько раз крупнее «натурального» размера. */
-export function DecorArt({ id, scale = 1, className = '', on = true }: { id: string; scale?: number; className?: string; on?: boolean }) {
-  const a = ART[id];
+export function DecorArt({ id, scale = 1, className = '', on = true, tint }: { id: string; scale?: number; className?: string; on?: boolean; tint?: string }) {
+  const a = ART[id === 'cat2' || id === 'cat3' ? 'cat' : id];
   if (!a) return null;
-  const opts: DrawOpts = { on, now: Date.now() };
+  const opts: DrawOpts = { on, now: Date.now(), tint };
   return (
     <svg className={'decor-svg ' + className} viewBox={`0 0 ${a.w} ${a.h}`} width={a.w * scale} height={a.h * scale} aria-hidden>
       {a.draw(opts)}

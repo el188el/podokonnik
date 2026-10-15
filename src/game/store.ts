@@ -25,7 +25,7 @@ import { giftLink, makeCode } from './gifts';
 import { XP, levelPerks, levelReward, unlocksAt, xpToNext, SILL_UNLOCK } from './progression';
 import { QUEST_BONUS, WEEKLY_CHEST, dayKey, bumpQuest, bumpWeekly, rollDay, rollWeek, streakReward, weeklyVisit } from './quests';
 import { ITEM_BY_ID, ITEMS, placeOf, potIdOf } from './shop';
-import { advance, badLight, bestZone, canCut, cramped, ctxFor, fmt, hasLamp, neighborsOf, stageMarks, type SimEvent } from './sim';
+import { advance, badLight, bestZone, canCut, ctxFor, fmt, needSize, POT_SIZE_ITEM, POT_SIZE_NAME, potSizeOf, tight, hasLamp, neighborsOf, stageMarks, type SimEvent } from './sim';
 import { activeEvent, EVENT_TOKENS, eventSeason, tierOf, type GameEvent, type PassReward } from './events';
 import { FORM_BY_ID, FORMS, PRODUCT_BY_ID, RARE_DROP, formsOf } from './products';
 import { replayFriendWaters, type FriendWater } from './social';
@@ -325,6 +325,9 @@ function handleEvents(g: GameState, ev: SimEvent[], quiet: boolean) {
         if (!quiet) toast(`${s.name} подрос(ла): теперь «${STAGE_NAME[e.stage]}» 🌿`);
       }
       if (!quiet) { fx(p.id, 'grow'); haptic('success'); }
+    } else if (e.kind === 'tight') {
+      log(g, `${s.name}: тесно в горшке — пересади 🪴`, g.simAt);
+      if (!quiet) { say(p.id, 'Мне тесно! Пересади меня 🪴', 5000); toast(`${s.name} переросло горшок: рост остановился. Пересади в горшок ${POT_SIZE_NAME[needSize(p.stage)]} 🪴`); }
     } else if (e.kind === 'wilt') {
       log(g, `${s.name} засохло и сбросило листья 🥀`, g.simAt);
       if (!quiet) { toast(`${s.name} засыхает и сбрасывает листья 🥀 Полей и поставь на свет`); haptic('error'); }
@@ -845,6 +848,7 @@ export function plantInPot(plantId: string) {
     g.owned.pot = potsLeft(g) - 1;
     const first = g.stats.planted === 0;
     p.stage = 2;
+    p.potSize = 1;
     p.plantedAt = t;
     // первая победа: самое первое растение подрастёт уже через 10 минут
     p.growth = first ? Math.max(0, stageMarks(p.sp)[0] - FIRST_YOUNG_H) : 0;
@@ -970,17 +974,28 @@ export function feed(plantId: string): boolean {
   });
 }
 
-export function repot(plantId: string, careful = false) {
+/** Сколько горшков размера size (1 S … 4 XL) в запасе. */
+export const potsOf = (g: GameState, size: number) => g.owned[POT_SIZE_ITEM[size]] ?? 0;
+
+/** Пересадить в горшок побольше. По умолчанию — в тот, что нужен по возрасту. */
+export function repot(plantId: string, careful = false, size?: number) {
   mut((g, t) => {
     const p = findPlant(g, plantId);
-    if (!p || !cramped(p, t)) return;
-    if ((g.owned.potL ?? 0) <= 0) {
-      if (g.leaves < ITEM_BY_ID.potL.price) { toast('Нужен большой горшок: загляни в магазин 🪴'); return; }
-      g.leaves -= ITEM_BY_ID.potL.price;
-    } else g.owned.potL -= 1;
-    p.bigPot = true;
+    if (!p || p.stage < 2) return;
+    const cur = potSizeOf(p);
+    const to = size ?? Math.max(cur + 1, needSize(p.stage));
+    if (to <= cur || to > 4) return;
+    const item = POT_SIZE_ITEM[to];
+    if (potsOf(g, to) <= 0) {
+      if (g.leaves < ITEM_BY_ID[item].price) { toast(`Нужен горшок ${POT_SIZE_NAME[to]}: загляни в магазин 🪴`); return; }
+      g.leaves -= ITEM_BY_ID[item].price;
+    } else g.owned[item] -= 1;
+    const wasTight = tight(p);
+    p.potSize = to;
+    p.bigPot = to >= 4;
     p.repottedAt = t;
-    g.owned.pot = potsLeft(g) + 1; // старый горшок освободился
+    g.owned[POT_SIZE_ITEM[cur]] = potsOf(g, cur) + 1; // старый горшок освободился
+    if (wasTight && !tight(p)) say(p.id, 'Ура, простор! Расту дальше 🌿', 4000);
     g.stats.repots += 1;
     addXp(g, XP.repot);
     quest(g, 'repot');
@@ -989,7 +1004,7 @@ export function repot(plantId: string, careful = false) {
       p.health = Math.min(100, p.health + 10);
       g.leaves += 10;
       toast('Идеальная пересадка — корни целы! +10 🍃 и здоровье ❤️');
-    } else toast('Пересажено! В просторном горшке черенки отрастают быстрее 🪴');
+    } else toast(to >= 4 ? 'Пересажено в XL! В просторе черенки отрастают быстрее 🪴' : `Пересажено в горшок ${POT_SIZE_NAME[to]} — растём дальше 🪴`);
   });
 }
 
@@ -1058,7 +1073,7 @@ export function giftCutting(cuttingId: string, from: string, note: number) {
 export function removePlant(plantId: string) {
   mut((g) => {
     const p = findPlant(g, plantId);
-    if (p && p.stage >= 2) g.owned.pot = potsLeft(g) + 1; // горшок освободился
+    if (p && p.stage >= 2) { const sz = potSizeOf(p); g.owned[POT_SIZE_ITEM[sz]] = potsOf(g, sz) + 1; } // горшок освободился
     g.plants = g.plants.filter((x) => x.id !== plantId);
   });
   closeSheet();
@@ -1082,6 +1097,11 @@ const NAME_REWARD = 5;
 
 export function setPot(plantId: string, pot: string) {
   mut((g) => { const p = findPlant(g, plantId); if (p && (pot === 'terracotta' || g.owned['pot_' + pot])) p.pot = pot; });
+}
+
+export const ownsShape = (g: GameState, shape: string) => shape === 'classic' || (g.owned['shape_' + shape] ?? 0) > 0;
+export function setPotShape(plantId: string, shape: string) {
+  mut((g) => { const p = findPlant(g, plantId); if (p && ownsShape(g, shape)) { p.shape = shape === 'classic' ? undefined : shape; haptic('select'); } });
 }
 
 // ─────────────────── подарки: получение ───────────────────
@@ -1130,6 +1150,7 @@ export function buyItem(id: string) {
     if (it.level && g.level < it.level) { toast(`Откроется на ${it.level} уровне`); return false; }
     if (it.months && !it.months.includes(new Date(t).getMonth() + 1)) { toast('Этот товар бывает только в сезон'); return false; }
     if (!it.consumable && (g.owned[id] ?? 0) > 0) { toast('Уже есть 🙂'); return false; }
+    if (it.needs && !(g.owned[it.needs] ?? 0)) { toast(`Сначала — ${ITEM_BY_ID[it.needs]?.name ?? 'предыдущий товар'}`); return false; }
     if (g.leaves < it.price) { toast('Не хватает листиков 🍃'); haptic('warning'); return false; }
     g.leaves -= it.price;
     const ids = it.pack ?? [id];
@@ -2381,4 +2402,9 @@ export function claimDaily() {
     toast(`🎁 Сундучок: ${d.title}! Завтра — новый`);
     track('daily_chest', {});
   });
+}
+
+// ─────────────────── котики ───────────────────
+export function setCatColor(id: string, color: string) {
+  mut((g) => { g.catColors = { ...(g.catColors ?? {}), [id]: color }; haptic('select'); });
 }

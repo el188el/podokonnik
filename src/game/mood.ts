@@ -3,7 +3,7 @@
 // подоконник ощущается живым, а подсказки звучат по-человечески.
 
 import { ageDays } from './age';
-import { badLight, canCut, cramped, type Ctx } from './sim';
+import { badLight, canCut, cramped, potSizeOf, tight, type Ctx } from './sim';
 import { sp } from './species';
 import type { Plant } from './types';
 import type { Weather } from './weather';
@@ -20,7 +20,8 @@ export function moodOf(p: Plant, t: number, ctx: Ctx): Mood {
   if (p.moisture < 0.25) s -= 25;
   if (p.moisture > 1) s -= 20;
   if (badLight(p, t, ctx)) s -= 20;
-  if (cramped(p, t)) s -= 10;
+  if (tight(p)) s -= 30;
+  else if (cramped(p, t)) s -= 10;
   if (p.mistUntil && t < p.mistUntil) s += 10;
   if (p.feedUntil && t < p.feedUntil) s += 5;
   if (p.blooming) s += 10;
@@ -66,7 +67,8 @@ export function chatter(p: Plant, t: number, ctx: Ctx, w: Weather | null, r: num
   if (p.feedUntil && t < p.feedUntil) lines.push('Вкусная подкормка! 🧪', 'Чувствую силы расти!');
   if (p.blooming) lines.push('Я цвету — посмотри! 🌸', 'Нравятся мои цветы?');
   if (canCut(p, t)) lines.push('Можно взять от меня черенок ✂️', 'Поделись мной с другом 🎁');
-  if (cramped(p, t)) lines.push('Тесновато в горшке…');
+  if (tight(p)) lines.push('Мне тесно! Корни упёрлись в стенки 😣', 'Пересади меня, пожалуйста — я перестало расти', 'Горшок как ботинок на размер меньше…');
+  else if (cramped(p, t)) lines.push('Тесновато в горшке…');
   if (p.from) lines.push(`Передай привет ${p.from.name} 👋`);
   if (p.nick) lines.push(`Меня зовут ${p.nick}! 😊`);
   const age = ageDays(p, t);
@@ -85,11 +87,12 @@ export function chatter(p: Plant, t: number, ctx: Ctx, w: Weather | null, r: num
   if (h >= 12 && h < 15) lines.push('Обеденное солнышко — моё любимое', 'Ты уже обедал(а)? Я — да, светом ☀️');
   // соседи по подоконнику и вещи в комнате
   const decor = ctx.sill.decor ?? [];
-  if (decor.includes('cat')) lines.push('Барсик опять на меня смотрит 👀', 'Кот мурчит — и мне спокойнее', 'Только не грызи меня, Барсик!');
+  if (decor.some((d) => d.startsWith('cat') && d !== 'catgrass')) lines.push('Барсик опять на меня смотрит 👀', 'Кот мурчит — и мне спокойнее', 'Только не грызи меня, Барсик!');
   if (ctx.radio) lines.push('Хорошая песня! 🎶', 'Сделай погромче, я подпеваю 🎵', 'Под музыку и расти веселее');
   if (ctx.lamp && (h >= 18 || h < 7)) lines.push('Под лампой как на юге 💜', 'Фиолетовый мне к лицу');
   if (ctx.humid) lines.push('Воздух свежий, как после дождя 💨');
-  if (p.bigPot) lines.push('Новый горшок — простор! 🏡');
+  if (potSizeOf(p) >= 4) lines.push('Новый горшок — простор! 🏡');
+  if (p.repottedAt && t - p.repottedAt < 86400000) lines.push('Спасибо за новый горшок! Есть где развернуться 🌿');
   if (p.line?.length) lines.push(`Моя бабушка жила у ${p.line[0].n} 🌳`, 'У меня есть родословная, между прочим 😌');
   if (p.stage === 2) lines.push('Я ещё маленькое, но стараюсь!', 'Смотри, новый листик проклюнулся 🌱', 'Вырасту — стану красивым');
   if (p.stage === 3) lines.push('Я уже подросток 😎', 'Скоро совсем вырасту!', 'Чувствуешь, как я тянусь вверх?');

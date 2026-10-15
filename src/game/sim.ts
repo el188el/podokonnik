@@ -8,7 +8,7 @@ import { isDim, isSunny, weatherAt } from './weather';
 import { PROBLEMS, problemEffect, SHADY, stepProblem, trySpread } from './problems';
 import { rowSlots, zoneOfSlot } from './layout';
 import { climateDrying, climateGrowth, climateOf, coldLimit, zoneTemp } from './climate';
-import { catStep, type CatAction } from './cat';
+import { CAT_IDS, catStep, type CatAction } from './cat';
 import type { GameState, Plant, ProblemKind, Sill, Stage } from './types';
 
 export const STEP_H = 0.25;
@@ -20,6 +20,7 @@ export type SimEvent =
   | { kind: 'wilt'; plant: string }
   | { kind: 'bloom'; plant: string }
   | { kind: 'neighbor'; plant: string }
+  | { kind: 'tight'; plant: string }
   | { kind: 'problem'; plant: string; problem: ProblemKind; spread?: boolean }
   | { kind: 'cat'; plant: string; action: CatAction };
 
@@ -82,13 +83,26 @@ export const isThirstySad = (p: Plant) => p.stage >= 2 && p.dryFor > sp(p.sp).dr
 export const isLightSad = (p: Plant) => p.badLightFor >= 20;
 export const isSad = (p: Plant) => p.stage >= 2 && (p.health < 60 || isThirstySad(p) || isLightSad(p));
 
+// ─────────── размер горшка ───────────
+// Растёт растение — растёт и горшок: росток в S, подросток в M, взрослое в L.
+// XL — простор для взрослого: черенки отрастают быстрее. В тесном горшке
+// растение грустит и перестаёт расти, пока его не пересадят.
+export const POT_SIZE_NAME = ['', 'S', 'M', 'L', 'XL'];
+export const POT_SIZE_ITEM = ['', 'pot', 'potM', 'potL', 'potXL'];
+export const needSize = (stage: number) => (stage >= 4 ? 3 : stage === 3 ? 2 : 1);
+export const potSizeOf = (p: Pick<Plant, 'potSize' | 'bigPot' | 'stage'>) => p.potSize ?? (p.bigPot ? 4 : needSize(p.stage));
+/** Горшок мал для этой стадии: рост остановлен до пересадки. */
+export const tight = (p: Plant) => p.stage >= 2 && potSizeOf(p) < needSize(p.stage);
+
 export function cramped(p: Plant, t: number) {
-  return p.stage === 4 && !p.bigPot && !!p.adultAt && t - p.adultAt >= sp(p.sp).repotDays * D;
+  if (tight(p)) return true;
+  // взрослое в L со временем хочет простора (XL)
+  return p.stage === 4 && potSizeOf(p) === 3 && !!p.adultAt && t - p.adultAt >= sp(p.sp).repotDays * D;
 }
 
 export function cutCooldown(p: Plant, t: number) {
   const s = sp(p.sp);
-  const k = p.bigPot ? 0.75 : cramped(p, t) ? 1.5 : 1;
+  const k = potSizeOf(p) >= 4 ? 0.75 : cramped(p, t) ? 1.5 : 1;
   return s.cutHours * H * k;
 }
 
@@ -97,7 +111,7 @@ export function cutLeft(p: Plant, t: number) {
   return Math.max(0, p.lastCut + cutCooldown(p, t) - t);
 }
 
-export const canCut = (p: Plant, t: number) => p.stage === 4 && !isSad(p) && cutLeft(p, t) <= 0;
+export const canCut = (p: Plant, t: number) => p.stage === 4 && !isSad(p) && !tight(p) && cutLeft(p, t) <= 0;
 
 export interface Ctx {
   sill: Sill;
@@ -125,6 +139,7 @@ export const newbieLeft = (g: Pick<GameState, 'createdAt' | 'level'>, t: number)
 
 export function growthRate(p: Plant, t: number, ctx: Ctx) {
   if (p.stage < 2) return 0;
+  if (tight(p)) return 0; // в тесном горшке не растёт
   let r = 1;
   if (p.moisture <= 0) r = 0.3;
   const bad = badLight(p, t, ctx);
@@ -174,6 +189,7 @@ function stepPlant(p: Plant, dtH: number, t: number, ctx: Ctx, ev: SimEvent[]) {
     return;
   }
   if (p.stage === 1) return;
+  if (p.potSize == null) p.potSize = p.bigPot ? 4 : needSize(p.stage); // старые сохранения
 
   const s = sp(p.sp);
   const winter = isWinter(t);
@@ -205,6 +221,8 @@ function stepPlant(p: Plant, dtH: number, t: number, ctx: Ctx, ev: SimEvent[]) {
   p.lowestHealth = Math.min(p.lowestHealth, p.health);
 
   p.growth += growthRate(p, t, ctx) * dtH;
+  // из маленького горшка S растение не перерастает сразу во взрослое
+  if (potSizeOf(p) <= 1) p.growth = Math.min(p.growth, stageMarks(p.sp)[1] - 0.01);
 
   if (p.health <= 0) {
     // засохло: теряет стадию, но не погибает — его можно выходить
@@ -222,6 +240,7 @@ function stepPlant(p: Plant, dtH: number, t: number, ctx: Ctx, ev: SimEvent[]) {
   if (st > p.stage) {
     if (st === 4 && !p.adultAt) p.adultAt = t;
     ev.push({ kind: 'stage', plant: p.id, stage: st });
+    if (potSizeOf(p) < needSize(st)) ev.push({ kind: 'tight', plant: p.id });
   }
   if (st === 4 && !p.adultAt) p.adultAt = t;
   p.stage = st;
@@ -300,7 +319,7 @@ export function advance(state: GameState, t: number): SimEvent[] {
     }
     // проделки кота
     for (const sill of state.sills ?? []) {
-      if (!hasDecorOn(state, sill, 'cat')) continue;
+      if (!CAT_IDS.some((c) => hasDecorOn(state, sill, c))) continue;
       const e = catStep(state.plants.filter((p) => p.sill === sill.id), `${state.createdAt}-${sill.id}`, dt / H, step, hasDecorOn(state, sill, 'catgrass'));
       if (e) ev.push({ kind: 'cat', plant: e.plant, action: e.action });
     }

@@ -42,6 +42,8 @@ export interface PublicPlant {
   zone: Plant['zone'];
   pot: string;
   bigPot: boolean;
+  potSize?: number;
+  shape?: string;
   stage: Plant['stage'];
   blooming: boolean;
   nick?: string;
@@ -66,7 +68,7 @@ export function publicView(state: GameState, now: number, waters: FriendWater[] 
     level: g.level,
     sills: g.sills.map((s) => ({ id: s.id, name: s.name, window: s.window, decor: s.decor.filter((d) => (g.owned[d] ?? 0) > 0) })),
     plants: g.plants.map((p) => ({
-      id: p.id, sp: p.sp, form: p.form, hue: p.hue, sill: p.sill, slot: p.slot, zone: p.zone, pot: p.pot, bigPot: p.bigPot,
+      id: p.id, sp: p.sp, form: p.form, hue: p.hue, sill: p.sill, slot: p.slot, zone: p.zone, pot: p.pot, bigPot: p.bigPot, potSize: p.potSize, shape: p.shape,
       stage: p.stage, blooming: p.blooming, nick: p.nick, thirsty: needsWater(p), sad: p.stage >= 2 && p.health < 60,
     })),
     neighbor: !!g.neighbor && now < g.neighbor.until,

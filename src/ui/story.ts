@@ -2,6 +2,7 @@
 // Рисуем картинку 1080×1920 на canvas. В Telegram — загружаем на сервер и открываем
 // окно публикации сторис, в остальных местах — делимся картинкой как файлом.
 
+import { potSizeOf } from '../game/sim';
 import { createElement } from 'react';
 import { HANG_ROW, layoutRows } from '../game/layout';
 import { plural } from '../game/sim';
@@ -19,7 +20,7 @@ const H = 1920;
 
 async function plantImage(p: Plant): Promise<HTMLImageElement> {
   const { renderToStaticMarkup } = await import('react-dom/server');
-  const svg = renderToStaticMarkup(createElement(PlantArt, { sp: p.sp, form: p.form, hue: p.hue, stage: p.stage, seed: p.id, pot: p.pot, bigPot: p.bigPot, blooming: p.blooming }))
+  const svg = renderToStaticMarkup(createElement(PlantArt, { sp: p.sp, form: p.form, hue: p.hue, stage: p.stage, seed: p.id, pot: p.pot, size: potSizeOf(p), shape: p.shape, blooming: p.blooming }))
     .replace('<svg', '<svg xmlns="http://www.w3.org/2000/svg" width="420" height="600"');
   const img = new Image();
   img.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg);

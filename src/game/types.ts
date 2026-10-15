@@ -78,7 +78,9 @@ export interface Plant {
   zone: Zone;
   nick?: string;
   pot: string;          // скин горшка
-  bigPot: boolean;      // пересажено в горшок L
+  bigPot: boolean;      // старое поле: пересажено в большой горшок (теперь XL)
+  potSize?: number;     // размер горшка: 1 S, 2 M, 3 L, 4 XL
+  shape?: string;       // форма горшка
   createdAt: number;
   quick?: boolean;      // первый черенок и подарки укореняются за 2 минуты
   rootStart?: number;   // когда налили воду в стакан
@@ -275,6 +277,7 @@ export interface GameState {
   caught?: { day: string; n: number }; // пойманные падающие жетоны сезона
   firstSteps?: number[];  // забранные награды «Первых шагов»
   daily?: string;         // день, когда открыт ежедневный сундучок (после первой недели)
+  catColors?: Record<string, string>; // окрасы котиков
   invites?: number[];    // забранные ступени лестницы приглашений
   catPet?: string;       // день, когда гладили Барсика
   boosts?: { day: string; n: number }; // сколько стимуляторов дали сегодня

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { Fragment, useState } from 'react';
 import { SILL_UNLOCK } from '../../game/progression';
 import { ITEMS, potIdOf, type ShopCat } from '../../game/shop';
 import { DIFFICULTY_LABEL, SPECIES } from '../../game/species';
@@ -81,18 +81,21 @@ export function Shop() {
       )}
 
       {cat === 'pots' && (
-        <p className="muted small">Под каждое растение нужен свой горшок — как в жизни. А дизайн (цвет и узор) покупается один раз и остаётся навсегда: выбирай его в карточке растения.</p>
+        <p className="muted small">Горшок растёт вместе с растением: росток — в S, подросток — в M, взрослое — в L. В тесном горшке растение грустит и не растёт. Формы, цвета и узоры покупаются один раз — выбирай их в карточке растения.</p>
       )}
       {cat !== 'plants' && cat !== 'sills' && (
         <div className="list">
-          {ITEMS.filter((i) => i.cat === cat && (!i.eventOnly || (g.owned[i.id] ?? 0) > 0)).map((it) => {
+          {ITEMS.filter((i) => i.cat === cat && (!i.eventOnly || (g.owned[i.id] ?? 0) > 0)).map((it, idx, arr) => {
+            const grp = it.group && it.group !== arr.slice(0, idx).reverse().find((x) => x.group)?.group ? it.group : null;
             const owned = (g.owned[it.id] ?? 0) > 0 && !it.consumable;
             const lockLevel = it.level && g.level < it.level;
             const offSeason = it.months && !it.months.includes(month);
             return (
-              <div key={it.id} className="row-item">
+              <Fragment key={it.id}>
+              {grp && <h3 className="shop-group">{grp}</h3>}
+              <div className="row-item">
                 <div className="ricon">
-                  {it.gives || it.id === 'pot' ? <span className="pot-stack">🪴{it.count ? `×${it.count}` : ''}</span> : it.cat === 'pots' ? <PlantArt sp="chlorophytum" stage={2} pot={potIdOf(it.id)} seed="pot" /> : hasDecorArt(it.id) ? <DecorArt id={it.id} scale={1.5} className="shop-decor" /> : it.icon}
+                  {it.pack && it.cat === 'pots' ? <span className="pot-stack">📦</span> : it.gives ? <span className="pot-stack">🪴×{it.count}</span> : it.size ? <PlantArt sp="chlorophytum" stage={2} size={it.size} seed="pot" potView /> : it.shape ? <PlantArt sp="chlorophytum" stage={2} shape={it.shape} pot="white" seed="pot" potView /> : it.cat === 'pots' ? <PlantArt sp="chlorophytum" stage={2} pot={potIdOf(it.id)} seed="pot" potView /> : hasDecorArt(it.id) ? <DecorArt id={it.id} scale={1.5} className="shop-decor" /> : it.icon}
                 </div>
                 <div className="rtext">
                   <b>{it.name}</b>
@@ -109,6 +112,7 @@ export function Shop() {
                   <Btn small kind="primary" disabled={g.leaves < it.price} onClick={() => buyItem(it.id)}>{it.price} 🍃</Btn>
                 )}
               </div>
+              </Fragment>
             );
           })}
         </div>

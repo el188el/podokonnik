@@ -1,5 +1,6 @@
 // Конкурс «Подоконник недели»: выставь свой подоконник и отдай 3 сердечка лучшим.
 
+import { potSizeOf } from '../../game/sim';
 import { useCallback, useEffect, useState } from 'react';
 import { layoutRows, rowCell } from '../../game/layout';
 import { fmt } from '../../game/sim';
@@ -28,7 +29,7 @@ export function ShotScene({ shot }: { shot: api.ContestEntry['shot'] }) {
           return (
             <div className="slot guest">
               <div className="art">
-                <PlantArt sp={p.sp} form={p.form} hue={p.hue} stage={p.stage} seed={p.id} pot={p.pot} bigPot={p.bigPot} blooming={p.blooming} className="plant-svg" />
+                <PlantArt sp={p.sp} form={p.form} hue={p.hue} stage={p.stage} seed={p.id} pot={p.pot} size={potSizeOf(p)} shape={p.shape} blooming={p.blooming} className="plant-svg" />
               </div>
             </div>
           );

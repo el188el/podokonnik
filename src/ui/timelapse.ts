@@ -2,6 +2,7 @@
 // Кадры — стадии роста этого же растения (тот же вид, форма, цвет, горшок),
 // между ними плавные переходы и счётчик дней. Видео пишем с canvas через MediaRecorder.
 
+import { potSizeOf, needSize } from '../game/sim';
 import { createElement } from 'react';
 import { ageDays } from '../game/age';
 import { STAGE_NAME } from '../game/constants';
@@ -17,7 +18,7 @@ const END_MS = 1800;    // финальный кадр с надписью
 
 async function art(p: Plant, stage: number, blooming: boolean): Promise<HTMLImageElement> {
   const { renderToStaticMarkup } = await import('react-dom/server');
-  const svg = renderToStaticMarkup(createElement(PlantArt, { sp: p.sp, form: p.form, hue: p.hue, stage: stage as Plant['stage'], seed: p.id, pot: p.pot, bigPot: stage >= 4 && p.bigPot, blooming }))
+  const svg = renderToStaticMarkup(createElement(PlantArt, { sp: p.sp, form: p.form, hue: p.hue, stage: stage as Plant['stage'], seed: p.id, pot: p.pot, size: Math.max(needSize(stage), stage === p.stage ? potSizeOf(p) : 0), shape: p.shape, blooming }))
     .replace('<svg', '<svg xmlns="http://www.w3.org/2000/svg" width="420" height="600"');
   const img = new Image();
   img.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg);

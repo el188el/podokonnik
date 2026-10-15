@@ -771,12 +771,37 @@ function Glass({ front }: { front?: boolean }) {
 }
 
 // ─────────────── горшок ───────────────
-export function Pot({ skin, big }: { skin: string; big?: boolean }) {
+/** Масштаб горшка по размеру: S, M, L, XL. */
+export const POT_K = [1, 0.7, 0.85, 1, 1.14];
+
+function potBody(shape: string, x0: number, w: number, bx: number, bw: number) {
+  switch (shape) {
+    case 'cylinder': return `M${x0 + 8},148 H${x0 + w - 8} V190 Q${x0 + w - 8},196 ${x0 + w - 14},196 H${x0 + 14} Q${x0 + 8},196 ${x0 + 8},190 Z`;
+    case 'belly': return `M${x0 + 10},148 C${x0 - 6},164 ${x0 + 2},196 ${x0 + 26},196 H${x0 + w - 26} C${x0 + w - 2},196 ${x0 + w + 6},164 ${x0 + w - 10},148 Z`;
+    case 'cube': return `M${x0 + 4},146 H${x0 + w - 4} V196 H${x0 + 4} Z`;
+    case 'bowl': return `M${x0},166 H${x0 + w} Q${x0 + w - 4},196 ${70 + 18},196 H${70 - 18} Q${x0 + 4},196 ${x0},166 Z`;
+    case 'legs': return `M${x0 + 8},148 H${x0 + w - 8} L${x0 + w - 18},182 H${x0 + 18} Z`;
+    default: return `M${x0 + 6},148 H${x0 + w - 6} L${bx + bw},196 H${bx} Z`;
+  }
+}
+
+/** Где у горшка земля (куда «вставлено» растение) — в координатах рисунка. */
+export const potRootY = (size = 3, shape = 'classic') => 196 - (196 - (shape === 'bowl' ? 164 : 142)) * (POT_K[size] ?? 1);
+
+export function Pot({ skin, size = 3, shape = 'classic' }: { skin: string; size?: number; shape?: string }) {
+  const k = POT_K[size] ?? 1;
+  return <g transform={`translate(70 196) scale(${k}) translate(-70 -196)`}><PotL skin={skin} shape={shape} /></g>;
+}
+
+function PotL({ skin, shape }: { skin: string; shape: string }) {
+  const clip = useId().replace(/[^a-zA-Z0-9_-]/g, '');
   const p = POTS[skin] ?? POTS.terracotta;
-  const w = big ? 112 : 96;
+  const w = 96;
   const x0 = 70 - w / 2;
   const bw = w * 0.76;
   const bx = 70 - bw / 2;
+  const body = potBody(shape, x0, w, bx, bw);
+  const rimY = shape === 'bowl' ? 158 : 138;
   if (p.pattern === 'enamel') {
     return (
       <g>
@@ -791,7 +816,35 @@ export function Pot({ skin, big }: { skin: string; big?: boolean }) {
   }
   return (
     <g>
-      <path d={`M${x0 + 6},148 H${x0 + w - 6} L${bx + bw},196 H${bx} Z`} fill={p.body} opacity={p.pattern === 'glass' ? 0.55 : 1} />
+      <clipPath id={clip}><path d={body} /></clipPath>
+      {shape === 'legs' && (
+        <g stroke="#8a5a36" strokeWidth={4} strokeLinecap="round">
+          <path d={`M${x0 + 24},180 L${x0 + 16},195 M${x0 + w - 24},180 L${x0 + w - 16},195 M70,182 L70,194`} />
+        </g>
+      )}
+      <path d={body} fill={p.body} opacity={p.pattern === 'glass' ? 0.55 : 1} />
+      {shape === 'cube' && <path d={`M${x0 + w - 18},146 V196 H${x0 + w - 4} V146 Z`} fill="#000" opacity={0.08} />}
+      {shape === 'belly' && <path d={`M${x0 + 14},156 Q${x0 + 6},172 ${x0 + 18},188`} stroke="#fff" strokeWidth={4} fill="none" opacity={0.25} strokeLinecap="round" />}
+      <g clipPath={`url(#${clip})`}>
+      {p.pattern === 'marble' && (
+        <g stroke="#a9a59c" fill="none" strokeLinecap="round" opacity={0.75}>
+          <path d="M30,160 C48,152 56,176 74,166 S100,170 112,158" strokeWidth={1.4} />
+          <path d="M34,184 C52,174 62,190 84,180" strokeWidth={1} />
+          <path d="M60,150 q8,12 4,26" strokeWidth={0.8} />
+        </g>
+      )}
+      {p.pattern === 'terrazzo' && (
+        <g>
+          {[[40, 158, '#e8846b'], [58, 172, '#5d8a7a'], [80, 160, '#e9b949'], [96, 178, '#8aa6c1'], [50, 188, '#e9b949'], [74, 186, '#e8846b'], [88, 168, '#3a3a40'], [66, 156, '#8aa6c1'], [100, 160, '#5d8a7a']].map(([x, y, c], i) => (
+            <path key={i} d={`M${x},${y} l3,-2 l2,3 l-3,2 Z`} fill={c as string} transform={`rotate(${i * 37} ${x} ${y})`} />
+          ))}
+        </g>
+      )}
+      {p.pattern === 'stripes' && (
+        <g fill="#2f4f8a" opacity={0.85}>
+          {[156, 168, 180, 192].map((y) => <rect key={y} x={0} y={y} width={140} height={5} />)}
+        </g>
+      )}
       {p.pattern === 'glass' && (
         <g stroke="#a99a74" strokeWidth={1.2} fill="none" opacity={0.7}>
           <path d="M60,150 q-4,20 2,40 M72,150 q6,18 -2,40 M82,152 q2,14 -4,30" />
@@ -841,9 +894,10 @@ export function Pot({ skin, big }: { skin: string; big?: boolean }) {
           {[[52, 160], [80, 170], [66, 184], [90, 156], [58, 178]].map(([x, y], i) => <circle key={i} cx={x} cy={y} r={1.2} />)}
         </g>
       )}
-      <rect x={x0} y={138} width={w} height={13} rx={4} fill={p.rim} opacity={p.pattern === 'glass' ? 0.8 : 1} />
-      <path d={`M${x0 + 8},${152} H${x0 + w - 8}`} stroke="#000" strokeWidth={3} opacity={0.12} />
-      <ellipse cx={70} cy={140} rx={w / 2 - 6} ry={3.5} fill="#6b4a33" />
+      </g>
+      <rect x={shape === 'bowl' ? x0 - 2 : x0} y={rimY} width={shape === 'bowl' ? w + 4 : w} height={shape === 'bowl' ? 9 : 13} rx={shape === 'cube' ? 1.5 : 4} fill={p.rim} opacity={p.pattern === 'glass' ? 0.8 : 1} />
+      {shape !== 'bowl' && <path d={`M${x0 + 8},${152} H${x0 + w - 8}`} stroke="#000" strokeWidth={3} opacity={0.12} />}
+      <ellipse cx={70} cy={rimY + 2} rx={w / 2 - 6} ry={3.5} fill="#6b4a33" />
     </g>
   );
 }
@@ -855,6 +909,11 @@ export interface PlantArtProps {
   seed?: string;
   pot?: string;
   bigPot?: boolean;
+  /** Размер горшка 1 S … 4 XL (по умолчанию — L, или XL при bigPot). */
+  size?: number;
+  shape?: string;
+  /** Кадр крупно на горшок — для витрины. */
+  potView?: boolean;
   blooming?: boolean;
   className?: string;
   noPot?: boolean;
@@ -862,7 +921,7 @@ export interface PlantArtProps {
   hue?: string;
 }
 
-export function PlantArt({ sp: spId, stage, seed = '', pot = 'terracotta', bigPot, blooming, className, noPot, form, hue }: PlantArtProps) {
+export function PlantArt({ sp: spId, stage, seed = '', pot = 'terracotta', bigPot, size, shape, potView, blooming, className, noPot, form, hue }: PlantArtProps) {
   const uid = useId().replace(/[^a-zA-Z0-9_-]/g, '');
   const base = sp(spId);
   const fm = form ? FORM_BY_ID[form] : undefined;
@@ -873,7 +932,7 @@ export function PlantArt({ sp: spId, stage, seed = '', pot = 'terracotta', bigPo
   const r = rng(spId + seed);
   if (stage <= 1) {
     return (
-      <svg viewBox="0 0 140 200" className={className} aria-label={s.name}>
+      <svg viewBox="0 0 140 200" preserveAspectRatio="xMidYMax meet" className={className} aria-label={s.name}>
         {!noPot && <Glass />}
         <Variegate.Provider value={vg}>
           <Cutting art={s.art} roots={stage === 1} r={r} />
@@ -883,11 +942,13 @@ export function PlantArt({ sp: spId, stage, seed = '', pot = 'terracotta', bigPo
     );
   }
   const n = stage - 2;
-  const scale = bigPot && stage === 4 ? 1.08 : 1;
+  const sz = size ?? (bigPot ? 4 : 3);
+  const scale = sz >= 4 && stage === 4 ? 1.08 : 1;
+  const rootY = noPot ? 142 : potRootY(sz, shape);
   return (
-    <svg viewBox="0 0 140 200" className={className} aria-label={s.name} overflow="visible">
-      {!noPot && <Pot skin={pot} big={bigPot} />}
-      <svg x={70} y={142} overflow="visible" className="plant-root">
+    <svg viewBox={potView ? '6 96 128 104' : '0 0 140 200'} preserveAspectRatio="xMidYMax meet" className={potView ? ((className ?? '') + ' pot-view').trim() : className} aria-label={s.name} overflow={potView ? 'hidden' : 'visible'}>
+      {!noPot && <Pot skin={pot} size={sz} shape={shape} />}
+      <svg x={70} y={rootY} overflow="visible" className="plant-root">
         <g className="sway">
           <Variegate.Provider value={vg}>
             <g transform={`scale(${scale})`}>{DRAW[s.art.kind]({ art: s.art, n, r, bloom: !!blooming && !!s.art.flower, uid })}</g>
