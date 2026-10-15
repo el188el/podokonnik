@@ -14,6 +14,7 @@ import { roundInfo } from '../game/onboarding';
 import { ageMark } from '../game/age';
 import { PROBLEMS } from '../game/problems';
 import { diagnose } from '../game/diagnose';
+import { Emo, rich } from './kit/rich';
 
 const lastEnough: Record<string, number> = {};
 
@@ -193,7 +194,7 @@ export function Slot({ plant: p, sill, slot }: { plant: Plant; sill: string; slo
       onPointerCancel={reset}
     >
       {bubble && !covered && <FloatBubble anchor={ref} text={bubble.text} cls={bubble.cls} k={bubble.text.startsWith('🌱 ') ? 'roots' : bubble.text} />}
-      {p.stage === 0 && !p.rootStart && <div className="finger">👆</div>}
+      {p.stage === 0 && !p.rootStart && <div className="finger"><Emo e="👆" /></div>}
       {roundPending && <div className="round-dot" title="загляни в обходе" aria-label="не осмотрено в обходе" />}
       {p.problem && <div className={'pest pest-' + p.problem.kind} style={{ opacity: 0.45 + 0.55 * p.problem.sev }}>{p.problem.kind === 'gnats' ? <><i /><i /><i /></> : null}</div>}
       {p.boostUntil && t < p.boostUntil && <div className="boost-glow" />}
@@ -209,18 +210,18 @@ export function Slot({ plant: p, sill, slot }: { plant: Plant; sill: string; slo
       </motion.div>
       {fresh && fx.kind === 'water' && (
         <div className="fx" key={fx.at}>
-          {[0, 1, 2, 3, 4].map((k) => <span key={k} className="drop" style={{ left: 22 + k * 17, animationDelay: k * 0.07 + 's' }}>💧</span>)}
-          <span className="plus">+💧</span>
+          {[0, 1, 2, 3, 4].map((k) => <span key={k} className="drop" style={{ left: 22 + k * 17, animationDelay: k * 0.07 + 's' }}><Emo e="💧" /></span>)}
+          <span className="plus">+<Emo e="💧" /></span>
         </div>
       )}
       {fresh && fx.kind === 'mist' && (
         <div className="fx" key={fx.at}>
-          {[0, 1, 2, 3, 4, 5].map((k) => <span key={k} className="mist" style={{ left: 14 + k * 16, animationDelay: k * 0.06 + 's' }}>💦</span>)}
+          {[0, 1, 2, 3, 4, 5].map((k) => <span key={k} className="mist" style={{ left: 14 + k * 16, animationDelay: k * 0.06 + 's' }}><Emo e="💦" /></span>)}
         </div>
       )}
       {fresh && (fx.kind === 'grow' || fx.kind === 'feed') && (
         <div className="fx" key={fx.at}>
-          {[0, 1, 2, 3].map((k) => <span key={k} className="spark" style={{ left: 20 + k * 22, animationDelay: k * 0.1 + 's' }}>{fx.kind === 'feed' ? '🧪' : '✨'}</span>)}
+          {[0, 1, 2, 3].map((k) => <span key={k} className="spark" style={{ left: 20 + k * 22, animationDelay: k * 0.1 + 's' }}>{rich(fx.kind === 'feed' ? '🧪' : '✨')}</span>)}
         </div>
       )}
       <div className="label">
@@ -233,7 +234,7 @@ export function Slot({ plant: p, sill, slot }: { plant: Plant; sill: string; slo
             {meter && <em className={'meter-pct' + (p.moisture > 1 ? ' over' : p.moisture < 0.25 ? ' low' : '')}>{Math.round(p.moisture * 100)}%</em>}
           </div>
         )}
-        {timerFor(p, t) && <span className="timer-chip">{timerFor(p, t)}</span>}
+        {timerFor(p, t) && <span className="timer-chip">{rich(timerFor(p, t))}</span>}
       </div>
     </div>
   );
@@ -277,7 +278,7 @@ function FloatBubble({ anchor, text, cls, k }: { anchor: RefObject<HTMLDivElemen
   return createPortal(
     <div ref={box} className={'float-bubble' + (cls === 'pop' ? ' thought' : '')} style={{ left: pos?.x ?? -9999, top: pos?.y ?? -9999, visibility: pos ? 'visible' : 'hidden', ['--arrow' as string]: `${pos?.arrow ?? 0}px` }}>
       <motion.div key={k} className={`bubble ${cls}`} initial={{ scale: 0.6, opacity: 0 }} animate={{ scale: 1, opacity: 1 }}>
-        {text}
+        {rich(text)}
       </motion.div>
     </div>,
     document.body,

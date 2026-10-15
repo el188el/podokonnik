@@ -11,6 +11,7 @@ import { InviteLadder } from './InviteLadder';
 import { shareVacation } from '../share';
 import { CONFIG } from '../../config';
 import { platform } from '../../platform';
+import { rich } from '../kit/rich';
 
 function seen(ms: number) {
   const m = Math.floor(ms / 60e3);
@@ -88,10 +89,10 @@ export function Friends() {
             <div className="friends">
               {list?.map((f) => (
                 <button key={f.id} className="friend" onClick={() => openSheet({ kind: 'visit', id: f.id, name: f.name })}>
-                  <span className="avatar">{f.name.slice(0, 1).toUpperCase()}</span>
+                  <span className="avatar">{rich(f.name.slice(0, 1).toUpperCase())}</span>
                   <span className="fbody">
-                    <b>{f.plus && <Icon name="crown" size={15} tone="#e8a325" className="inl" />}{f.name}</b>
-                    <span className="muted small fmeta"><Icon name="star" size={13} /> {f.level} · <Icon name="sill" size={13} /> {f.plants} · {seen(Date.now() - f.lastSeen)}</span>
+                    <b>{f.plus && <Icon name="crown" size={15} tone="#e8a325" className="inl" />}{rich(f.name)}</b>
+                    <span className="muted small fmeta"><Icon name="star" size={13} /> {f.level} · <Icon name="sill" size={13} /> {f.plants} · {rich(seen(Date.now() - f.lastSeen))}</span>
                   </span>
                   {f.thirsty > 0 ? <span className="thirsty"><Icon name="water" size={15} tone={TONE.water} /> {f.thirsty}</span> : <span className="muted small">в гости →</span>}
                 </button>

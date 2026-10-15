@@ -24,6 +24,7 @@ import { TUTORIAL_DONE } from '../../game/store';
 import { SillScene, timeOfDay } from '../SillScene';
 import { tempText, weatherAt } from '../../game/weather';
 import { platform } from '../../platform';
+import { Emo, rich } from '../kit/rich';
 
 
 export function SillView() {
@@ -117,7 +118,7 @@ function OwnSill() {
         onClick={() => (sill.window ? openSheet({ kind: 'picker', slot: i, sill: sill.id }) : openSheet({ kind: 'window', sill: sill.id, then: 'picker', slot: i }))}
       >
         <span>+</span>
-        <small>{zoneOfSlot(i) === 'glass' ? 'у стекла' : 'в глубине'}</small>
+        <small>{rich(zoneOfSlot(i) === 'glass' ? 'у стекла' : 'в глубине')}</small>
       </motion.button>
     );
   };
@@ -132,8 +133,8 @@ function OwnSill() {
     <div className="sillview fit">
       {arrange && (
         <div className="arrange-bar">
-          <span>Перетаскивай предметы и котиков, ✕ — убрать</span>
-          <button className="linkish" onClick={() => openSheet({ kind: 'room' })}>🎨 Цвета</button>
+          <span>Перетаскивай предметы и котиков, <Emo e="✕" /> — убрать</span>
+          <button className="linkish" onClick={() => openSheet({ kind: 'room' })}><Emo e="🎨" /> Цвета</button>
           <button className="btn small primary" onClick={() => setArrange(false)}>Готово</button>
         </div>
       )}
@@ -143,7 +144,7 @@ function OwnSill() {
             const here = sill.decor.includes(id);
             return (
               <button key={id} className={'stash-item' + (here ? ' on' : '')} onClick={() => toggleDecor(sill.id, id)} title={ITEM_BY_ID[id]?.name}>
-                <span>{ITEM_BY_ID[id]?.icon}</span><small>{here ? 'убрать' : 'поставить'}</small>
+                <span>{rich(ITEM_BY_ID[id]?.icon)}</span><small>{rich(here ? 'убрать' : 'поставить')}</small>
               </button>
             );
           })}
@@ -155,18 +156,18 @@ function OwnSill() {
           {platform().kind !== 'discord' && (
             <button className={'strip-clim' + (climBad ? ' alert' : '')} onClick={() => openSheet({ kind: 'climate' })} aria-label="Погода и климат в комнате">
               <span><Icon name={w ? w.sky : 'thermo'} size={24} tone={w && (w.sky === 'clear' || w.sky === 'partly') ? '#e8a325' : '#5f7f9a'} /></span>
-              <span className="sc-text"><b>{w ? tempText(w.temp) : `${Math.round(clim.temp)}°`}</b><small>{climBad ? 'неуютно' : 'дома ' + tempWord(clim.temp)}</small></span>
+              <span className="sc-text"><b>{rich(w ? tempText(w.temp) : `${Math.round(clim.temp)}°`)}</b><small>{rich(climBad ? 'неуютно' : 'дома ' + tempWord(clim.temp))}</small></span>
             </button>
           )}
           {ev && (
             <button className={`strip-event theme-${ev.theme}`} onClick={() => openSheet({ kind: 'event' })}>
-              <span className="se-icon">{ev.token}</span>
-              <span className="se-text"><b>{ev.title}</b><small>ур. {tierOf(ev, evp?.tokens ?? 0)}/{ev.tiers.length}</small></span>
+              <span className="se-icon">{rich(ev.token)}</span>
+              <span className="se-text"><b>{rich(ev.title)}</b><small>ур. {tierOf(ev, evp?.tokens ?? 0)}/{ev.tiers.length}</small></span>
               {evReady && <i className="se-dot" />}
             </button>
           )}
           {shown.map((x) => (
-            <button key={x.key} className={'tile ' + x.cls} onClick={x.onClick} disabled={x.disabled || !x.onClick}>{x.text}</button>
+            <button key={x.key} className={'tile ' + x.cls} onClick={x.onClick} disabled={x.disabled || !x.onClick}>{rich(x.text)}</button>
           ))}
           {more > 0 && <button className="tile more" onClick={() => openSheet({ kind: 'todo' })} aria-label={`Ещё дела: ${more}`}>+{more}</button>}
         </div>
@@ -203,7 +204,7 @@ function OwnSill() {
       <FallingTokens />
       {g.cuttings.length > 0 && (
         <div className="tray compact">
-          <button className="tray-pots" onClick={() => openSheet({ kind: 'pots' })}>🪴<small>{g.owned.pot ?? 0}</small></button>
+          <button className="tray-pots" onClick={() => openSheet({ kind: 'pots' })}><Emo e="🪴" /><small>{g.owned.pot ?? 0}</small></button>
           <div className="tray-list">
             {g.cuttings.map((c) => (
               <button key={c.id} className="cutting" onClick={() => openSheet({ kind: 'send', cutting: c.id })} aria-label={sp(c.sp).name}>
@@ -242,7 +243,7 @@ function SceneFit({ hang, children }: { hang: boolean; children: (style: CSSProp
     fit();
     return () => ro.disconnect();
   }, [hang]);
-  return <div className="scene-fit" ref={ref}>{children({ ['--cellh' as string]: `${cellh}px` })}</div>;
+  return <div className="scene-fit" ref={ref}>{rich(children({ ['--cellh' as string]: `${cellh}px` }))}</div>;
 }
 
 const TOOLS: [Tool, IconName, string][] = [
@@ -266,7 +267,7 @@ function Toolbar({ sill }: { sill: string }) {
         {TOOLS.map(([k, icon, label]) => (
           <button key={k} className={'tool' + (tool === k ? ' on' : '')} onClick={() => setTool(tool === k && k !== 'look' ? 'look' : k)} aria-pressed={tool === k}>
             <span><Icon name={icon} size={24} tone={TONE[icon as keyof typeof TONE]} /></span>
-            <small>{label}</small>
+            <small>{rich(label)}</small>
             {k === 'feed' && (g.owned.feed ?? 0) > 0 && <i className="tool-badge">{g.owned.feed}</i>}
             {k === 'cut' && cuts > 0 && <i className="tool-badge ready">{cuts}</i>}
           </button>

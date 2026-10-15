@@ -10,6 +10,7 @@ import { PlantArt } from '../art/PlantArt';
 import { Btn } from '../kit/kit';
 import { layoutRows, rowCell } from '../../game/layout';
 import { SillScene, timeOfDay } from '../SillScene';
+import { Emo, rich } from '../kit/rich';
 
 
 /** Подоконник друга: смотреть и поливать тех, кто хочет пить. */
@@ -54,9 +55,9 @@ export function Visit({ id, name }: { id: string; name: string }) {
     }
   }
 
-  if (state === 'loading') return <div className="center"><div className="gicon">🚪</div><p className="muted">Идём в гости…</p></div>;
-  if (state === 'error') return <div className="center"><div className="gicon">🔌</div><p className="muted">Не получилось зайти. Проверь интернет.</p><Btn kind="ghost" onClick={closeSheet}>Закрыть</Btn></div>;
-  if (state === 'empty' || !view) return <div className="center"><div className="gicon">🪟</div><p className="muted">{name}: подоконник пока пустой.</p><Btn kind="ghost" onClick={closeSheet}>Закрыть</Btn></div>;
+  if (state === 'loading') return <div className="center"><div className="gicon"><Emo e="🚪" /></div><p className="muted">Идём в гости…</p></div>;
+  if (state === 'error') return <div className="center"><div className="gicon"><Emo e="🔌" /></div><p className="muted">Не получилось зайти. Проверь интернет.</p><Btn kind="ghost" onClick={closeSheet}>Закрыть</Btn></div>;
+  if (state === 'empty' || !view) return <div className="center"><div className="gicon"><Emo e="🪟" /></div><p className="muted">{rich(name)}: подоконник пока пустой.</p><Btn kind="ghost" onClick={closeSheet}>Закрыть</Btn></div>;
 
   const here = view.plants.filter((p) => p.sill === sill);
   const thirsty = here.filter((p) => p.thirsty).length;
@@ -64,15 +65,15 @@ export function Visit({ id, name }: { id: string; name: string }) {
   const rows = layoutRows(here);
   return (
     <div className="visit">
-      <h2>В гостях: {view.name}</h2>
+      <h2>В гостях: {rich(view.name)}</h2>
       <p className="muted small">
-        ⭐ {view.level} · {view.neighbor ? '👵 за растениями присматривает соседка' : thirsty ? `хотят пить: ${thirsty}. Тапни, чтобы полить` : 'все политы 🌿'}
-        {left > 0 && !view.neighbor && ` · можно полить ещё ${left}`}
+        <Emo e="⭐" /> {view.level} · {rich(view.neighbor ? '👵 за растениями присматривает соседка' : thirsty ? `хотят пить: ${thirsty}. Тапни, чтобы полить` : 'все политы 🌿')}
+        {rich(left > 0 && !view.neighbor && ` · можно полить ещё ${left}`)}
       </p>
       {view.sills.length > 1 && (
         <div className="chips">
           {view.sills.map((x) => (
-            <button key={x.id} className={'chip' + (x.id === sill ? ' on' : '')} onClick={() => setSill(x.id)}>{x.name}</button>
+            <button key={x.id} className={'chip' + (x.id === sill ? ' on' : '')} onClick={() => setSill(x.id)}>{rich(x.name)}</button>
           ))}
         </div>
       )}
@@ -86,13 +87,13 @@ export function Visit({ id, name }: { id: string; name: string }) {
           if (!p) return null;
           return (
             <button className={'slot guest' + (p.sad ? ' sad' : '')} onClick={() => (p.thirsty ? pour(p.id) : toast(p.stage < 2 ? 'Черенок пускает корни в стакане 🌱' : 'Ему хорошо, поливать не нужно 🌿'))}>
-              {p.thirsty && !view.neighbor && <div className="bubble">Хочу пить 💧</div>}
+              {p.thirsty && !view.neighbor && <div className="bubble">Хочу пить <Emo e="💧" /></div>}
               <div className="art">
                 <PlantArt sp={p.sp} form={p.form} hue={p.hue} stage={p.stage} seed={p.id} pot={p.pot} size={potSizeOf(p)} shape={p.shape} blooming={p.blooming} className="plant-svg" />
               </div>
               {drops[p.id] && (
                 <div className="fx" key={drops[p.id]}>
-                  {[0, 1, 2, 3, 4].map((k) => <span key={k} className="drop" style={{ left: 22 + k * 17, animationDelay: k * 0.07 + 's' }}>💧</span>)}
+                  {[0, 1, 2, 3, 4].map((k) => <span key={k} className="drop" style={{ left: 22 + k * 17, animationDelay: k * 0.07 + 's' }}><Emo e="💧" /></span>)}
                 </div>
               )}
             </button>

@@ -7,6 +7,7 @@ import { finishTutorial, openSheet, setTool, setTutorial, TUTORIAL_DONE, useStor
 import { Btn } from './kit/kit';
 import { online } from '../net/api';
 import { platform } from '../platform';
+import { Emo, rich } from './kit/rich';
 
 interface Step {
   text: string;
@@ -63,12 +64,12 @@ export function Guide() {
   return (
     <AnimatePresence mode="wait">
       <motion.div key={step} className="guide" initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}>
-        <div className="guide-avatar">👵</div>
+        <div className="guide-avatar"><Emo e="👵" /></div>
         <div className="guide-body">
           <b>Валентина Петровна</b>
-          <p>{st.text}</p>
+          <p>{rich(st.text)}</p>
           <div className="guide-actions">
-            {st.action && <Btn small kind="primary" onClick={st.action.run}>{st.action.label}</Btn>}
+            {st.action && <Btn small kind="primary" onClick={st.action.run}>{rich(st.action.label)}</Btn>}
             {step < 7 && <button className="guide-skip" onClick={() => finishTutorial(false)}>Пропустить</button>}
             {step === 0 && online() && platform().kind !== 'telegram' && <button className="guide-skip" onClick={() => openSheet({ kind: 'login' })}>Уже играю в Telegram — войти</button>}
           </div>

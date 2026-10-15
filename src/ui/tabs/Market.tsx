@@ -10,6 +10,7 @@ import * as api from '../../net/api';
 import { PlantArt } from '../art/PlantArt';
 import { Btn } from '../kit/kit';
 import { Icon, TONE } from '../kit/icons';
+import { Emo, rich } from '../kit/rich';
 
 const label = (c: { sp: string; form?: string | null; hue?: string | null }) =>
   c.form && FORM_BY_ID[c.form] ? `✨ ${FORM_BY_ID[c.form].name}` : `${sp(c.sp).name}${c.hue ? ' · ' + (hueOf(c.sp, c.hue)?.name ?? '') : ''}`;
@@ -40,7 +41,7 @@ export function Market() {
           <ListForm cuttings={g.cuttings} onDone={() => { setListing(false); setTimeout(load, 800); }} />
         ) : (
           <Btn kind="primary" disabled={!g.cuttings.length || open.length >= 3} onClick={() => setListing(true)}>
-            {!g.cuttings.length ? 'Нет черенков в запасе' : open.length >= 3 ? 'Уже выставлено 3 черенка' : '➕ Выставить черенок'}
+            {rich(!g.cuttings.length ? 'Нет черенков в запасе' : open.length >= 3 ? 'Уже выставлено 3 черенка' : '➕ Выставить черенок')}
           </Btn>
         )}
       </section>
@@ -52,11 +53,11 @@ export function Market() {
             <div key={m.id} className="swap mine">
               <PlantArt sp={m.sp} form={m.form ?? undefined} hue={m.hue ?? undefined} stage={4} seed={"m" + m.id} blooming noPot className="mini" />
               <div className="swap-body">
-                <b>{label(m)}</b>
+                <b>{rich(label(m))}</b>
                 {m.taken ? (
-                  <span className="small ok-text">✓ Обменяли на {m.given ? label(m.given) : 'черенок'}</span>
+                  <span className="small ok-text"><Emo e="✓" /> Обменяли на {rich(m.given ? label(m.given) : 'черенок')}</span>
                 ) : (
-                  <span className="muted small">Ждёт обмена · хочу: {m.wants.length ? m.wants.map((w) => sp(w).name).join(', ') : 'любой'}</span>
+                  <span className="muted small">Ждёт обмена · хочу: {rich(m.wants.length ? m.wants.map((w) => sp(w).name).join(', ') : 'любой')}</span>
                 )}
               </div>
               {!m.taken && <Btn small kind="ghost" onClick={async () => { await cancelSwap(m.id); load(); }}>Снять</Btn>}
@@ -79,15 +80,15 @@ export function Market() {
             <div key={o.id} className="swap">
               <PlantArt sp={o.sp} form={o.form ?? undefined} hue={o.hue ?? undefined} stage={4} seed={'s' + o.id} blooming noPot className="mini" />
               <div className="swap-body">
-                <b>{label(o)}</b>
-                <span className="muted small">от {o.owner} · <Icon name="star" size={12} className="inl" /> {o.level}</span>
-                <span className="small">хочет: {o.wants.length ? o.wants.map((w) => sp(w).name).join(', ') : 'любой черенок'}</span>
+                <b>{rich(label(o))}</b>
+                <span className="muted small">от {rich(o.owner)} · <Icon name="star" size={12} className="inl" /> {o.level}</span>
+                <span className="small">хочет: {rich(o.wants.length ? o.wants.map((w) => sp(w).name).join(', ') : 'любой черенок')}</span>
                 {offerFor === o.id && (
                   <div className="give-pick">
                     {mine.map((c) => (
                       <button key={c.id} className="cutting" onClick={async () => { setOfferFor(null); if (await takeSwap(o.id, c.id)) setTimeout(load, 800); }}>
                         <PlantArt sp={c.sp} form={c.form} hue={c.hue} stage={0} noPot className="mini" />
-                        <span>{label(c)}</span>
+                        <span>{rich(label(c))}</span>
                       </button>
                     ))}
                   </div>
@@ -95,7 +96,7 @@ export function Market() {
               </div>
               {offerFor !== o.id && (
                 <Btn small kind={mine.length ? 'gold' : 'soft'} disabled={!mine.length} onClick={() => setOfferFor(o.id)}>
-                  {mine.length ? 'Обменять' : 'Нет нужного'}
+                  {rich(mine.length ? 'Обменять' : 'Нет нужного')}
                 </Btn>
               )}
             </div>
@@ -118,14 +119,14 @@ function ListForm({ cuttings, onDone }: { cuttings: Cutting[]; onDone: () => voi
         {cuttings.map((c) => (
           <button key={c.id} className={'cutting' + (pick === c.id ? ' on' : '')} onClick={() => setPick(c.id)}>
             <PlantArt sp={c.sp} form={c.form} hue={c.hue} stage={0} noPot className="mini" />
-            <span>{label(c)}</span>
+            <span>{rich(label(c))}</span>
           </button>
         ))}
       </div>
       <div className="lbl">Что хочешь взамен (до 3, или ничего — любой)</div>
       <div className="chips">
         {SPECIES.map((s) => (
-          <button key={s.id} className={'chip' + (wants.includes(s.id) ? ' on' : '')} onClick={() => toggle(s.id)}>{s.name}</button>
+          <button key={s.id} className={'chip' + (wants.includes(s.id) ? ' on' : '')} onClick={() => toggle(s.id)}>{rich(s.name)}</button>
         ))}
       </div>
       <Btn kind="primary" disabled={!pick || busy} onClick={async () => { setBusy(true); await listSwap(pick, wants); setBusy(false); onDone(); }}>Выставить</Btn>

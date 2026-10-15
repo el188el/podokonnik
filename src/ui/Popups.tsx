@@ -15,6 +15,7 @@ import { FORM_BY_ID } from '../game/products';
 import { ITEM_BY_ID } from '../game/shop';
 import { sharePlantStory } from './story';
 import { AGE_MARKS, daysText } from '../game/age';
+import { Emo, rich } from './kit/rich';
 
 export function Popups() {
   const p = useStore((s) => s.popups[0]);
@@ -23,10 +24,10 @@ export function Popups() {
     <Modal open={!!p} onClose={closePopup}>
       {p?.kind === 'level' && (
         <div className="center">
-          <motion.div className="gicon" initial={{ rotate: -20, scale: 0.5 }} animate={{ rotate: 0, scale: 1 }}>⭐</motion.div>
+          <motion.div className="gicon" initial={{ rotate: -20, scale: 0.5 }} animate={{ rotate: 0, scale: 1 }}><Emo e="⭐" /></motion.div>
           <h2>Уровень {p.level}!</h2>
-          <p>Награда: <b>+{p.reward} 🍃</b></p>
-          {p.unlocks.length > 0 && <p className="muted">Открылось: {p.unlocks.join(', ')}</p>}
+          <p>Награда: <b>+{p.reward} <Emo e="🍃" /></b></p>
+          {p.unlocks.length > 0 && <p className="muted">Открылось: {rich(p.unlocks.join(', '))}</p>}
           <Btn kind="primary" onClick={closePopup}>Ура!</Btn>
         </div>
       )}
@@ -34,11 +35,11 @@ export function Popups() {
         const a = achievementById(p.id);
         return (
           <div className="center">
-            <motion.div className="gicon" initial={{ scale: 0.3 }} animate={{ scale: 1 }}>{a.icon}</motion.div>
+            <motion.div className="gicon" initial={{ scale: 0.3 }} animate={{ scale: 1 }}>{rich(a.icon)}</motion.div>
             <p className="muted small">Достижение</p>
-            <h2>{a.title}</h2>
-            <p>{a.text}</p>
-            <p><b>+{a.reward} 🍃</b></p>
+            <h2>{rich(a.title)}</h2>
+            <p>{rich(a.text)}</p>
+            <p><b>+{a.reward} <Emo e="🍃" /></b></p>
             <Btn kind="primary" onClick={closePopup}>Отлично</Btn>
           </div>
         );
@@ -46,17 +47,17 @@ export function Popups() {
       {p?.kind === 'away' && (
         <div>
           <h2 className="center">Пока тебя не было</h2>
-          <p className="muted center">Прошло {approx(p.report.ms)}</p>
+          <p className="muted center">Прошло {rich(approx(p.report.ms))}</p>
           {p.report.gift && (
             <motion.div className="comeback" initial={{ scale: 0.8, opacity: 0 }} animate={{ scale: 1, opacity: 1 }}>
-              <span className="cb-icon">🎁</span>
-              <div><b>Растения скучали — с возвращением!</b><small>+{p.report.gift.leaves} 🍃 · 🧪 ×{p.report.gift.feed} · ⚡ ×{p.report.gift.boost}</small></div>
+              <span className="cb-icon"><Emo e="🎁" /></span>
+              <div><b>Растения скучали — с возвращением!</b><small>+{p.report.gift.leaves} <Emo e="🍃" /> · <Emo e="🧪" /> ×{p.report.gift.feed} · <Emo e="⚡" /> ×{p.report.gift.boost}</small></div>
             </motion.div>
           )}
           <ul className="away">
             {p.report.lines.map((l, i) => (
               <motion.li key={i} initial={{ x: -20, opacity: 0 }} animate={{ x: 0, opacity: 1 }} transition={{ delay: i * 0.08 }}>
-                <span>{l.icon}</span> {l.text}
+                <span>{rich(l.icon)}</span> {rich(l.text)}
               </motion.li>
             ))}
           </ul>
@@ -65,8 +66,8 @@ export function Popups() {
       )}
       {p?.kind === 'streak' && (
         <div className="center">
-          <div className="gicon">🔥</div>
-          <h2>{p.count} {p.count === 1 ? 'день' : 'дня подряд'}!</h2>
+          <div className="gicon"><Emo e="🔥" /></div>
+          <h2>{p.count} {rich(p.count === 1 ? 'день' : 'дня подряд')}!</h2>
           <p className="muted">Заходи каждый день — награда растёт. На 7-й день — подкормки в подарок.</p>
           <div className="streak-row">
             {STREAK_REWARDS.map((r, i) => {
@@ -79,16 +80,16 @@ export function Popups() {
               );
             })}
           </div>
-          <Btn kind="gold" onClick={() => { claimStreak(); closePopup(); }}>Забрать +{p.reward} 🍃</Btn>
+          <Btn kind="gold" onClick={() => { claimStreak(); closePopup(); }}>Забрать +{p.reward} <Emo e="🍃" /></Btn>
         </div>
       )}
       {p?.kind === 'gift' && <GiftCard gift={p.gift} full={freeSlotsTotal(g) === 0} />}
       {p?.kind === 'thanks' && (
         <div className="center">
-          <div className="gicon">🌱</div>
+          <div className="gicon"><Emo e="🌱" /></div>
           <h2>Черенок в стакане!</h2>
-          <p className="muted">Налей воды, и через 2 минуты он пустит корни. {p.from} будет рад(а) спасибо!</p>
-          <Btn kind="primary" onClick={() => { shareThanks(p.sp); closePopup(); }}>Сказать спасибо 🌱</Btn>
+          <p className="muted">Налей воды, и через 2 минуты он пустит корни. {rich(p.from)} будет рад(а) спасибо!</p>
+          <Btn kind="primary" onClick={() => { shareThanks(p.sp); closePopup(); }}>Сказать спасибо <Emo e="🌱" /></Btn>
           <Btn kind="ghost" onClick={closePopup}>На подоконник</Btn>
         </div>
       )}
@@ -102,11 +103,11 @@ export function Popups() {
             <motion.div className={'postcard big2' + (m.frame ? ' gold-frame' : '')} initial={{ scale: 0.6, rotate: -8 }} animate={{ scale: 1, rotate: 0 }}>
               <PlantArt sp={pl.sp} form={pl.form} hue={pl.hue} stage={pl.stage} seed={pl.id} pot={pl.pot} size={potSizeOf(pl)} shape={pl.shape} blooming={pl.blooming} />
             </motion.div>
-            <h2>{m.icon} {name}: {daysText(p.days)} вместе!</h2>
-            <p className="muted">{m.frame ? 'Настоящий долгожитель — теперь у него золотая рамка на подоконнике.' : 'Целый месяц заботы — растение это чувствует.'}</p>
-            <p><b>+{m.reward} 🍃</b></p>
-            <Btn kind="gold" onClick={() => { closePopup(); openSheet({ kind: 'timelapse', plant: pl.id }); }}>🎬 Видео: как оно росло</Btn>
-            <Btn onClick={() => { sharePlantStory(pl, `${daysText(p.days)} вместе`, name, 'age'); closePopup(); }}>Похвастаться фото 📸</Btn>
+            <h2>{rich(m.icon)} {rich(name)}: {rich(daysText(p.days))} вместе!</h2>
+            <p className="muted">{rich(m.frame ? 'Настоящий долгожитель — теперь у него золотая рамка на подоконнике.' : 'Целый месяц заботы — растение это чувствует.')}</p>
+            <p><b>+{m.reward} <Emo e="🍃" /></b></p>
+            <Btn kind="gold" onClick={() => { closePopup(); openSheet({ kind: 'timelapse', plant: pl.id }); }}><Emo e="🎬" /> Видео: как оно росло</Btn>
+            <Btn onClick={() => { sharePlantStory(pl, `${daysText(p.days)} вместе`, name, 'age'); closePopup(); }}>Похвастаться фото <Emo e="📸" /></Btn>
             <Btn kind="ghost" onClick={closePopup}>Ура!</Btn>
           </div>
         );
@@ -119,18 +120,18 @@ export function Popups() {
             <motion.div className="postcard big2" initial={{ scale: 0.6, rotate: 8 }} animate={{ scale: 1, rotate: 0 }}>
               <PlantArt sp={pl.sp} form={pl.form} hue={pl.hue} stage={pl.stage} seed={pl.id} pot={pl.pot} size={potSizeOf(pl)} shape={pl.shape} blooming />
             </motion.div>
-            <h2>🌸 {pl.nick || sp(pl.sp).name} впервые зацвело!</h2>
+            <h2><Emo e="🌸" /> {rich(pl.nick || sp(pl.sp).name)} впервые зацвело!</h2>
             <p className="muted">Сними таймлапс — весь путь от черенка до цветов за 10 секунд.</p>
-            <Btn kind="gold" onClick={() => { closePopup(); openSheet({ kind: 'timelapse', plant: pl.id }); }}>🎬 Снять таймлапс</Btn>
+            <Btn kind="gold" onClick={() => { closePopup(); openSheet({ kind: 'timelapse', plant: pl.id }); }}><Emo e="🎬" /> Снять таймлапс</Btn>
             <Btn kind="ghost" onClick={closePopup}>Потом</Btn>
           </div>
         );
       })()}
       {p?.kind === 'plusGift' && (
         <div className="center">
-          <div className="gicon">🎁</div>
+          <div className="gicon"><Emo e="🎁" /></div>
           <h2>Подарок готов!</h2>
-          <p>Отправь ссылку другу — по ней он получит месяц «Садовник+» 🌟</p>
+          <p>Отправь ссылку другу — по ней он получит месяц «Садовник+» <Emo e="🌟" /></p>
           <Btn kind="gold" onClick={async () => { await sharePlusGift(p.code); closePopup(); }}>Отправить другу</Btn>
           <Btn kind="ghost" onClick={closePopup}>Позже (ссылка будет в магазине)</Btn>
         </div>
@@ -138,17 +139,17 @@ export function Popups() {
       {p?.kind === 'box' && <BoxReveal prize={p.prize} />}
       {p?.kind === 'contest' && (
         <div className="center">
-          <motion.div className="gicon" initial={{ scale: 0.3, rotate: -20 }} animate={{ scale: 1, rotate: 0 }}>{['🥇', '🥈', '🥉'][p.place - 1] ?? '🏆'}</motion.div>
+          <motion.div className="gicon" initial={{ scale: 0.3, rotate: -20 }} animate={{ scale: 1, rotate: 0 }}>{rich(['🥇', '🥈', '🥉'][p.place - 1] ?? '🏆')}</motion.div>
           <h2>{p.place} место в конкурсе!</h2>
-          <p>Твой подоконник понравился игрокам больше других. Приз: <b>+{p.leaves} 🍃</b></p>
+          <p>Твой подоконник понравился игрокам больше других. Приз: <b>+{p.leaves} <Emo e="🍃" /></b></p>
           <Btn kind="primary" onClick={closePopup}>Ура!</Btn>
         </div>
       )}
       {p?.kind === 'migrated' && (
         <div className="center">
-          <div className="gicon">🏡</div>
+          <div className="gicon"><Emo e="🏡" /></div>
           <h2>Новый Подоконник!</h2>
-          <p>Мы переехали в большую версию игры. Все твои растения на месте, а за верность — <b>+100 🍃</b>.</p>
+          <p>Мы переехали в большую версию игры. Все твои растения на месте, а за верность — <b>+100 <Emo e="🍃" /></b>.</p>
           <p className="muted small">Теперь есть уровни, магазин, гербарий на 18 видов, задания, соседка и многое другое.</p>
           <Btn kind="primary" onClick={closePopup}>Посмотреть</Btn>
         </div>
@@ -166,7 +167,7 @@ function GiftCard({ gift, full }: { gift: PendingGift & { ok: boolean }; full: b
   if (!gift.ok) {
     return (
       <div className="center">
-        <div className="gicon">🍃</div>
+        <div className="gicon"><Emo e="🍃" /></div>
         <h2>Черенок потерялся в пути</h2>
         <p className="muted">Ссылка повредилась по дороге. Попроси прислать её ещё раз.</p>
         <Btn kind="primary" onClick={closePopup}>На подоконник</Btn>
@@ -176,7 +177,7 @@ function GiftCard({ gift, full }: { gift: PendingGift & { ok: boolean }; full: b
   if (g.received.includes(gift.code)) {
     return (
       <div className="center">
-        <div className="gicon">🌿</div>
+        <div className="gicon"><Emo e="🌿" /></div>
         <h2>Этот черенок уже у тебя</h2>
         <p className="muted">Одну ссылку можно забрать только один раз.</p>
         <Btn kind="primary" onClick={closePopup}>На подоконник</Btn>
@@ -186,7 +187,7 @@ function GiftCard({ gift, full }: { gift: PendingGift & { ok: boolean }; full: b
   if (g.sent.some((x) => x.code === gift.code)) {
     return (
       <div className="center">
-        <div className="gicon">💌</div>
+        <div className="gicon"><Emo e="💌" /></div>
         <h2>Это твой подарок</h2>
         <p className="muted">Отправь ссылку другу — он заберёт черенок к себе.</p>
         <Btn kind="primary" onClick={closePopup}>Понятно</Btn>
@@ -199,8 +200,8 @@ function GiftCard({ gift, full }: { gift: PendingGift & { ok: boolean }; full: b
       <motion.div className="postcard big2" initial={{ rotate: -6, y: 20 }} animate={{ rotate: 0, y: 0 }}>
         <PlantArt sp={gift.sp} form={gift.form} hue={gift.hue} stage={0} />
       </motion.div>
-      <h2>{gift.from} дарит тебе черенок {s.gen}</h2>
-      {NOTES[gift.note] && <p className="note">«{NOTES[gift.note]}»</p>}
+      <h2>{rich(gift.from)} дарит тебе черенок {rich(s.gen)}</h2>
+      {NOTES[gift.note] && <p className="note">«{rich(NOTES[gift.note])}»</p>}
       {gift.line?.length ? <Lineage line={gift.line} title="🌳 У черенка есть родословная" /> : null}
       {full ? (
         <>
@@ -218,7 +219,7 @@ function GiftCard({ gift, full }: { gift: PendingGift & { ok: boolean }; full: b
             else if (r === 'own') toast('Это твой собственный подарок — отправь ссылку другу 💌');
           }}
         >
-          🎁 Забрать
+          <Emo e="🎁" /> Забрать
         </Btn>
       )}
     </div>
@@ -232,20 +233,20 @@ function BoxReveal({ prize }: { prize: BoxPrize }) {
   return (
     <div className="center">
       <motion.div className="gicon" initial={{ scale: 0.4, rotate: -25 }} animate={{ scale: [0.4, 1.25, 1], rotate: [-25, 10, 0] }} transition={{ duration: 0.7 }}>
-        {prize.kind === 'leaves' ? '🍃' : prize.kind === 'feed' ? '🧪' : prize.kind === 'pots' ? '🪴' : it ? it.icon : '✨'}
+        {rich(prize.kind === 'leaves' ? '🍃' : prize.kind === 'feed' ? '🧪' : prize.kind === 'pots' ? '🪴' : it ? it.icon : '✨')}
       </motion.div>
       <p className="muted small">В ящике-сюрпризе…</p>
       {f && (
         <div className="postcard big2 gold-frame"><PlantArt sp={f.sp} form={f.id} stage={0} /></div>
       )}
       <h2>
-        {prize.kind === 'leaves' && `+${prize.n} листиков`}
-        {prize.kind === 'feed' && `Подкормка ×${prize.n}`}
-        {prize.kind === 'pots' && `Горшки ×${prize.n}`}
-        {it && it.name}
-        {f && `Редкий черенок «${f.name}»!`}
+        {rich(prize.kind === 'leaves' && `+${prize.n} листиков`)}
+        {rich(prize.kind === 'feed' && `Подкормка ×${prize.n}`)}
+        {rich(prize.kind === 'pots' && `Горшки ×${prize.n}`)}
+        {rich(it && it.name)}
+        {rich(f && `Редкий черенок «${f.name}»!`)}
       </h2>
-      {it && <p className="muted">{it.desc} Уже в коллекции.</p>}
+      {it && <p className="muted">{rich(it.desc)} Уже в коллекции.</p>}
       {f && <p className="muted">Он в запасе — поставь в воду или подари.</p>}
       <Btn kind="primary" onClick={closePopup}>Здорово!</Btn>
     </div>

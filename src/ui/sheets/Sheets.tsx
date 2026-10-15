@@ -36,6 +36,7 @@ import { PotsSheet } from './PotsSheet';
 import { OrdersSheet } from './OrdersSheet';
 import { StarterSheet } from './StarterSheet';
 import { TodoSheet } from './TodoSheet';
+import { Emo, rich } from '../kit/rich';
 
 export function Sheets() {
   const sheet = useStore((s) => s.sheet);
@@ -83,16 +84,16 @@ function Picker({ slot, sill }: { slot: number; sill: string }) {
   const newbie = g.plants.length === 0 && g.cuttings.length === 0;
   return (
     <div>
-      <h2>{newbie ? 'Выбери первое растение' : 'Что поставим сюда?'}</h2>
+      <h2>{rich(newbie ? 'Выбери первое растение' : 'Что поставим сюда?')}</h2>
       {newbie && <p className="muted">Начнём с неубиваемых. Черенок встанет в стакан с водой — налей воды, и через пару минут появятся корни.</p>}
       {g.cuttings.length > 0 && (
         <>
-          <h3>✂️ Черенки в запасе</h3>
+          <h3><Emo e="✂️" /> Черенки в запасе</h3>
           <div className="grid">
             {g.cuttings.map((c) => (
               <button key={c.id} className="pick" onClick={() => { plantCutting(c.id, sill, slot); closeSheet(); }}>
                 <PlantArt sp={c.sp} form={c.form} hue={c.hue} stage={0} />
-                <b>{sp(c.sp).name}</b>
+                <b>{rich(sp(c.sp).name)}</b>
               </button>
             ))}
           </div>
@@ -105,8 +106,8 @@ function Picker({ slot, sill }: { slot: number; sill: string }) {
             return (
               <button key={id} className="pick" onClick={() => { placeCutting(id, sill, slot); closeSheet(); }}>
                 <PlantArt sp={id} stage={4} seed="pick" />
-                <b>{s.name}</b>
-                <span className="muted small">{s.speed} · полив раз в {s.waterDays} {plural(s.waterDays, 'день', 'дня', 'дней')}</span>
+                <b>{rich(s.name)}</b>
+                <span className="muted small">{rich(s.speed)} · полив раз в {s.waterDays} {rich(plural(s.waterDays, 'день', 'дня', 'дней'))}</span>
               </button>
             );
           })}
@@ -114,8 +115,8 @@ function Picker({ slot, sill }: { slot: number; sill: string }) {
       )}
       {!newbie && (
         <>
-          <p className="muted">Новые черенки — в магазине или от взрослых растений. А ещё их дарят друзья 🎁</p>
-          <Btn kind="primary" onClick={() => setTab('shop')}>🛒 В магазин</Btn>
+          <p className="muted">Новые черенки — в магазине или от взрослых растений. А ещё их дарят друзья <Emo e="🎁" /></p>
+          <Btn kind="primary" onClick={() => setTab('shop')}><Emo e="🛒" /> В магазин</Btn>
         </>
       )}
     </div>
@@ -138,12 +139,12 @@ function WindowPick({ sill, then, slot = 0 }: { sill: string; then?: 'picker'; s
       <div className="wingrid">
         {(['N', 'E', 'S', 'W'] as WindowSide[]).map((w) => (
           <button key={w} className={'chip big' + (cur === w ? ' on' : '')} onClick={() => pick(w)}>
-            {{ N: '⬆️', E: '➡️', S: '⬇️', W: '⬅️' }[w]} {WINDOWS[w].short}
-            <small>у стекла: {LIGHT_NAME[WINDOWS[w].glass]}</small>
+            {rich({ N: '⬆️', E: '➡️', S: '⬇️', W: '⬅️' }[w])} {rich(WINDOWS[w].short)}
+            <small>у стекла: {rich(LIGHT_NAME[WINDOWS[w].glass])}</small>
           </button>
         ))}
       </div>
-      <Btn onClick={() => pick('E')}>🤷 Не знаю (будет восток)</Btn>
+      <Btn onClick={() => pick('E')}><Emo e="🤷" /> Не знаю (будет восток)</Btn>
       <p className="muted small">Солнце заглядывает утром — восток, днём — юг, вечером — запад, почти никогда — север. Зимой везде темнее.</p>
     </div>
   );
@@ -160,10 +161,10 @@ function CuttingSheet({ id }: { id: string }) {
   if (sent) {
     return (
       <div className="center">
-        <div className="gicon">💌</div>
+        <div className="gicon"><Emo e="💌" /></div>
         <h2>Черенок отправлен!</h2>
         <p className="muted">Когда друг заберёт его, у тебя будет повод показать друг другу подоконники. Если ссылка не ушла — вот она:</p>
-        <div className="soon linkbox">{sent}</div>
+        <div className="soon linkbox">{rich(sent)}</div>
         <Btn kind="ghost" onClick={closeSheet}>Готово</Btn>
       </div>
     );
@@ -182,22 +183,22 @@ function CuttingSheet({ id }: { id: string }) {
       <div className="postcard">
         <PlantArt sp={c!.sp} form={c!.form} hue={c!.hue} stage={0} className="mid" />
         <div>
-          <h2>{c!.seed ? 'Семечко' : 'Черенок'} {s.gen}</h2>
-          {c!.hue && <p className="small"><span className="hue-dot" style={{ background: hueOf(c!.sp, c!.hue)?.color }} /> цветы: {hueOf(c!.sp, c!.hue)?.name}{hueOf(c!.sp, c!.hue)?.rare ? ' 🌈 редкость' : ''}</p>}
+          <h2>{rich(c!.seed ? 'Семечко' : 'Черенок')} {rich(s.gen)}</h2>
+          {c!.hue && <p className="small"><span className="hue-dot" style={{ background: hueOf(c!.sp, c!.hue)?.color }} /> цветы: {rich(hueOf(c!.sp, c!.hue)?.name)}{rich(hueOf(c!.sp, c!.hue)?.rare ? ' 🌈 редкость' : '')}</p>}
           <p className="muted small">Поставь в воду у себя или подари другу — он посадит его на свой подоконник.</p>
         </div>
       </div>
-      <Btn kind="primary" onClick={() => { plantCutting(c!.id); closeSheet(); }}>🫙 Поставить в воду у себя</Btn>
-      <h3>🎁 Подарить другу</h3>
+      <Btn kind="primary" onClick={() => { plantCutting(c!.id); closeSheet(); }}><Emo e="🫙" /> Поставить в воду у себя</Btn>
+      <h3><Emo e="🎁" /> Подарить другу</h3>
       <label className="lbl" htmlFor="from">От кого</label>
       <input id="from" className="inp" maxLength={24} placeholder="Твоё имя" value={name} onChange={(e) => setName(e.target.value)} />
       <div className="lbl">Пожелание</div>
       <div className="notes">
         {Object.entries(NOTES).map(([k, v]) => (
-          <button key={k} className={'chip' + (+k === note ? ' on' : '')} onClick={() => setNote(+k)}>{v}</button>
+          <button key={k} className={'chip' + (+k === note ? ' on' : '')} onClick={() => setNote(+k)}>{rich(v)}</button>
         ))}
       </div>
-      <Btn kind="gold" disabled={!name.trim()} onClick={send}>📤 Отправить подарок</Btn>
+      <Btn kind="gold" disabled={!name.trim()} onClick={send}><Emo e="📤" /> Отправить подарок</Btn>
       <p className="muted small center">Друг получит открытку. Если игры у него ещё нет — она откроется прямо по ссылке.</p>
     </div>
   );
@@ -214,22 +215,22 @@ function Herb({ id }: { id: string }) {
       <div className="card-head">
         <PlantArt sp={id} stage={4} seed="herb" blooming={!!s.bloom} className={'big' + (known ? '' : ' unknown')} />
         <div>
-          <h2>{known ? s.name : '???'}</h2>
-          {known && <p className="muted small"><i>{s.latin}</i>{s.folk ? ` · «${s.folk}»` : ''}</p>}
-          <p className="small">{DIFFICULTY_LABEL[s.difficulty]} · откроется с {s.unlockLevel} ур.</p>
-          {grown && <p className="giftmark">🏅 Выращено до взрослого</p>}
+          <h2>{rich(known ? s.name : '???')}</h2>
+          {known && <p className="muted small"><i>{rich(s.latin)}</i>{rich(s.folk ? ` · «${s.folk}»` : '')}</p>}
+          <p className="small">{rich(DIFFICULTY_LABEL[s.difficulty])} · откроется с {s.unlockLevel} ур.</p>
+          {grown && <p className="giftmark"><Emo e="🏅" /> Выращено до взрослого</p>}
         </div>
       </div>
       {known ? (
         <>
           <table className="care">
             <tbody>
-              <tr><td>💧 Полив</td><td>раз в {s.waterDays} {plural(s.waterDays, 'день', 'дня', 'дней')}{s.drought >= 5 ? ', терпит засуху' : ''}</td></tr>
-              <tr><td>☀️ Свет</td><td>{LIGHT_NAME[s.light[0]]}{s.light[1] !== s.light[0] ? ` — ${LIGHT_NAME[s.light[1]]}` : ''}</td></tr>
-              <tr><td>💦 Опрыскивание</td><td>{s.mist === 'love' ? 'любит' : s.mist === 'ok' ? 'всё равно' : 'вредно'}</td></tr>
-              <tr><td>🌊 Перелив</td><td>{s.overwater === 'sensitive' ? 'боится' : s.overwater === 'tolerant' ? 'переносит' : 'не любит'}</td></tr>
-              <tr><td>⏱ Рост</td><td>{s.speed}</td></tr>
-              {s.bloom && <tr><td>🌸 Цветение</td><td>{s.bloom.months ? s.bloom.months.map((m) => ['янв', 'фев', 'мар', 'апр', 'май', 'июн', 'июл', 'авг', 'сен', 'окт', 'ноя', 'дек'][m - 1]).join(', ') : 'круглый год'}{s.bloom.needsRest ? ' — после зимнего покоя' : ''}</td></tr>}
+              <tr><td><Emo e="💧" /> Полив</td><td>раз в {s.waterDays} {rich(plural(s.waterDays, 'день', 'дня', 'дней'))}{rich(s.drought >= 5 ? ', терпит засуху' : '')}</td></tr>
+              <tr><td><Emo e="☀️" /> Свет</td><td>{rich(LIGHT_NAME[s.light[0]])}{rich(s.light[1] !== s.light[0] ? ` — ${LIGHT_NAME[s.light[1]]}` : '')}</td></tr>
+              <tr><td><Emo e="💦" /> Опрыскивание</td><td>{rich(s.mist === 'love' ? 'любит' : s.mist === 'ok' ? 'всё равно' : 'вредно')}</td></tr>
+              <tr><td><Emo e="🌊" /> Перелив</td><td>{rich(s.overwater === 'sensitive' ? 'боится' : s.overwater === 'tolerant' ? 'переносит' : 'не любит')}</td></tr>
+              <tr><td><Emo e="⏱" /> Рост</td><td>{rich(s.speed)}</td></tr>
+              {s.bloom && <tr><td><Emo e="🌸" /> Цветение</td><td>{rich(s.bloom.months ? s.bloom.months.map((m) => ['янв', 'фев', 'мар', 'апр', 'май', 'июн', 'июл', 'авг', 'сен', 'окт', 'ноя', 'дек'][m - 1]).join(', ') : 'круглый год')}{rich(s.bloom.needsRest ? ' — после зимнего покоя' : '')}</td></tr>}
             </tbody>
           </table>
           {(() => {
@@ -238,17 +239,17 @@ function Herb({ id }: { id: string }) {
             const next = MASTERY[st];
             return (
               <div className="mastery">
-                <b className="small">Мастерство: {st ? MASTERY.slice(0, st).map((m) => m.icon).join(' ') : 'пока нет'}</b>
+                <b className="small">Мастерство: {rich(st ? MASTERY.slice(0, st).map((m) => m.icon).join(' ') : 'пока нет')}</b>
                 {next && <Bar value={pts / next.points} label={`${pts}/${next.points} до ${next.icon} ${next.name}`} />}
                 <span className="muted small">Взрослое растение — 3 очка, цветение — 2, черенок — 1. За каждую звезду — листики и опыт.</span>
               </div>
             );
           })()}
-          <ul className="facts">{s.facts.map((f) => <li key={f}>{f}</li>)}</ul>
-          <Btn small kind="soft" onClick={() => openSheet({ kind: 'doctor', sp: id })}>🩺 Что-то не так с настоящим растением?</Btn>
+          <ul className="facts">{s.facts.map((f) => <li key={f}>{rich(f)}</li>)}</ul>
+          <Btn small kind="soft" onClick={() => openSheet({ kind: 'doctor', sp: id })}><Emo e="🩺" /> Что-то не так с настоящим растением?</Btn>
           {PALETTES[id] && (
             <div className="palette">
-              <b className="small">🎨 Цвета цветков: {1 + (g.hues?.[id] ?? []).filter((h) => h !== PALETTES[id][0].id).length}/{PALETTES[id].length}</b>
+              <b className="small"><Emo e="🎨" /> Цвета цветков: {1 + (g.hues?.[id] ?? []).filter((h) => h !== PALETTES[id][0].id).length}/{PALETTES[id].length}</b>
               <div>
                 {PALETTES[id].map((h, i) => {
                   const got = i === 0 || (g.hues?.[id] ?? []).includes(h.id);
@@ -263,15 +264,15 @@ function Herb({ id }: { id: string }) {
               {formsOf(id).map((f) => (
                 <div key={f.id} className={'form-chip' + ((g.forms ?? []).includes(f.id) ? ' got' : '')}>
                   <PlantArt sp={id} form={f.id} stage={4} seed="herb" blooming className={(g.forms ?? []).includes(f.id) ? '' : 'unknown'} />
-                  <span>{(g.forms ?? []).includes(f.id) ? '✨ ' + f.name : '✨ ???'}</span>
+                  <span>{rich((g.forms ?? []).includes(f.id) ? '✨ ' + f.name : '✨ ???')}</span>
                 </div>
               ))}
             </div>
           )}
           <div className="soon">
-            <p><b>Уход по-настоящему:</b> {s.care}</p>
-            <p><b>Купить:</b> {s.buy}</p>
-            <p><b>Бесплатно:</b> {s.free}</p>
+            <p><b>Уход по-настоящему:</b> {rich(s.care)}</p>
+            <p><b>Купить:</b> {rich(s.buy)}</p>
+            <p><b>Бесплатно:</b> {rich(s.free)}</p>
           </div>
         </>
       ) : (
@@ -291,13 +292,13 @@ function Neighbor() {
   const [days, setDays] = useState(NEIGHBOR_FREE_DAYS);
   return (
     <div>
-      <div className="gicon">👵</div>
+      <div className="gicon"><Emo e="👵" /></div>
       <h2 className="center">Соседка польёт</h2>
       <p className="muted center">Уезжаешь? Валентина Петровна будет поливать все растения, пока тебя нет. Никто не засохнет.</p>
       {active ? (
         <>
-          <p className="center"><b>Поливает ещё {fmt(g.neighbor!.until - t)}</b></p>
-          <Btn kind="primary" onClick={() => startNeighbor(7, true)}>Продлить на неделю · {(g.owned.neighbor7 ?? 0) > 0 ? 'есть в запасе' : '60 🍃'}</Btn>
+          <p className="center"><b>Поливает ещё {rich(fmt(g.neighbor!.until - t))}</b></p>
+          <Btn kind="primary" onClick={() => startNeighbor(7, true)}>Продлить на неделю · {rich((g.owned.neighbor7 ?? 0) > 0 ? 'есть в запасе' : '60 🍃')}</Btn>
           <Btn kind="ghost" onClick={() => { stopNeighbor(); closeSheet(); }}>Я вернулся(ась), спасибо!</Btn>
         </>
       ) : (
@@ -307,15 +308,15 @@ function Neighbor() {
               <div className="chips center">
                 {[1, 2, 3].map((d) => (
                   <button key={d} className={'chip' + (d === days ? ' on' : '')} onClick={() => setDays(d)}>
-                    {d} {plural(d, 'день', 'дня', 'дней')}
+                    {d} {rich(plural(d, 'день', 'дня', 'дней'))}
                   </button>
                 ))}
               </div>
               <Btn kind="primary" onClick={() => { if (startNeighbor(days, false)) closeSheet(); }}>Попросить бесплатно</Btn>
             </>
           )}
-          {cooldown && <p className="muted center small">Бесплатно соседка выручает раз в неделю. Снова можно через {fmt(g.neighbor!.cooldownUntil - t)}.</p>}
-          <Btn kind="gold" onClick={() => { if (startNeighbor(7, true)) closeSheet(); }}>На целую неделю · {(g.owned.neighbor7 ?? 0) > 0 ? 'есть в запасе' : '60 🍃'}</Btn>
+          {cooldown && <p className="muted center small">Бесплатно соседка выручает раз в неделю. Снова можно через {rich(fmt(g.neighbor!.cooldownUntil - t))}.</p>}
+          <Btn kind="gold" onClick={() => { if (startNeighbor(7, true)) closeSheet(); }}>На целую неделю · {rich((g.owned.neighbor7 ?? 0) > 0 ? 'есть в запасе' : '60 🍃')}</Btn>
         </>
       )}
     </div>
@@ -331,7 +332,7 @@ function Install() {
       <p><b>Chrome / Яндекс Браузер:</b></p>
       <ol className="steps"><li>Нажми меню ⋮</li><li>Выбери «Добавить на главный экран» или «Установить приложение».</li></ol>
       <p><b>Safari на iPhone:</b></p>
-      <ol className="steps"><li>Нажми «Поделиться» ⬆️</li><li>Выбери «На экран „Домой“».</li></ol>
+      <ol className="steps"><li>Нажми «Поделиться» <Emo e="⬆️" /></li><li>Выбери «На экран „Домой“».</li></ol>
       <p><b>Samsung Internet:</b></p>
       <ol className="steps"><li>Нажми меню ≡</li><li>«Добавить страницу на» → «Главный экран».</li></ol>
       <Btn kind="ghost" onClick={closeSheet}>Понятно</Btn>

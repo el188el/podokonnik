@@ -10,6 +10,7 @@ import type { DecorPos } from '../game/types';
 import { DecorArt, hasDecorArt } from './art/DecorArt';
 import { CAT_DEFAULT_COLOR, CAT_IDS, CAT_NAMES } from '../game/cat';
 import type { Sky } from '../game/weather';
+import { Emo, rich } from './kit/rich';
 
 export interface SceneProps {
   decor: string[];
@@ -100,7 +101,7 @@ function useDrag(enabled: boolean, onTap: (() => void) | undefined, onDrop: (x: 
 function HideX({ id, onHide }: { id: string; onHide?: (id: string) => void }) {
   if (!onHide) return null;
   return (
-    <span className="deco-x" role="button" aria-label="Убрать" onPointerDown={(e) => e.stopPropagation()} onPointerUp={(e) => { e.stopPropagation(); onHide(id); }}>✕</span>
+    <span className="deco-x" role="button" aria-label="Убрать" onPointerDown={(e) => e.stopPropagation()} onPointerUp={(e) => { e.stopPropagation(); onHide(id); }}><Emo e="✕" /></span>
   );
 }
 
@@ -109,7 +110,7 @@ function Deco({ id, x, on, arrange, onItem, onMove, onHide }: { id: string; x: n
   const [poke, setPoke] = useState(0);
   const drag = useDrag(!!arrange, live && !arrange ? () => { setPoke(Date.now()); onItem!(id); } : undefined, (nx, row) => onMove?.(id, nx, placeOf(id) === 'wall' ? undefined : row));
   const art = hasDecorArt(id) ? <DecorArt id={id} scale={1} on={on} /> : icon(id);
-  if (!live) return <span className={'deco deco-' + id} style={{ left: `${x * 100}%` }}>{art}</span>;
+  if (!live) return <span className={'deco deco-' + id} style={{ left: `${x * 100}%` }}>{rich(art)}</span>;
   return (
     <button
       className={`deco live deco-${id}${on ? '' : ' off'}${arrange ? ' movable' : ''}${drag.dragging ? ' dragging' : ''}`}
@@ -117,8 +118,8 @@ function Deco({ id, x, on, arrange, onItem, onMove, onHide }: { id: string; x: n
       aria-label={ITEM_BY_ID[id]?.name ?? id}
       {...drag.handlers}
     >
-      <span className="deco-in" key={poke}>{art}</span>
-      {id === 'radio' && on && !arrange && <span className="notes" aria-hidden><i>♪</i><i>♫</i><i>♪</i></span>}
+      <span className="deco-in" key={poke}>{rich(art)}</span>
+      {id === 'radio' && on && !arrange && <span className="notes" aria-hidden><i><Emo e="♪" /></i><i><Emo e="♫" /></i><i><Emo e="♪" /></i></span>}
       {arrange && <HideX id={id} onHide={onHide} />}
     </button>
   );
@@ -184,7 +185,7 @@ function LiveCat({ id, tint, x0, row0, arrange, onCat, onMove, onHide }: { id: s
       {...drag.handlers}
     >
       <span className="cat-flip"><span className="cat-hop"><DecorArt id={move ? 'cat_walk' : 'cat'} tint={tint} scale={move ? 1.15 : 1.25} /></span></span>
-      {pet > 0 && <span className="purr" key={pet}>💕</span>}
+      {pet > 0 && <span className="purr" key={pet}><Emo e="💕" /></span>}
       {arrange && <HideX id={id} onHide={onHide} />}
     </button>
   );
@@ -214,7 +215,7 @@ export function SillScene({ decor, tod, winter, sky, theme, win = 'E', cell, han
       {hang && (
         <div className="hang-row">
           {HANG_ROW.map((i) => (
-            <div className="cell hang" data-slot={i} data-zone="glass" key={i}>{hangCell!(i)}</div>
+            <div className="cell hang" data-slot={i} data-zone="glass" key={i}>{rich(hangCell!(i))}</div>
           ))}
         </div>
       )}
@@ -227,9 +228,9 @@ export function SillScene({ decor, tod, winter, sky, theme, win = 'E', cell, han
           {snow && <div className="snow" />}
           {rain && <div className="rain" />}
           {sky === 'fog' && <div className="fog" />}
-          {theme === 'autumn' && <div className="fall">{['🍂', '🍁', '🍂', '🍁', '🍂'].map((x, i) => <span key={i} style={{ left: `${8 + i * 19}%`, animationDelay: `${i * 1.7}s` }}>{x}</span>)}</div>}
-          {theme === 'summer' && <div className="fall butterflies">{['🦋', '🐝', '🦋'].map((x, i) => <span key={i} style={{ left: `${15 + i * 30}%`, animationDelay: `${i * 2.6}s` }}>{x}</span>)}</div>}
-          {theme === 'spring' && <div className="fall petals">{['🌸', '🌸', '🌸', '🌸'].map((x, i) => <span key={i} style={{ left: `${12 + i * 22}%`, animationDelay: `${i * 2.1}s` }}>{x}</span>)}</div>}
+          {theme === 'autumn' && <div className="fall">{['🍂', '🍁', '🍂', '🍁', '🍂'].map((x, i) => <span key={i} style={{ left: `${8 + i * 19}%`, animationDelay: `${i * 1.7}s` }}>{rich(x)}</span>)}</div>}
+          {theme === 'summer' && <div className="fall butterflies">{['🦋', '🐝', '🦋'].map((x, i) => <span key={i} style={{ left: `${15 + i * 30}%`, animationDelay: `${i * 2.6}s` }}>{rich(x)}</span>)}</div>}
+          {theme === 'spring' && <div className="fall petals">{['🌸', '🌸', '🌸', '🌸'].map((x, i) => <span key={i} style={{ left: `${12 + i * 22}%`, animationDelay: `${i * 2.1}s` }}>{rich(x)}</span>)}</div>}
           {windowD.includes('feeder') && <div className="feeder"><DecorArt id="feeder" /></div>}
           {windowD.includes('birdhouse') && <div className="birdhouse"><DecorArt id="birdhouse" /></div>}
           {windowD.includes('suncatcher') && <div className="suncatcher"><DecorArt id="suncatcher" /></div>}
@@ -268,7 +269,7 @@ export function SillScene({ decor, tod, winter, sky, theme, win = 'E', cell, han
         {wallD.includes('carpet') && <div className="carpet" />}
         <div className="wall-items">
           {wallD.filter((d) => d !== 'carpet').slice(0, 3).map((d) => (
-            <span key={d} className={'wall-' + d}>{hasDecorArt(d) ? <DecorArt id={d} scale={0.9} /> : icon(d)}</span>
+            <span key={d} className={'wall-' + d}>{hasDecorArt(d) ? <DecorArt id={d} scale={0.9} /> : rich(icon(d))}</span>
           ))}
         </div>
       </div>
@@ -278,7 +279,7 @@ export function SillScene({ decor, tod, winter, sky, theme, win = 'E', cell, han
       <div className="rows">
         <div className="row row-glass">
           {GLASS_ROW.map((i) => (
-            <div className="cell glass" data-slot={i} data-zone="glass" key={i}>{cell(i)}</div>
+            <div className="cell glass" data-slot={i} data-zone="glass" key={i}>{rich(cell(i))}</div>
           ))}
           <div className="ledge-decor">
             {sillD.map(deco)}
@@ -288,7 +289,7 @@ export function SillScene({ decor, tod, winter, sky, theme, win = 'E', cell, han
         <div className="ledge" />
         <div className="row row-deep">
           {DEEP_ROW.map((i) => (
-            <div className="cell deep" data-slot={i} data-zone="deep" key={i}>{cell(i)}</div>
+            <div className="cell deep" data-slot={i} data-zone="deep" key={i}>{rich(cell(i))}</div>
           ))}
           <div className="ledge-decor">
             {tableD.map(deco)}

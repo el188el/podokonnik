@@ -3,6 +3,7 @@ import { RANKS, levelPerks, levelReward, nextRank, rankOf, xpToNext } from '../.
 import { SPECIES } from '../../game/species';
 import { closeSheet, useStore } from '../../game/store';
 import { Bar, Btn } from '../kit/kit';
+import { Emo, rich } from '../kit/rich';
 
 /** «Путь садовода»: ранги и награды за каждый уровень. */
 export function LevelsSheet() {
@@ -15,16 +16,16 @@ export function LevelsSheet() {
   return (
     <div>
       <div className="rank-head">
-        <span className="rank-icon">{rank.icon}</span>
+        <span className="rank-icon">{rich(rank.icon)}</span>
         <div>
-          <h2>{rank.title}</h2>
-          <span className="muted small">Уровень {g.level}{next ? ` · до ранга «${next.title}» — ${next.level} ур.` : ' · высший ранг!'}</span>
+          <h2>{rich(rank.title)}</h2>
+          <span className="muted small">Уровень {g.level}{rich(next ? ` · до ранга «${next.title}» — ${next.level} ур.` : ' · высший ранг!')}</span>
         </div>
       </div>
       <Bar value={g.xp / xpToNext(g.level)} label={`${g.xp}/${xpToNext(g.level)} опыта`} />
       <p className="muted small">Опыт дают полив, посадка, черенки, цветение, подарки и задания. На каждом уровне — листики, а на многих ещё и подарки.</p>
       <div className="ranks-row">
-        {RANKS.map((r) => <span key={r.level} className={'rank-chip' + (g.level >= r.level ? ' got' : '')} title={r.title}>{r.icon}<small>{r.level}</small></span>)}
+        {RANKS.map((r) => <span key={r.level} className={'rank-chip' + (g.level >= r.level ? ' got' : '')} title={r.title}>{rich(r.icon)}<small>{r.level}</small></span>)}
       </div>
       <div className="level-road">
         {Array.from({ length: top - 1 }, (_, i) => i + 2).map((l) => {
@@ -34,12 +35,12 @@ export function LevelsSheet() {
           const done = g.level >= l;
           return (
             <div key={l} ref={l === g.level + 1 ? cur : undefined} className={'road-step' + (done ? ' done' : l === g.level + 1 ? ' next' : '')}>
-              <span className="road-lvl">{done ? '✓' : l}</span>
+              <span className="road-lvl">{rich(done ? '✓' : l)}</span>
               <div className="road-body">
-                {rk && <b className="road-rank">{rk.icon} Ранг «{rk.title}»</b>}
-                <span>🍃 {levelReward(l)}</span>
-                {perks.map((p) => <span key={p.text}>{p.icon} {p.text}</span>)}
-                {species.map((s) => <span key={s.id}>🌱 Новый вид: {s.name}</span>)}
+                {rk && <b className="road-rank">{rich(rk.icon)} Ранг «{rich(rk.title)}»</b>}
+                <span><Emo e="🍃" /> {levelReward(l)}</span>
+                {perks.map((p) => <span key={p.text}>{rich(p.icon)} {rich(p.text)}</span>)}
+                {species.map((s) => <span key={s.id}><Emo e="🌱" /> Новый вид: {rich(s.name)}</span>)}
               </div>
             </div>
           );

@@ -6,6 +6,7 @@ import { closeSheet, finishLogin } from '../../game/store';
 import * as api from '../../net/api';
 import { platform } from '../../platform';
 import { Btn } from '../kit/kit';
+import { Emo } from '../kit/rich';
 
 export function LoginSheet() {
   const [state, setState] = useState<'start' | 'wait' | 'expired' | 'error'>('start');
@@ -37,13 +38,13 @@ export function LoginSheet() {
 
   return (
     <div className="login-sheet center">
-      <div className="gicon">🔐</div>
+      <div className="gicon"><Emo e="🔐" /></div>
       <h2>Вход через Telegram</h2>
       {state === 'start' && (
         <>
           <p>Один подоконник везде: в Telegram, в браузере, на Android и в Discord. Растения, листики и покупки — общие.</p>
           <p className="muted small">Откроется бот игры. Нажми там «Запустить», а потом «Да, войти» — и возвращайся сюда.</p>
-          <Btn kind="primary" onClick={begin}>✈️ Войти через Telegram</Btn>
+          <Btn kind="primary" onClick={begin}><Emo e="✈️" /> Войти через Telegram</Btn>
         </>
       )}
       {state === 'wait' && (

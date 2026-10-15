@@ -6,6 +6,7 @@ import { closeSheet, openSheet, useStore } from '../../game/store';
 import { PlantArt } from '../art/PlantArt';
 import { Btn } from '../kit/kit';
 import { sharePlantStory } from '../story';
+import { rich } from '../kit/rich';
 
 export function ShareSheet({ id }: { id: string }) {
   const p = useStore((s) => s.game.plants.find((x) => x.id === id));
@@ -20,13 +21,13 @@ export function ShareSheet({ id }: { id: string }) {
     <div className="share-sheet">
       <div className="share-head">
         <PlantArt sp={p.sp} form={p.form} hue={p.hue} stage={p.stage} seed={p.id} pot={p.pot} size={potSizeOf(p)} shape={p.shape} blooming={p.blooming} className="mini" />
-        <h2>Поделиться: {name}</h2>
+        <h2>Поделиться: {rich(name)}</h2>
       </div>
       <div className="list">
         {opts.map((o) => (
           <button key={o.title} className="row-item share-opt" onClick={o.run}>
-            <div className="ricon">{o.icon}</div>
-            <div className="rtext"><b>{o.title}</b><span className="muted small">{o.text}</span></div>
+            <div className="ricon">{rich(o.icon)}</div>
+            <div className="rtext"><b>{rich(o.title)}</b><span className="muted small">{rich(o.text)}</span></div>
             <span className="muted">›</span>
           </button>
         ))}

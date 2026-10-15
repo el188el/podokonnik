@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { WINDOWS } from '../../game/constants';
 import { closeSheet, createCoop, joinCoop } from '../../game/store';
 import { Btn } from '../kit/kit';
+import { Emo, rich } from '../kit/rich';
 
 /** Завести общий подоконник или вступить по коду. */
 export function CoopSheet() {
@@ -11,7 +12,7 @@ export function CoopSheet() {
   const [busy, setBusy] = useState(false);
   return (
     <div>
-      <div className="gicon">💞</div>
+      <div className="gicon"><Emo e="💞" /></div>
       <h2 className="center">Общий подоконник</h2>
       <p className="muted center small">
         Один подоконник на двоих — для пары, семьи или соседей по квартире (до 4 человек). Растения общие:
@@ -22,7 +23,7 @@ export function CoopSheet() {
       <div className="lbl">Куда смотрит окно</div>
       <div className="chips">
         {(['N', 'E', 'S', 'W'] as const).map((w) => (
-          <button key={w} className={'chip' + (win === w ? ' on' : '')} onClick={() => setWin(w)}>{WINDOWS[w].short}</button>
+          <button key={w} className={'chip' + (win === w ? ' on' : '')} onClick={() => setWin(w)}>{rich(WINDOWS[w].short)}</button>
         ))}
       </div>
       <Btn kind="primary" disabled={busy} onClick={async () => { setBusy(true); if (await createCoop(name, win)) closeSheet(); setBusy(false); }}>Создать и пригласить</Btn>

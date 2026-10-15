@@ -2,6 +2,8 @@ import { AnimatePresence, animate, motion, useMotionValue, type MotionValue } fr
 import { Component, useEffect, useRef, type MouseEvent, type PointerEvent, type ReactNode } from 'react';
 import { platform } from '../../platform';
 import { Icon, TONE } from './icons';
+import { Emo } from './rich';
+import { rich } from './rich';
 
 // Окно открывается по отпусканию пальца, а следом браузер шлёт «клик» —
 // он попадал в фон только что открытого окна и сразу закрывал его.
@@ -112,7 +114,7 @@ export function Sheet({ open, onClose, children, wide }: { open: boolean; onClos
             transition={{ type: 'spring', damping: 30, stiffness: 320 }}
             onClick={(e) => { if (e.target === e.currentTarget) guardedClose(e, onClose); }}
           >
-            <SheetBody open={open} onClose={onClose} wide={wide}>{children}</SheetBody>
+            <SheetBody open={open} onClose={onClose} wide={wide}>{rich(children)}</SheetBody>
           </motion.div>
         </motion.div>
       )}
@@ -125,7 +127,7 @@ function SheetBody({ open, onClose, wide, children }: { open: boolean; onClose: 
   return (
     <motion.div ref={ref} className={'sheet' + (wide ? ' wide' : '')} style={{ y }} onClick={(e) => e.stopPropagation()}>
       <div className="grip" />
-      {children}
+      {rich(children)}
     </motion.div>
   );
 }
@@ -149,7 +151,7 @@ export function Modal({ open, onClose, children }: { open: boolean; onClose: () 
             transition={{ type: 'spring', damping: 18, stiffness: 260 }}
             onClick={(e) => e.stopPropagation()}
           >
-            {children}
+            {rich(children)}
           </motion.div>
         </motion.div>
       )}
@@ -162,7 +164,7 @@ export function Bar({ value, color, label }: { value: number; color?: string; la
   return (
     <div className="bar" aria-label={typeof label === 'string' ? label : undefined}>
       <div className="fill" style={{ width: `${v * 100}%`, background: color }} />
-      {label && <span>{label}</span>}
+      {label && <span>{rich(label)}</span>}
     </div>
   );
 }
@@ -170,7 +172,7 @@ export function Bar({ value, color, label }: { value: number; color?: string; la
 export function Btn({ children, onClick, kind = 'soft', disabled, small }: { children: ReactNode; onClick?: () => void; kind?: 'primary' | 'soft' | 'warn' | 'ghost' | 'gold'; disabled?: boolean; small?: boolean }) {
   return (
     <motion.button whileTap={disabled ? undefined : { scale: 0.96 }} className={`btn ${kind}${small ? ' small' : ''}`} onClick={onClick} disabled={disabled}>
-      {children}
+      {rich(children)}
     </motion.button>
   );
 }
@@ -194,7 +196,7 @@ export class Safe extends Component<{ children: ReactNode; label?: string }, { e
     if (!this.state.error) return this.props.children;
     return (
       <div className="center crash">
-        <div className="gicon">🥀</div>
+        <div className="gicon"><Emo e="🥀" /></div>
         <p>Здесь что-то сломалось. Растения в порядке — прогресс сохранён.</p>
         <Btn kind="primary" onClick={() => location.reload()}>Перезапустить</Btn>
       </div>

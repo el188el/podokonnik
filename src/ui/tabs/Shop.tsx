@@ -15,6 +15,7 @@ import { PlantArt } from '../art/PlantArt';
 import { DecorArt, hasDecorArt } from '../art/DecorArt';
 import { Btn } from '../kit/kit';
 import { Icon, Money, StarsPrice, TONE, type IconName } from '../kit/icons';
+import { Emo, rich } from '../kit/rich';
 
 type Cat = 'plants' | ShopCat | 'sills' | 'stars';
 const CATS: [Cat, IconName, string][] = [
@@ -43,12 +44,12 @@ export function Shop() {
           <span className="muted small">Раз в день: листики, подкормки, горшки, декор — и шанс на редкий черенок</span>
         </div>
         <Btn small kind={boxReady(g) ? 'gold' : 'soft'} disabled={!boxReady(g) || g.leaves < BOX_PRICE} onClick={openBox}>
-          {boxReady(g) ? <Money n={BOX_PRICE} /> : 'завтра'}
+          {boxReady(g) ? <Money n={BOX_PRICE} /> : rich('завтра')}
         </Btn>
       </div>
       <div className="chips scroll">
         {CATS.map(([k, ic, v]) => (
-          <button key={k} className={'chip icon-chip' + (cat === k ? ' on' : '')} onClick={() => setCat(k)}><Icon name={ic} size={18} />{v}</button>
+          <button key={k} className={'chip icon-chip' + (cat === k ? ' on' : '')} onClick={() => setCat(k)}><Icon name={ic} size={18} />{rich(v)}</button>
         ))}
       </div>
 
@@ -57,15 +58,15 @@ export function Shop() {
           <p className="muted small">Черенок попадёт в запас. Поставь его в воду на свободное место или подари другу.</p>
           {[1, 2, 3].map((d) => (
             <section key={d}>
-              <h3>{DIFFICULTY_LABEL[d]}</h3>
+              <h3>{rich(DIFFICULTY_LABEL[d])}</h3>
               <div className="grid">
                 {SPECIES.filter((s) => s.difficulty === d).map((s) => {
                   const locked = g.level < s.unlockLevel;
                   return (
                     <div key={s.id} className={'shop-item' + (locked ? ' locked' : '')}>
                       <PlantArt sp={s.id} stage={4} seed="shop" className={locked ? 'unknown' : ''} />
-                      <b>{s.name}</b>
-                      <span className="muted small">{s.folk ?? s.speed}</span>
+                      <b>{rich(s.name)}</b>
+                      <span className="muted small">{rich(s.folk ?? s.speed)}</span>
                       {locked ? (
                         <Btn small disabled><Icon name="lock" size={15} /> {s.unlockLevel} ур.</Btn>
                       ) : (
@@ -92,18 +93,18 @@ export function Shop() {
             const offSeason = it.months && !it.months.includes(month);
             return (
               <Fragment key={it.id}>
-              {grp && <h3 className="shop-group">{grp}</h3>}
+              {grp && <h3 className="shop-group">{rich(grp)}</h3>}
               <div className="row-item">
                 <div className="ricon">
-                  {it.pack && it.cat === 'pots' ? <span className="pot-stack">📦</span> : it.gives ? <span className="pot-stack">🪴×{it.count}</span> : it.size ? <PlantArt sp="chlorophytum" stage={2} size={it.size} seed="pot" potView /> : it.shape ? <PlantArt sp="chlorophytum" stage={2} shape={it.shape} pot="white" seed="pot" potView /> : it.cat === 'pots' ? <PlantArt sp="chlorophytum" stage={2} pot={potIdOf(it.id)} seed="pot" potView /> : hasDecorArt(it.id) ? <DecorArt id={it.id} scale={1.5} className="shop-decor" /> : it.icon}
+                  {it.pack && it.cat === 'pots' ? <span className="pot-stack"><Emo e="📦" /></span> : it.gives ? <span className="pot-stack"><Emo e="🪴" />×{it.count}</span> : it.size ? <PlantArt sp="chlorophytum" stage={2} size={it.size} seed="pot" potView /> : it.shape ? <PlantArt sp="chlorophytum" stage={2} shape={it.shape} pot="white" seed="pot" potView /> : it.cat === 'pots' ? <PlantArt sp="chlorophytum" stage={2} pot={potIdOf(it.id)} seed="pot" potView /> : hasDecorArt(it.id) ? <DecorArt id={it.id} scale={1.5} className="shop-decor" /> : rich(it.icon)}
                 </div>
                 <div className="rtext">
-                  <b>{it.name}</b>
-                  <span className="muted small">{it.desc}</span>
+                  <b>{rich(it.name)}</b>
+                  <span className="muted small">{rich(it.desc)}</span>
                   {it.consumable && (g.owned[it.id] ?? 0) > 0 && <span className="small">В запасе: {g.owned[it.id]}</span>}
                 </div>
                 {owned ? (
-                  <span className="owned">✓ есть</span>
+                  <span className="owned"><Emo e="✓" /> есть</span>
                 ) : lockLevel ? (
                   <Btn small disabled><Icon name="lock" size={15} /> {it.level} ур.</Btn>
                 ) : offSeason ? (
@@ -124,12 +125,12 @@ export function Shop() {
             const has = g.sills.some((s) => s.id === id);
             return (
               <div key={id} className="row-item">
-                <div className="ricon">{u.icon}</div>
+                <div className="ricon">{rich(u.icon)}</div>
                 <div className="rtext">
-                  <b>{u.name}</b>
-                  <span className="muted small">{u.desc} Ещё 6–8 мест для растений.</span>
+                  <b>{rich(u.name)}</b>
+                  <span className="muted small">{rich(u.desc)} Ещё 6–8 мест для растений.</span>
                 </div>
-                {has ? <span className="owned">✓ есть</span> : g.level < u.level ? <Btn small disabled><Icon name="lock" size={15} /> {u.level} ур.</Btn> : (
+                {has ? <span className="owned"><Emo e="✓" /> есть</span> : g.level < u.level ? <Btn small disabled><Icon name="lock" size={15} /> {u.level} ур.</Btn> : (
                   <Btn small kind="primary" disabled={g.leaves < u.price} onClick={() => unlockSill(id)}><Money n={u.price} /></Btn>
                 )}
               </div>
@@ -180,7 +181,7 @@ function StarsShop() {
       )}
 
       <div className="plus-card">
-        <div className="plus-head"><Icon name="crown" size={20} tone="#e8a325" /> <b>Садовник+</b>{plus && <span className="owned">активен ещё {fmt(Math.max(g.plusUntil ?? 0, t) - t)}</span>}</div>
+        <div className="plus-head"><Icon name="crown" size={20} tone="#e8a325" /> <b>Садовник+</b>{plus && <span className="owned">активен ещё {rich(fmt(Math.max(g.plusUntil ?? 0, t) - t))}</span>}</div>
         <ul>
           <li><Icon name="leaf" size={16} tone={TONE.leaf} /> ×2 листиков за задания и серию заходов</li>
           <li><Icon name="water" size={16} tone={TONE.water} /> Соседка поливает до 7 дней в любое время</li>
@@ -188,21 +189,21 @@ function StarsShop() {
           <li><Icon name="crown" size={16} tone="#e8a325" /> Золотой горшок и корона у имени у друзей</li>
         </ul>
         <Btn kind="gold" disabled={busy === 'plus'} onClick={() => buy('plus')}>
-          {plus ? 'Продлить' : 'Подключить'} · <StarsPrice n={plusP.stars} /> в месяц
+          {rich(plus ? 'Продлить' : 'Подключить')} · <StarsPrice n={plusP.stars} /> в месяц
         </Btn>
         <p className="muted small center">Продлевается раз в 30 дней, отменить можно в любой момент в настройках Telegram.</p>
         <Btn kind="soft" disabled={busy === 'plus_gift'} onClick={() => buy('plus_gift')}><Icon name="gift" size={17} /> Подарить месяц другу · <StarsPrice n={99} /></Btn>
         {(g.plusGifts ?? []).map((x) => (
           <div key={x.code} className="gift-code">
-            <span className="small">Подарок «Садовник+» {x.sent ? '· ссылка отправлена' : '· ждёт отправки'}</span>
-            <Btn small kind={x.sent ? 'ghost' : 'primary'} onClick={() => sharePlusGift(x.code)}>{x.sent ? 'Ещё раз' : 'Отправить'}</Btn>
+            <span className="small">Подарок «Садовник+» {rich(x.sent ? '· ссылка отправлена' : '· ждёт отправки')}</span>
+            <Btn small kind={x.sent ? 'ghost' : 'primary'} onClick={() => sharePlusGift(x.code)}>{rich(x.sent ? 'Ещё раз' : 'Отправить')}</Btn>
           </div>
         ))}
       </div>
 
       {activeEvent(t) && (
         <div className="plus-card pass-card">
-          <b>{activeEvent(t)!.token} Сезонный пропуск «{activeEvent(t)!.title}»</b>
+          <b>{rich(activeEvent(t)!.token)} Сезонный пропуск «{rich(activeEvent(t)!.title)}»</b>
           <p className="small">Платная ветка наград ивента: эксклюзивный горшок, декор и редкая форма.</p>
           <Btn kind="gold" onClick={() => openSheet({ kind: 'event' })}>Посмотреть награды</Btn>
         </div>
@@ -217,8 +218,8 @@ function StarsShop() {
           return (
             <div key={p.id} className="shop-item rare">
               <PlantArt sp={f.sp} form={f.id} stage={4} seed="rare" blooming />
-              <b>{f.name}</b>
-              <span className="muted small">{has ? '✓ в коллекции' : f.desc}</span>
+              <b>{rich(f.name)}</b>
+              <span className="muted small">{rich(has ? '✓ в коллекции' : f.desc)}</span>
               <Btn small kind="gold" disabled={busy === p.id} onClick={() => buy(p.id)}><StarsPrice n={p.stars} /></Btn>
             </div>
           );
@@ -227,7 +228,7 @@ function StarsShop() {
 
       {adsAvailable() && (
         <div className="row-item ad-row">
-          <div className="ricon">🎬</div>
+          <div className="ricon"><Emo e="🎬" /></div>
           <div className="rtext"><b>Ролик за награду</b><span className="muted small">Короткое видео — и +20 листиков. Осталось сегодня: {adsLeft(g)}</span></div>
           <Btn small kind="primary" disabled={adsLeft(g) <= 0 || busy === 'ad'} onClick={async () => { setBusy('ad'); await watchAd({ kind: 'leaves' }); setBusy(''); }}>Смотреть</Btn>
         </div>
@@ -238,7 +239,7 @@ function StarsShop() {
         {PRODUCTS.filter((p) => p.kind === 'boost').map((p) => (
           <div key={p.id} className="row-item">
             <div className="ricon"><Icon name="boost" size={28} tone={TONE.boost} /></div>
-            <div className="rtext"><b>{p.title}</b><span className="muted small">{p.desc}{(g.owned.boost ?? 0) > 0 ? ` В запасе: ${g.owned.boost}.` : ''}</span></div>
+            <div className="rtext"><b>{rich(p.title)}</b><span className="muted small">{rich(p.desc)}{rich((g.owned.boost ?? 0) > 0 ? ` В запасе: ${g.owned.boost}.` : '')}</span></div>
             <Btn small kind="gold" disabled={busy === p.id} onClick={() => buy(p.id)}><StarsPrice n={p.stars} /></Btn>
           </div>
         ))}
@@ -250,12 +251,12 @@ function StarsShop() {
         {PRODUCTS.filter((p) => p.kind === 'leaves').map((p) => (
           <div key={p.id} className="row-item">
             <div className="ricon"><Icon name="leaf" size={28} tone={TONE.leaf} /></div>
-            <div className="rtext"><b>{p.title}</b><span className="muted small">{p.desc}</span></div>
+            <div className="rtext"><b>{rich(p.title)}</b><span className="muted small">{rich(p.desc)}</span></div>
             <Btn small kind="gold" disabled={busy === p.id} onClick={() => buy(p.id)}><StarsPrice n={p.stars} /></Btn>
           </div>
         ))}
       </div>
-      <p className="muted small center">Растения никогда не погибают из-за того, что ты ничего не купил(а). Покупки — только приятные бонусы 🌿 Условия: /terms в боте.</p>
+      <p className="muted small center">Растения никогда не погибают из-за того, что ты ничего не купил(а). Покупки — только приятные бонусы <Emo e="🌿" /> Условия: /terms в боте.</p>
     </div>
   );
 }

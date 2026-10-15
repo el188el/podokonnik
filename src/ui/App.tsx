@@ -17,6 +17,7 @@ import { Quests } from './tabs/Quests';
 import { Shop } from './tabs/Shop';
 import { SillView } from './tabs/SillView';
 import { Icon, TONE, type IconName } from './kit/icons';
+import { Emo, rich } from './kit/rich';
 
 const TABS: [Tab, IconName, string][] = [
   ['sill', 'sill', 'Подоконник'],
@@ -103,7 +104,7 @@ export function App() {
           <button onClick={debug.adult}>Взрослые</button>
           <button onClick={debug.cramp}>Тесно</button>
           <button onClick={debug.fill}>Заполнить</button>
-          <button onClick={debug.rich}>+1000 🍃</button>
+          <button onClick={debug.rich}>+1000 <Emo e="🍃" /></button>
           <button onClick={debug.decor}>Декор</button>
           <button onClick={debug.older}>+30 дн. возраста</button>
           <button onClick={debug.reset}>Сброс</button>
@@ -114,7 +115,7 @@ export function App() {
         {TABS.map(([k, icon, label]) => (
           <button key={k} className={tab === k ? 'on' : ''} onClick={() => { setTab(k); platform().haptic('select'); }}>
             <span className="ti"><Icon name={icon} size={24} stroke={tab === k ? 2.4 : 2} /></span>
-            <span className="tl">{label}</span>
+            <span className="tl">{rich(label)}</span>
             {k === 'quests' && questsReady && <i className="dot" />}
           </button>
         ))}
@@ -126,7 +127,7 @@ export function App() {
         <AnimatePresence>
           {toasts.map((t) => (
             <motion.div key={t.id} className="toast" initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ opacity: 0 }}>
-              {t.text}
+              {rich(t.text)}
             </motion.div>
           ))}
         </AnimatePresence>
@@ -142,7 +143,7 @@ function SillPicker() {
   const sill = g.sills.find((s) => s.id === g.activeSill) ?? g.sills[0];
   return (
     <button className="sill-picker" onClick={() => openSheet({ kind: 'sills' })}>
-      <span>{coop ? `💞 ${coop.state.name}` : sill.name}</span>
+      <span>{rich(coop ? `💞 ${coop.state.name}` : sill.name)}</span>
       <Icon name="chevron" size={18} />
     </button>
   );

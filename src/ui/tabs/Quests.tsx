@@ -4,6 +4,7 @@ import { approx } from '../../game/sim';
 import { claimQuest, claimQuestBonus, claimWeekly, claimWeeklyChest, now, useStore } from '../../game/store';
 import { Bar, Btn } from '../kit/kit';
 import { Icon, Money, TONE, type IconName } from '../kit/icons';
+import { rich } from '../kit/rich';
 
 // иконки и цвета заданий — те же, что у инструментов
 const QI: Record<string, [IconName, string]> = {
@@ -44,7 +45,7 @@ export function Quests() {
           <div key={q.id} className="quest">
             <QIcon k={q.kind} />
             <div className="qbody">
-              <b>{QUEST_TEXT[q.kind](q.target)}</b>
+              <b>{rich(QUEST_TEXT[q.kind](q.target))}</b>
               <Bar value={q.progress / q.target} label={`${q.progress}/${q.target}`} />
             </div>
             {q.claimed ? (
@@ -65,12 +66,12 @@ export function Quests() {
 
       {g.weekly && g.weekly.list.length > 0 && (
         <section className="panel weekly">
-          <h3 className="ih3"><Icon name="trophy" size={20} tone="#e8a325" />На неделю <small className="muted">· ещё {approx(weekLeftMs(now()))}</small></h3>
+          <h3 className="ih3"><Icon name="trophy" size={20} tone="#e8a325" />На неделю <small className="muted">· ещё {rich(approx(weekLeftMs(now())))}</small></h3>
           {g.weekly.list.map((q) => (
             <div key={q.id} className="quest">
               <QIcon k={q.kind} />
               <div className="qbody">
-                <b>{WEEKLY_TEXT[q.kind](q.target)}</b>
+                <b>{rich(WEEKLY_TEXT[q.kind](q.target))}</b>
                 <Bar value={q.progress / q.target} label={`${q.progress}/${q.target}`} />
               </div>
               {q.claimed ? (
@@ -101,10 +102,10 @@ export function Quests() {
             const pr = a.progress?.(g);
             return (
               <div key={a.id} className={'ach' + (done ? ' done' : '')}>
-                <span className="aicon">{done ? a.icon : <Icon name="lock" size={22} tone="#9aa9a2" />}</span>
+                <span className="aicon">{done ? rich(a.icon) : <Icon name="lock" size={22} tone="#9aa9a2" />}</span>
                 <div>
-                  <b>{a.title}</b>
-                  <span className="muted small">{a.text} · <Money n={a.reward} size={14} /></span>
+                  <b>{rich(a.title)}</b>
+                  <span className="muted small">{rich(a.text)} · <Money n={a.reward} size={14} /></span>
                   {!done && pr && <Bar value={pr[0] / pr[1]} label={`${pr[0]}/${pr[1]}`} />}
                 </div>
               </div>

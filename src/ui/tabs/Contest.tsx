@@ -11,6 +11,7 @@ import { PlantArt } from '../art/PlantArt';
 import { Btn } from '../kit/kit';
 import { SillScene } from '../SillScene';
 import { Icon, Money } from '../kit/icons';
+import { Emo, rich } from '../kit/rich';
 
 const MEDAL = ['🥇', '🥈', '🥉'];
 
@@ -58,18 +59,18 @@ export function Contest() {
     <div>
       <section className="panel contest-head">
         <h3 className="ih3"><Icon name="trophy" size={20} tone="#e8a325" />Подоконник недели</h3>
-        <p><b>Тема: {data.theme.title}</b><br /><span className="muted small">{data.theme.hint}</span></p>
+        <p><b>Тема: {rich(data.theme.title)}</b><br /><span className="muted small">{rich(data.theme.hint)}</span></p>
         <p className="muted small">
-          Итоги через {fmt(data.endsAt - now())} · участников: {data.total} · призы {CONTEST_PRIZES.map((p, i) => `${MEDAL[i]} ${p}`).join(' ')} листиков
+          Итоги через {rich(fmt(data.endsAt - now()))} · участников: {data.total} · призы {rich(CONTEST_PRIZES.map((p, i) => `${MEDAL[i]} ${p}`).join(' '))} листиков
         </p>
         {data.mine ? (
           <>
-            <p className="small">Твой подоконник участвует: ❤️ {data.mine.votes}{place ? ` · ${place} место` : ''}</p>
-            <Btn small kind="soft" disabled={busy} onClick={async () => { setBusy(true); await enterContest(sill.id); load(); setBusy(false); }}>📸 Обновить снимок «{sill.name}»</Btn>
+            <p className="small">Твой подоконник участвует: <Emo e="❤️" /> {data.mine.votes}{rich(place ? ` · ${place} место` : '')}</p>
+            <Btn small kind="soft" disabled={busy} onClick={async () => { setBusy(true); await enterContest(sill.id); load(); setBusy(false); }}><Emo e="📸" /> Обновить снимок «{rich(sill.name)}»</Btn>
           </>
         ) : (
           <Btn kind="gold" disabled={busy} onClick={async () => { setBusy(true); await enterContest(sill.id); load(); setBusy(false); }}>
-            Участвовать подоконником «{sill.name}» · <Money n={CONTEST_ENTRY_REWARD} plus />
+            Участвовать подоконником «{rich(sill.name)}» · <Money n={CONTEST_ENTRY_REWARD} plus />
           </Btn>
         )}
         <p className="muted small">Голосов у тебя: {left} из {data.votesMax} · за каждый <Money n={CONTEST_VOTE_REWARD} plus size={13} /></p>
@@ -77,13 +78,13 @@ export function Contest() {
 
       {data.last.top.length > 0 && (
         <section className="panel">
-          <h3>Победители прошлой недели · {data.last.theme.title}</h3>
+          <h3>Победители прошлой недели · {rich(data.last.theme.title)}</h3>
           <div className="podium">
             {data.last.top.map((e, i) => (
               <div key={e.id} className="podium-item">
                 <ShotScene shot={e.shot} />
-                <b>{MEDAL[i]} {e.shot.name}</b>
-                <span className="muted small">❤️ {e.votes}</span>
+                <b>{rich(MEDAL[i])} {rich(e.shot.name)}</b>
+                <span className="muted small"><Emo e="❤️" /> {e.votes}</span>
               </div>
             ))}
           </div>
@@ -99,9 +100,9 @@ export function Contest() {
             <div key={e.id} className="entry">
               <ShotScene shot={e.shot} />
               <div className="entry-foot">
-                <span><b>{e.shot.name}</b> <span className="muted small"><Icon name="star" size={12} className="inl" /> {e.shot.level}{e.friend ? ' · друг' : ''}</span></span>
+                <span><b>{rich(e.shot.name)}</b> <span className="muted small"><Icon name="star" size={12} className="inl" /> {e.shot.level}{rich(e.friend ? ' · друг' : '')}</span></span>
                 <Btn small kind={voted ? 'soft' : 'gold'} disabled={voted || left <= 0} onClick={async () => { if (await voteContest(e.id)) load(); }}>
-                  {voted ? "❤️" : "🤍"} {e.votes}
+                  {rich(voted ? "❤️" : "🤍")} {e.votes}
                 </Btn>
               </div>
             </div>

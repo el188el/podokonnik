@@ -11,6 +11,7 @@ import { shareBeforeAfter } from '../share';
 import type { Twin } from '../../game/types';
 import { PlantArt } from '../art/PlantArt';
 import { Btn } from '../kit/kit';
+import { Emo, rich } from '../kit/rich';
 
 const NO_TWINS: Twin[] = [];
 
@@ -20,13 +21,13 @@ export function TwinsSheet() {
   const [adding, setAdding] = useState(twins.length === 0);
   return (
     <div>
-      <h2>🏠 Мои настоящие растения</h2>
+      <h2><Emo e="🏠" /> Мои настоящие растения</h2>
       <p className="muted small">
-        Заведи двойника своего настоящего цветка. Бот напомнит, когда его пора полить, а когда отметишь полив здесь — двойник подрастёт. Полил вовремя: +3 🍃 и серия.
+        Заведи двойника своего настоящего цветка. Бот напомнит, когда его пора полить, а когда отметишь полив здесь — двойник подрастёт. Полил вовремя: +3 <Emo e="🍃" /> и серия.
       </p>
       {twins.map((t) => <TwinCard key={t.id} t={t} />)}
       <CareCalendar twins={twins} />
-      {adding ? <AddTwin onDone={() => setAdding(false)} /> : <Btn onClick={() => setAdding(true)}>➕ Добавить настоящее растение</Btn>}
+      {adding ? <AddTwin onDone={() => setAdding(false)} /> : <Btn onClick={() => setAdding(true)}><Emo e="➕" /> Добавить настоящее растение</Btn>}
       <Btn kind="ghost" onClick={closeSheet}>Закрыть</Btn>
     </div>
   );
@@ -41,17 +42,17 @@ function CareCalendar({ twins }: { twins: Twin[] }) {
   const tasks = careTasks(month, twins.map((x) => x.sp));
   return (
     <div className="panel care-cal">
-      <h3>📅 Уход в {MONTH_IN[month - 1]}</h3>
+      <h3><Emo e="📅" /> Уход в {rich(MONTH_IN[month - 1])}</h3>
       {tasks.map((k) => {
         const ok = done.includes(k.key);
         return (
           <button key={k.key} className={'care-task' + (ok ? ' done' : '')} disabled={ok} onClick={() => doCareTask(k.key)}>
-            <span>{ok ? '✅' : k.icon}</span>
-            <span>{k.sp ? <b>{sp(k.sp).name}: </b> : null}{k.text}</span>
+            <span>{rich(ok ? '✅' : k.icon)}</span>
+            <span>{k.sp ? <b>{rich(sp(k.sp).name)}: </b> : null}{rich(k.text)}</span>
           </button>
         );
       })}
-      <p className="muted small">Сделал(а) по-настоящему — отметь: +5 🍃 за каждое дело.</p>
+      <p className="muted small">Сделал(а) по-настоящему — отметь: +5 <Emo e="🍃" /> за каждое дело.</p>
     </div>
   );
 }
@@ -67,7 +68,7 @@ export function Photo({ id, className }: { id: string; className?: string }) {
     loadPhoto(id).then((b) => { if (b) { u = URL.createObjectURL(b); setUrl(u); } else setMissing(true); });
     return () => { if (u) URL.revokeObjectURL(u); };
   }, [id]);
-  if (missing) return <div className={'photo missing ' + (className ?? '')}>📵<small>на другом устройстве</small></div>;
+  if (missing) return <div className={'photo missing ' + (className ?? '')}><Emo e="📵" /><small>на другом устройстве</small></div>;
   return url ? <img className={'photo ' + (className ?? '')} src={url} alt="" /> : <div className={'photo ' + (className ?? '')} />;
 }
 
@@ -94,24 +95,24 @@ function TwinPhotos({ t }: { t: Twin }) {
           {list.map((ph) => (
             <figure key={ph.id}>
               <Photo id={ph.id} />
-              <figcaption>{dateText(ph.at)}</figcaption>
+              <figcaption>{rich(dateText(ph.at))}</figcaption>
             </figure>
           ))}
         </div>
       )}
-      {photoDue(t, now()) && <p className="small due-text">Прошёл месяц — сфотографируй снова и сравни, как подрос 📷</p>}
+      {photoDue(t, now()) && <p className="small due-text">Прошёл месяц — сфотографируй снова и сравни, как подрос <Emo e="📷" /></p>}
       <div className="twin-actions">
         <Btn small kind={!list.length || photoDue(t, now()) ? 'gold' : 'soft'} disabled={busy} onClick={() => input.current?.click()}>
-          📷 {list.length ? 'Новое фото' : 'Сфотографировать'}
+          <Emo e="📷" /> {rich(list.length ? 'Новое фото' : 'Сфотографировать')}
         </Btn>
-        {canCompare && <Btn small kind="soft" onClick={() => setCompare(!compare)}>{compare ? 'Скрыть' : '↔ Было / стало'}</Btn>}
+        {canCompare && <Btn small kind="soft" onClick={() => setCompare(!compare)}>{rich(compare ? 'Скрыть' : '↔ Было / стало')}</Btn>}
       </div>
       {compare && first && last && (
         <div className="before-after">
-          <figure><Photo id={first.id} /><figcaption>Было · {dateText(first.at)}</figcaption></figure>
-          <figure><Photo id={last.id} /><figcaption>Стало · {dateText(last.at)}</figcaption></figure>
+          <figure><Photo id={first.id} /><figcaption>Было · {rich(dateText(first.at))}</figcaption></figure>
+          <figure><Photo id={last.id} /><figcaption>Стало · {rich(dateText(last.at))}</figcaption></figure>
           <div className="ba-actions">
-            <Btn small kind="gold" onClick={() => shareBeforeAfter(t, first, last)}>Поделиться 📸</Btn>
+            <Btn small kind="gold" onClick={() => shareBeforeAfter(t, first, last)}>Поделиться <Emo e="📸" /></Btn>
             <Btn small kind="ghost" onClick={() => removeTwinPhoto(t.id, last.id)}>Удалить последнее</Btn>
           </div>
         </div>
@@ -130,13 +131,13 @@ function TwinCard({ t }: { t: Twin }) {
     <div className={'twin' + (left <= 0 ? ' due' : '')}>
       <PlantArt sp={t.sp} stage={twinStage(t)} seed={t.id} blooming={t.streak >= 5 && !!s.bloom} className="twin-art" />
       <div className="twin-body">
-        <b>{t.nick}</b>
-        <span className="muted small">{s.name} · раз в {t.every} {plural(t.every, 'день', 'дня', 'дней')}{t.streak > 1 ? ` · 🔥 ${t.streak}` : ''}</span>
+        <b>{rich(t.nick)}</b>
+        <span className="muted small">{rich(s.name)} · раз в {t.every} {rich(plural(t.every, 'день', 'дня', 'дней'))}{rich(t.streak > 1 ? ` · 🔥 ${t.streak}` : '')}</span>
         <span className={'small ' + (left <= 0 ? 'due-text' : 'muted')}>
-          {!t.lastWater ? 'Отметь первый полив' : left <= 0 ? (left > -D ? 'Пора полить сегодня 💧' : `Просрочено на ${fmt(-left)}`) : `Полить через ${fmt(left)}`}
+          {rich(!t.lastWater ? 'Отметь первый полив' : left <= 0 ? (left > -D ? 'Пора полить сегодня 💧' : `Просрочено на ${fmt(-left)}`) : `Полить через ${fmt(left)}`)}
         </span>
         <div className="twin-actions">
-          <Btn small kind={left <= 0 ? 'primary' : 'soft'} onClick={() => waterTwin(t.id)}>💧 Полил(а)</Btn>
+          <Btn small kind={left <= 0 ? 'primary' : 'soft'} onClick={() => waterTwin(t.id)}><Emo e="💧" /> Полил(а)</Btn>
           <button className="chip" onClick={() => setMenu(!menu)}>⋯</button>
         </div>
         {menu && (
@@ -147,7 +148,7 @@ function TwinCard({ t }: { t: Twin }) {
                 <button key={d} className={'chip' + (t.every === d ? ' on' : '')} onClick={() => updateTwin(t.id, { every: d })}>{d} дн</button>
               ))}
             </div>
-            <Btn small kind="soft" onClick={() => openSheet({ kind: 'doctor', sp: t.sp })}>🩺 Что-то не так с растением?</Btn>
+            <Btn small kind="soft" onClick={() => openSheet({ kind: 'doctor', sp: t.sp })}><Emo e="🩺" /> Что-то не так с растением?</Btn>
             <Btn small kind="warn" onClick={() => removeTwin(t.id)}>Удалить двойника</Btn>
           </div>
         )}
@@ -169,7 +170,7 @@ function AddTwin({ onDone }: { onDone: () => void }) {
         {SPECIES.map((x) => (
           <button key={x.id} className={'pick small-pick' + (spId === x.id ? ' on' : '')} onClick={() => { setSp(x.id); setEvery(x.waterDays); }}>
             <PlantArt sp={x.id} stage={4} seed="twin" noPot />
-            <span>{x.name}</span>
+            <span>{rich(x.name)}</span>
           </button>
         ))}
       </div>
@@ -177,7 +178,7 @@ function AddTwin({ onDone }: { onDone: () => void }) {
         <>
           <label className="lbl" htmlFor="tn">Как его зовут?</label>
           <input id="tn" className="inp" maxLength={20} placeholder={s.name} value={nick} onChange={(e) => setNick(e.target.value)} />
-          <div className="lbl">Как часто поливаешь (обычно — раз в {s.waterDays} {plural(s.waterDays, 'день', 'дня', 'дней')})</div>
+          <div className="lbl">Как часто поливаешь (обычно — раз в {s.waterDays} {rich(plural(s.waterDays, 'день', 'дня', 'дней'))})</div>
           <div className="chips">
             {[2, 3, 4, 5, 7, 10, 14].map((d) => (
               <button key={d} className={'chip' + (every === d ? ' on' : '')} onClick={() => setEvery(d)}>{d} дн</button>

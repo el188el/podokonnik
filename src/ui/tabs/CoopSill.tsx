@@ -19,6 +19,7 @@ import { PlantArt } from '../art/PlantArt';
 import { Btn } from '../kit/kit';
 import { SillScene, timeOfDay } from '../SillScene';
 import { isWinter } from '../../game/sim';
+import { Emo, rich } from '../kit/rich';
 
 const ago = (ms: number) => (ms < 60e3 ? 'только что' : ms < 86400e3 ? `${fmt(ms)} назад` : `${approx(ms)} назад`);
 
@@ -91,10 +92,10 @@ export function CoopSill({ coop }: { coop: CoopView }) {
     <div className="sillview coop">
       <div className="coop-head">
         <div>
-          <b>💞 {st.name}</b>
-          <span className="muted small">{coop.members.map((m) => (m.id === me ? 'ты' : m.name)).join(' · ')}</span>
+          <b><Emo e="💞" /> {rich(st.name)}</b>
+          <span className="muted small">{rich(coop.members.map((m) => (m.id === me ? 'ты' : m.name)).join(' · '))}</span>
         </div>
-        <Btn small kind={others.length ? 'soft' : 'gold'} onClick={() => shareCoop(coop)}>{others.length ? '+ Позвать' : 'Пригласить'}</Btn>
+        <Btn small kind={others.length ? 'soft' : 'gold'} onClick={() => shareCoop(coop)}>{rich(others.length ? '+ Позвать' : 'Пригласить')}</Btn>
         <button className="chip" onClick={() => setMenu(!menu)} aria-label="Настройки общего подоконника">⋯</button>
       </div>
       {menu && (
@@ -102,10 +103,10 @@ export function CoopSill({ coop }: { coop: CoopView }) {
           <div className="lbl">Окно</div>
           <div className="chips">
             {(['N', 'E', 'S', 'W'] as const).map((w) => (
-              <button key={w} className={'chip' + (st.window === w ? ' on' : '')} onClick={() => act({ kind: 'window', side: w })}>{WINDOWS[w].short}</button>
+              <button key={w} className={'chip' + (st.window === w ? ' on' : '')} onClick={() => act({ kind: 'window', side: w })}>{rich(WINDOWS[w].short)}</button>
             ))}
           </div>
-          <p className="muted small">Код приглашения: <b>{coop.code}</b></p>
+          <p className="muted small">Код приглашения: <b>{rich(coop.code)}</b></p>
           <Btn small kind="warn" onClick={() => { if (confirm('Выйти из общего подоконника? Растения останутся у остальных.')) leaveCoop(coop.id); }}>Выйти</Btn>
         </div>
       )}
@@ -122,14 +123,14 @@ export function CoopSill({ coop }: { coop: CoopView }) {
             return (
               <motion.button whileTap={{ scale: 0.92 }} className="empty" onClick={() => (g.cuttings.length ? setPlanting(i) : toast('Нет черенков в запасе — возьми у своего растения ✂️'))}>
                 <span>+</span>
-                <small>{zoneOfSlot(i) === 'glass' ? 'у стекла' : 'в глубине'}</small>
+                <small>{rich(zoneOfSlot(i) === 'glass' ? 'у стекла' : 'в глубине')}</small>
               </motion.button>
             );
           }
           const b = bubble(p);
           return (
             <div className={'slot' + (isSad(p) ? ' sad' : '') + (sel === p.id ? ' picked' : '')} role="button" onClick={() => tap(p)}>
-              {b && <div className="bubble">{b}</div>}
+              {b && <div className="bubble">{rich(b)}</div>}
               <div className="art">
                 <PlantArt sp={p.sp} form={p.form} hue={p.hue} stage={p.stage} seed={p.id} pot={p.pot} size={potSizeOf(p)} shape={p.shape} blooming={p.blooming} className="plant-svg" />
               </div>
@@ -137,8 +138,8 @@ export function CoopSill({ coop }: { coop: CoopView }) {
                 {p.stage >= 2 && (
                   <i className="meter"><i style={{ width: `${Math.min(100, p.moisture * 100)}%`, background: p.moisture > 1 ? '#d9822b' : p.moisture < 0.25 ? '#e0574f' : '#4aa3df' }} /></i>
                 )}
-                <b>{sp(p.sp).name}</b>
-                <span>{p.waterBy ? `💧 ${p.waterBy.name === g.name ? 'ты' : p.waterBy.name}, ${ago(t - p.waterBy.at)}` : p.from?.name ? `🌱 ${p.from.name === g.name ? 'ты' : p.from.name}` : ''}</span>
+                <b>{rich(sp(p.sp).name)}</b>
+                <span>{rich(p.waterBy ? `💧 ${p.waterBy.name === g.name ? 'ты' : p.waterBy.name}, ${ago(t - p.waterBy.at)}` : p.from?.name ? `🌱 ${p.from.name === g.name ? 'ты' : p.from.name}` : '')}</span>
               </div>
             </div>
           );
@@ -156,7 +157,7 @@ export function CoopSill({ coop }: { coop: CoopView }) {
                 await act({ kind: 'plant', slot, cutting: { sp: c.sp, ...(c.form ? { form: c.form } : {}), ...(c.hue ? { hue: c.hue } : {}) } }, c.id);
               }}>
                 <PlantArt sp={c.sp} form={c.form} hue={c.hue} stage={0} noPot className="mini" />
-                <span>{sp(c.sp).name}</span>
+                <span>{rich(sp(c.sp).name)}</span>
               </button>
             ))}
           </div>
@@ -166,16 +167,16 @@ export function CoopSill({ coop }: { coop: CoopView }) {
 
       {selected && (
         <div className="panel coop-card">
-          <b>{sp(selected.sp).name}</b>
-          <p className="small">💡 {need(selected, t, ctx)}</p>
+          <b>{rich(sp(selected.sp).name)}</b>
+          <p className="small"><Emo e="💡" /> {rich(need(selected, t, ctx))}</p>
           <div className="actions">
-            {selected.stage >= 2 && <Btn small onClick={() => act({ kind: 'water', plant: selected.id, insist: true })}>💧 Полить</Btn>}
+            {selected.stage >= 2 && <Btn small onClick={() => act({ kind: 'water', plant: selected.id, insist: true })}><Emo e="💧" /> Полить</Btn>}
             <Btn small onClick={() => {
               const other = selected.zone === 'glass' ? DEEP_ROW : GLASS_ROW;
               const free = other.find((s) => !at(s)) ?? other[0];
               act({ kind: 'move', plant: selected.id, slot: free });
-            }}>{selected.zone === 'glass' ? '↓ В глубину' : '↑ К стеклу'}</Btn>
-            {canCut(selected, t) && <Btn small kind="gold" onClick={() => act({ kind: 'cut', plant: selected.id })}>✂️ Черенок</Btn>}
+            }}>{rich(selected.zone === 'glass' ? '↓ В глубину' : '↑ К стеклу')}</Btn>
+            {canCut(selected, t) && <Btn small kind="gold" onClick={() => act({ kind: 'cut', plant: selected.id })}><Emo e="✂️" /> Черенок</Btn>}
             <Btn small kind="warn" onClick={() => { if (confirm('Убрать растение с общего подоконника?')) { act({ kind: 'remove', plant: selected.id }); setSel(null); } }}>Убрать</Btn>
           </div>
         </div>
@@ -186,8 +187,8 @@ export function CoopSill({ coop }: { coop: CoopView }) {
           <div className="tools">
             {TOOLS.map(([k, icon, label]) => (
               <button key={k} className={'tool' + (tool === k ? ' on' : '')} onClick={() => setTool(k)} aria-pressed={tool === k}>
-                <span>{icon}</span>
-                <small>{label}</small>
+                <span>{rich(icon)}</span>
+                <small>{rich(label)}</small>
               </button>
             ))}
           </div>
@@ -198,7 +199,7 @@ export function CoopSill({ coop }: { coop: CoopView }) {
         <div className="panel coop-log">
           <h3>Что нового</h3>
           {st.log.slice(0, 8).map((l, i) => (
-            <div key={i} className="small"><b>{l.who ? (l.who === g.name ? 'Ты' : l.who) : '🌿'}</b> {l.text} <span className="muted">· {ago(t - l.at)}</span></div>
+            <div key={i} className="small"><b>{rich(l.who ? (l.who === g.name ? 'Ты' : l.who) : '🌿')}</b> {rich(l.text)} <span className="muted">· {rich(ago(t - l.at))}</span></div>
           ))}
         </div>
       )}

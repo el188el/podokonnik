@@ -1417,3 +1417,5 @@ button:focus:not(:focus-visible) { outline: none; }
 :root[data-theme='dark'] .meter-pct.over { color: #ffb066; }
 :root[data-theme='dark'] .meter-pct.low { color: #ff8a80; }
 .label .meter-row.with-pct .meter { width: 34px; }
+/* иконки вместо эмодзи внутри текста */
+.emo { display: inline-block; vertical-align: -0.2em; flex: none; }

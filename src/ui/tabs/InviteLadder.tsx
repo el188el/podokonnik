@@ -5,6 +5,7 @@ import * as api from '../../net/api';
 import { Btn } from '../kit/kit';
 import { shareInvite } from '../share';
 import { Icon, Money, TONE } from '../kit/icons';
+import { rich } from '../kit/rich';
 
 /** Лестница приглашений: друзья приходят по ссылке — награды растут. */
 export function InviteLadder() {
@@ -28,15 +29,15 @@ export function InviteLadder() {
             <div key={s.n} className={'ladder-step' + (got ? ' got' : ready ? ' ready' : '')}>
               <span className="ladder-n">{got ? <Icon name="check" size={18} /> : s.n}</span>
               <div className="ladder-body">
-                <b>{s.icon} {s.title}</b>
-                <span className="small muted">{s.n} {s.n === 1 ? 'друг' : s.n < 5 ? 'друга' : 'друзей'} · {s.text}</span>
+                <b>{rich(s.icon)} {rich(s.title)}</b>
+                <span className="small muted">{s.n} {rich(s.n === 1 ? 'друг' : s.n < 5 ? 'друга' : 'друзей')} · {rich(s.text)}</span>
               </div>
               {ready && <Btn small kind="gold" onClick={() => claimInvite(s.n, active)}>Забрать</Btn>}
             </div>
           );
         })}
       </div>
-      <Btn kind="gold" onClick={shareInvite}>{next ? `Пригласить друга · до «${next.title}» ещё ${next.n - active}` : 'Пригласить ещё'}</Btn>
+      <Btn kind="gold" onClick={shareInvite}>{rich(next ? `Пригласить друга · до «${next.title}» ещё ${next.n - active}` : 'Пригласить ещё')}</Btn>
     </section>
   );
 }

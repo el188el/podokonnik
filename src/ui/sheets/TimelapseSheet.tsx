@@ -9,6 +9,7 @@ import { platform } from '../../platform';
 import { Bar, Btn } from '../kit/kit';
 import { gameLink } from '../share';
 import { timelapse, videoType, type Timelapse } from '../timelapse';
+import { Emo, rich } from '../kit/rich';
 
 const toDataUrl = (b: Blob) => new Promise<string>((ok, fail) => {
   const r = new FileReader();
@@ -66,7 +67,7 @@ export function TimelapseSheet({ id }: { id: string }) {
 
   return (
     <div className="timelapse-sheet">
-      <h2>🎬 Таймлапс: {name}</h2>
+      <h2><Emo e="🎬" /> Таймлапс: {rich(name)}</h2>
       {fail ? (
         <p className="muted">Это устройство не умеет записывать видео в игре. Попробуй в Telegram на телефоне или в Chrome.</p>
       ) : !res ? (
@@ -78,10 +79,10 @@ export function TimelapseSheet({ id }: { id: string }) {
         <>
           <video className="tl-video" src={url} autoPlay loop muted playsInline />
           <div className="actions">
-            <Btn kind="primary" onClick={story}>📲 В сторис</Btn>
-            <Btn onClick={send}>✉️ Отправить</Btn>
+            <Btn kind="primary" onClick={story}><Emo e="📲" /> В сторис</Btn>
+            <Btn onClick={send}><Emo e="✉️" /> Отправить</Btn>
           </div>
-          <button className="linkish small" onClick={save}>⬇️ Сохранить видео</button>
+          <button className="linkish small" onClick={save}><Emo e="⬇️" /> Сохранить видео</button>
         </>
       )}
       <Btn kind="ghost" onClick={closeSheet}>Закрыть</Btn>

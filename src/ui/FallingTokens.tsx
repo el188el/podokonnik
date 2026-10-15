@@ -4,6 +4,7 @@
 import { useEffect, useState } from 'react';
 import { activeEvent } from '../game/events';
 import { catchesLeft, catchToken, now, useStore } from '../game/store';
+import { rich } from './kit/rich';
 
 interface Drop { id: number; x: number; dur: number; sway: number }
 
@@ -51,10 +52,10 @@ export function FallingTokens() {
             }
           }}
         >
-          {e.token}
+          {rich(e.token)}
         </button>
       ))}
-      {pops.map((p) => <span key={p.id} className="catch-pop" style={{ left: p.x, top: p.y }}>+1 {e.token} · +1 опыт</span>)}
+      {pops.map((p) => <span key={p.id} className="catch-pop" style={{ left: p.x, top: p.y }}>+1 {rich(e.token)} · +1 опыт</span>)}
     </div>
   );
 }

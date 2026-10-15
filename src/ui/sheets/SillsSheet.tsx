@@ -4,6 +4,7 @@ import { closeSheet, openSheet, setActiveSill, setArrange, setTab, showCoop, TUT
 import { WINDOWS } from '../../game/constants';
 import { loggedIn } from '../../net/api';
 import { Btn } from '../kit/kit';
+import { Emo, rich } from '../kit/rich';
 
 export function SillsSheet() {
   const g = useStore((s) => s.game);
@@ -14,42 +15,42 @@ export function SillsSheet() {
   return (
     <div className="sills-sheet">
       <h2>Подоконники</h2>
-      <h3>🏠 Мои</h3>
+      <h3><Emo e="🏠" /> Мои</h3>
       <div className="list">
         {g.sills.map((s) => (
           <button key={s.id} className={'row-item sill-row' + (!coopOn && s.id === g.activeSill ? ' on' : '')} onClick={() => { showCoop(null); setActiveSill(s.id); closeSheet(); }}>
-            <div className="ricon">🪟</div>
-            <div className="rtext"><b>{s.name}</b><span className="muted small">{s.window ? WINDOWS[s.window].short : 'окно не выбрано'} · растений: {count(s.id)}</span></div>
-            {!coopOn && s.id === g.activeSill && <span className="sill-here">✓</span>}
+            <div className="ricon"><Emo e="🪟" /></div>
+            <div className="rtext"><b>{rich(s.name)}</b><span className="muted small">{rich(s.window ? WINDOWS[s.window].short : 'окно не выбрано')} · растений: {count(s.id)}</span></div>
+            {!coopOn && s.id === g.activeSill && <span className="sill-here"><Emo e="✓" /></span>}
           </button>
         ))}
       </div>
       {!coopOn && (
         <div className="sill-actions">
-          <button className="chip" onClick={() => { setTab('sill'); setArrange(true); closeSheet(); }}>🛋 Переставить предметы</button>
-          <button className="chip" onClick={() => openSheet({ kind: 'room' })}>🎨 Цвета комнаты</button>
-          <button className="chip" onClick={() => openSheet({ kind: 'window', sill: g.activeSill })}>🧭 Сторона окна</button>
+          <button className="chip" onClick={() => { setTab('sill'); setArrange(true); closeSheet(); }}><Emo e="🛋" /> Переставить предметы</button>
+          <button className="chip" onClick={() => openSheet({ kind: 'room' })}><Emo e="🎨" /> Цвета комнаты</button>
+          <button className="chip" onClick={() => openSheet({ kind: 'window', sill: g.activeSill })}><Emo e="🧭" /> Сторона окна</button>
         </div>
       )}
-      {(coops.length > 0 || canCoop) && <h3>💞 Общие с друзьями</h3>}
+      {(coops.length > 0 || canCoop) && <h3><Emo e="💞" /> Общие с друзьями</h3>}
       <div className="list">
         {coops.map((c) => (
           <button key={c.id} className={'row-item sill-row' + (coopOn === c.id ? ' on' : '')} onClick={() => showCoop(c.id)}>
-            <div className="ricon">💞</div>
-            <div className="rtext"><b>{c.state.name}</b><span className="muted small">ухаживаете вместе: {c.members.length}</span></div>
-            {coopOn === c.id && <span className="sill-here">✓</span>}
+            <div className="ricon"><Emo e="💞" /></div>
+            <div className="rtext"><b>{rich(c.state.name)}</b><span className="muted small">ухаживаете вместе: {c.members.length}</span></div>
+            {coopOn === c.id && <span className="sill-here"><Emo e="✓" /></span>}
           </button>
         ))}
         {canCoop && coops.length < 2 && (
           <button className="row-item sill-row add" onClick={() => openSheet({ kind: 'coop' })}>
-            <div className="ricon">➕</div>
+            <div className="ricon"><Emo e="➕" /></div>
             <div className="rtext"><b>Общий подоконник</b><span className="muted small">Растения, за которыми ухаживаете с друзьями вместе</span></div>
           </button>
         )}
       </div>
-      <Btn onClick={() => openSheet({ kind: 'room' })}>🎨 Цвета стен, стола и подоконника</Btn>
-      <Btn onClick={() => openSheet({ kind: 'postcard' })}>💌 Открытка с этого подоконника</Btn>
-      <button className="linkish small" onClick={() => { closeSheet(); setTab('shop'); }}>🛒 Ещё подоконник — в магазине, раздел «Окна»</button>
+      <Btn onClick={() => openSheet({ kind: 'room' })}><Emo e="🎨" /> Цвета стен, стола и подоконника</Btn>
+      <Btn onClick={() => openSheet({ kind: 'postcard' })}><Emo e="💌" /> Открытка с этого подоконника</Btn>
+      <button className="linkish small" onClick={() => { closeSheet(); setTab('shop'); }}><Emo e="🛒" /> Ещё подоконник — в магазине, раздел «Окна»</button>
     </div>
   );
 }
