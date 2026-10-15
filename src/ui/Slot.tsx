@@ -196,7 +196,6 @@ export function Slot({ plant: p, sill, slot }: { plant: Plant; sill: string; slo
       {p.stage === 0 && !p.rootStart && <div className="finger">👆</div>}
       {roundPending && <div className="round-dot" title="загляни в обходе" aria-label="не осмотрено в обходе" />}
       {p.problem && <div className={'pest pest-' + p.problem.kind} style={{ opacity: 0.45 + 0.55 * p.problem.sev }}>{p.problem.kind === 'gnats' ? <><i /><i /><i /></> : null}</div>}
-      {meter && p.stage >= 2 && <div className={'meter-chip' + (p.moisture > 1 ? ' over' : p.moisture < 0.25 ? ' low' : '')}>💧{Math.round(p.moisture * 100)}%</div>}
       {p.boostUntil && t < p.boostUntil && <div className="boost-glow" />}
 
       <motion.div
@@ -226,9 +225,13 @@ export function Slot({ plant: p, sill, slot }: { plant: Plant; sill: string; slo
       )}
       <div className="label">
         {p.stage >= 2 && (
-          <i className="meter" title="влажность">
-            <i style={{ width: `${Math.min(100, p.moisture * 100)}%`, background: p.moisture > 1 ? '#d9822b' : p.moisture < 0.25 ? '#e0574f' : '#4aa3df' }} />
-          </i>
+          <div className={"meter-row" + (meter ? " with-pct" : "")}>
+            <i className="meter" title="влажность">
+              <i style={{ width: `${Math.min(100, p.moisture * 100)}%`, background: p.moisture > 1 ? '#d9822b' : p.moisture < 0.25 ? '#e0574f' : '#4aa3df' }} />
+            </i>
+            {/* влагомер: точные проценты — под горшком, чтобы не закрывать растение */}
+            {meter && <em className={'meter-pct' + (p.moisture > 1 ? ' over' : p.moisture < 0.25 ? ' low' : '')}>{Math.round(p.moisture * 100)}%</em>}
+          </div>
         )}
         {timerFor(p, t) && <span className="timer-chip">{timerFor(p, t)}</span>}
       </div>

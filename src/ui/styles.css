@@ -1407,3 +1407,13 @@ button:focus:not(:focus-visible) { outline: none; }
 }
 @media (min-width: 600px) and (max-width: 1000px) { body::before, body::after { display: none; } }
 .deco.off .fan-blades { animation: none; }
+/* влагомер: проценты рядом с полоской под горшком */
+.label .meter-row { display: flex; align-items: center; justify-content: center; gap: 3px; margin-bottom: 2px; }
+.label .meter-row .meter { margin: 0; }
+.meter-pct { font-style: normal; font-size: 9px; font-weight: 800; line-height: 1; color: #2f6d9a; background: #ffffffcc; border-radius: 6px; padding: 1px 3px; }
+.meter-pct.over { color: #b4561a; }
+.meter-pct.low { color: #c23b33; }
+:root[data-theme='dark'] .meter-pct { background: #1c2622cc; color: #8cc0ef; }
+:root[data-theme='dark'] .meter-pct.over { color: #ffb066; }
+:root[data-theme='dark'] .meter-pct.low { color: #ff8a80; }
+.label .meter-row.with-pct .meter { width: 34px; }
