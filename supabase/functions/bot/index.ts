@@ -7,6 +7,7 @@ import { TG_CHANNEL, appLink, env, secret } from '../_shared/env.ts';
 import { checkPreCheckout, grant, markRefunded } from '../_shared/pay.ts';
 import { send, tg } from '../_shared/tg.ts';
 import { GROUP_HELLO, groupButton, groupLink, groupPlant } from '../_shared/chat.ts';
+import { supportApi, supportIn } from '../_shared/support.ts';
 
 const WELCOME = `Привет! Это <b>Подоконник</b> 🌱
 
@@ -20,8 +21,11 @@ const HELP = `🪴 <b>Как играть</b>
 Команды:
 /start — открыть игру
 /notify — включить или выключить напоминания
+/support — написать в поддержку
 /paysupport — помощь с покупками
-/terms — условия покупок`;
+/terms — условия покупок
+
+Вопрос или проблема? Просто напиши сюда сообщение — оно попадёт в поддержку 💬`;
 
 const TERMS = `<b>Условия покупок</b>
 • Покупки в Подоконнике — цифровые товары за Telegram Stars: листики, редкие формы растений и подписка «Садовник+».
@@ -31,12 +35,17 @@ const TERMS = `<b>Условия покупок</b>
 
 const ADMIN = Number(env('TG_ADMIN_ID')) || 0;
 
+const SUPPORT_THANKS = '💬 Спасибо! Сообщение передано в поддержку — ответим здесь, в этом чате. Можно дописать подробности или прислать скриншот.';
+
 interface Update {
   my_chat_member?: { chat: { id: number; type: string; title?: string }; new_chat_member: { status: string } };
   message?: {
     chat: { id: number; type: string; title?: string };
-    from?: { id: number; first_name?: string; username?: string };
+    message_id?: number;
+    from?: { id: number; first_name?: string; last_name?: string; username?: string };
     text?: string;
+    caption?: string;
+    photo?: { file_id: string }[];
     successful_payment?: {
       currency: string; total_amount: number; invoice_payload: string; telegram_payment_charge_id: string;
       is_recurring?: boolean; subscription_expiration_date?: number;
@@ -133,6 +142,12 @@ async function handle(u: Update) {
     await markRefunded(m.refunded_payment.telegram_payment_charge_id);
     return;
   }
+  if (m?.photo?.length && m.chat.type === 'private' && m.from) {
+    // фото с подписью или без — тоже в поддержку
+    const fresh = await supportIn(m.from, m.caption ?? '', m.photo[m.photo.length - 1].file_id, m.message_id);
+    if (fresh) await send(m.chat.id, SUPPORT_THANKS);
+    return;
+  }
   if (!m?.text) return;
   if (m.chat.type === 'group' || m.chat.type === 'supergroup') {
     // в группе бот слышит только команды: /plant [имя], /start plant (ссылка «добавить в группу»)
@@ -155,6 +170,7 @@ async function handle(u: Update) {
     if (!text) {
       await send(m.chat.id, 'Опиши проблему с покупкой одним сообщением, начав с /paysupport. Например:\n<code>/paysupport оплатил листики, но они не пришли</code>');
     } else {
+      if (m.from) await supportIn(m.from, `💳 ${text}`, undefined, m.message_id);
       if (ADMIN) await send(ADMIN, `🆘 Поддержка от ${m.from?.first_name ?? ''} (@${m.from?.username ?? '-'}, id ${m.chat.id}):\n${text.slice(0, 1000).replace(/</g, '&lt;')}`);
       await send(m.chat.id, 'Спасибо! Мы получили сообщение и ответим здесь, в этом чате 🌿');
     }
@@ -175,6 +191,12 @@ async function handle(u: Update) {
   } else if (cmd === '/plant') {
     const link = groupLink();
     await send(m.chat.id, '🪴 Растение для чата: добавь меня в группу друзей, семьи или коллег — и у вас появится общее растение. Поливайте его вместе, а я напомню, когда оно захочет пить 💧', link ? { text: '➕ Добавить в группу', url: link } : undefined);
+  } else if (cmd === '/support') {
+    const text = m.text.slice('/support'.length).trim();
+    if (text && m.from) {
+      await supportIn(m.from, text, undefined, m.message_id);
+      await send(m.chat.id, SUPPORT_THANKS);
+    } else await send(m.chat.id, '💬 Напиши свой вопрос или опиши проблему одним сообщением прямо сюда (можно с фото или скриншотом) — оно попадёт в поддержку, и мы ответим здесь.');
   } else if (cmd === '/terms') {
     await send(m.chat.id, TERMS);
   } else if (cmd === '/channel') {
@@ -189,12 +211,21 @@ async function handle(u: Update) {
     }
     await db.from('players').update({ notify: !p.notify }).eq('id', p.id);
     await send(m.chat.id, p.notify ? '🔕 Напоминания выключены. Вернуть: /notify' : '🔔 Напоминания включены. Я напишу, когда растения захотят пить.');
-  } else {
-    await send(m.chat.id, 'Я умею только напоминать о растениях 🌿 Нажми, чтобы открыть игру:', { text: '🪴 Открыть подоконник', url: appLink() });
+  } else if (cmd.startsWith('/')) {
+    await send(m.chat.id, 'Такой команды нет 🌿 Список команд — /help. Нажми, чтобы открыть игру:', { text: '🪴 Открыть подоконник', url: appLink() });
+  } else if (m.from) {
+    // обычное сообщение — в поддержку
+    const fresh = await supportIn(m.from, m.text, undefined, m.message_id);
+    if (fresh) await send(m.chat.id, SUPPORT_THANKS);
   }
 }
 
 Deno.serve(async (req) => {
+  // запросы панели поддержки (ответ игроку, фото) — со своим секретом
+  if (req.method === 'POST') {
+    const r = await supportApi(req);
+    if (r) return r;
+  }
   const got = req.headers.get('x-telegram-bot-api-secret-token') ?? '';
   if (req.method !== 'POST' || !safeEqual(got, await secret('webhook'))) return new Response('forbidden', { status: 403 });
   try {

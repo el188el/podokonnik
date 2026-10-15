@@ -3,6 +3,7 @@
 // поэтому растения честно живут и растут, даже когда игра закрыта.
 // Функции здесь чистые относительно входа: меняют только переданные объекты.
 
+import { growthMul } from './liveops.ts';
 import { D, H, MAX_GROWTH_MULT, MIN, QUICK_ROOT_MIN, WINDOWS } from './constants.ts';
 import { sp } from './species.ts';
 import { isDim, isSunny, weatherAt } from './weather.ts';
@@ -152,6 +153,7 @@ export interface Ctx {
   tulle?: boolean; // тюль рассеивает прямое солнце у стекла
   radio?: boolean; // радио на подоконнике: под музыку растут чуть быстрее
   lampGrow?: number; // фитолампа над этим рядом: множитель роста
+  live?: number;   // ивент «быстрый рост» из панели: множитель роста
 }
 
 /** Бонус новичка: первые двое суток (пока уровень ниже 6) растения растут втрое быстрее. */
@@ -177,6 +179,7 @@ export function growthRate(p: Plant, t: number, ctx: Ctx) {
   if (ctx.radio) r *= 1.05;
   if (ctx.lampGrow) r *= ctx.lampGrow;
   r = Math.min(r, MAX_GROWTH_MULT);
+  if (ctx.live && ctx.live > 1) r *= ctx.live; // ивент «быстрый рост» — поверх обычных ускорений
   if (ctx.newbie) r *= NEWBIE_MULT; // бонус новичка — поверх всех ускорений
   return r;
 }
@@ -338,6 +341,7 @@ export function ctxFor(state: GameState, p: Plant, t: number): Ctx {
     tulle: hasDecorOn(state, sill, 'tulle'),
     newbie: newbieLeft(state, t) > 0,
     radio: hasDecorOn(state, sill, 'radio'),
+    live: growthMul(t),
   };
 }
 

@@ -10,6 +10,7 @@ import { loggedIn, playerId } from '../net/api';
 import { platform } from '../platform';
 import { Safe } from './kit/kit';
 import { Popups } from './Popups';
+import { BanScreen, LiveBanner } from './LiveBanner';
 import { Sheets } from './sheets/Sheets';
 import { Friends } from './tabs/Friends';
 import { Herbarium } from './tabs/Herbarium';
@@ -39,6 +40,7 @@ export function App() {
   const g = useStore((s) => s.game);
   const toasts = useStore((s) => s.toasts);
   const coopOn = useStore((s) => s.coopOn);
+  const banned = useStore((s) => s.banned);
   useTheme();
   // на подоконнике комната (обои) — на весь экран, интерфейс поверх
   const onSill = tab === 'sill' && !coopOn;
@@ -76,6 +78,8 @@ export function App() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  if (banned) return <div className="app skin"><BanScreen /></div>;
+
   return (
     <div className={'app skin' + (onSill ? ' on-sill' : '')} style={onSill ? (roomVars(activeSill?.colors) as CSSProperties) : undefined}>
       <header className="topbar">
@@ -95,6 +99,8 @@ export function App() {
           <button className="me" onClick={() => setTab('profile')} aria-label="Профиль"><Icon name="user" size={22} /></button>
         </div>
       </header>
+
+      {(tab === 'sill' || tab === 'quests') && !coopOn && <LiveBanner />}
 
       <main ref={main} className={'content' + (tab === 'sill' && !coopOn ? ' fixed' : '')}>
         <Safe key={tab} label={tab}>

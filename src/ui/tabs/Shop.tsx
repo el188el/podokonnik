@@ -7,6 +7,7 @@ import { fmt } from '../../game/sim';
 import { activeEvent } from '../../game/events';
 import { adsLeft, boxReady, buyItem, buySpecies, buyStars, isPlus, now, openBox, openSheet, unlockSill, useStore, watchAd } from '../../game/store';
 import { BOX_PRICE } from '../../game/box';
+import { discountPct, livePrice } from '../../game/liveops';
 import { sharePlusGift } from '../share';
 import { adsAvailable } from '../../net/ads';
 import { tgAppLink } from '../../config';
@@ -30,13 +31,16 @@ const CATS: [Cat, IconName, string][] = [
 
 export function Shop() {
   const g = useStore((s) => s.game);
+  useStore((s) => s.live); // перерисовать, когда меняются ивенты (скидка)
   const [cat, setCat] = useState<Cat>('plants');
   const month = new Date(now()).getMonth() + 1;
+  const sale = discountPct(now());
   return (
     <div className="tab">
       <div className="tab-head">
         <h1>Магазин</h1>
       </div>
+      {sale > 0 && <div className="live-note"><Emo e="💸" /> Скидка {sale}% на черенки и товары за листики</div>}
       <div className={'box-card' + (boxReady(g) ? ' ready' : '')}>
         <span className="box-icon"><Icon name="gift" size={30} tone="#d0578f" /></span>
         <div>
@@ -70,7 +74,7 @@ export function Shop() {
                       {locked ? (
                         <Btn small disabled><Icon name="lock" size={15} /> {s.unlockLevel} ур.</Btn>
                       ) : (
-                        <Btn small kind="primary" disabled={g.leaves < s.price} onClick={() => buySpecies(s.id)}><Money n={s.price} /></Btn>
+                        <Btn small kind="primary" disabled={g.leaves < livePrice(s.price, now())} onClick={() => buySpecies(s.id)}><Price n={s.price} /></Btn>
                       )}
                     </div>
                   );
@@ -110,7 +114,7 @@ export function Shop() {
                 ) : offSeason ? (
                   <Btn small disabled>не сезон</Btn>
                 ) : (
-                  <Btn small kind="primary" disabled={g.leaves < it.price} onClick={() => buyItem(it.id)}><Money n={it.price} /></Btn>
+                  <Btn small kind="primary" disabled={g.leaves < livePrice(it.price, now())} onClick={() => buyItem(it.id)}><Price n={it.price} /></Btn>
                 )}
               </div>
               </Fragment>
@@ -260,4 +264,11 @@ function StarsShop() {
       <p className="muted small center">Растения никогда не погибают из-за того, что ты ничего не купил(а). Покупки — только приятные бонусы <Emo e="🌿" /> Условия: /terms в боте.</p>
     </div>
   );
+}
+
+/** Цена в магазине: во время скидочного ивента — старая зачёркнута, рядом новая. */
+function Price({ n }: { n: number }) {
+  const p = livePrice(n, now());
+  if (p === n) return <Money n={n} />;
+  return <><s className="old-price">{n}</s> <Money n={p} /></>;
 }

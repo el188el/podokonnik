@@ -1489,3 +1489,20 @@ button:focus:not(:focus-visible) { outline: none; }
 .cat-live.running .leg.l1, .cat-live.running .leg.l4, .cat-live.running .leg.l2, .cat-live.running .leg.l3 { animation-duration: 0.22s; }
 /* область нажатия — рамка вокруг самого растения с горшком (между листьями тоже попадает) */
 .scene .slot .hit { position: absolute; pointer-events: auto; z-index: 1; }
+/* ивенты из панели и блокировка */
+.live-banner { display: flex; flex-direction: column; gap: 6px; margin: 4px 12px 0; z-index: 4; }
+.live-row { display: flex; align-items: center; gap: 10px; padding: 8px 12px; border-radius: 16px; background: linear-gradient(90deg, rgba(255, 236, 170, 0.95), rgba(214, 240, 196, 0.95)); color: #2b3a2a; box-shadow: 0 4px 14px #0002; }
+.live-ic { font-size: 22px; line-height: 1; }
+.live-tx { flex: 1; display: flex; flex-direction: column; min-width: 0; }
+.live-tx b { font-size: 14px; }
+.live-tx small { font-size: 12px; opacity: 0.8; }
+.live-note { margin: 0 0 10px; padding: 8px 12px; border-radius: 14px; background: #ffecaa; color: #4a3b10; font-weight: 600; font-size: 14px; }
+.old-price { opacity: 0.6; font-weight: 500; margin-right: 2px; }
+.ban-screen { min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 24px; }
+.ban-card { max-width: 360px; text-align: center; background: var(--card, #fff); border-radius: 24px; padding: 28px 22px; box-shadow: 0 10px 30px #0002; display: flex; flex-direction: column; gap: 10px; }
+.ban-card h2 { margin: 0; }
+.ban-card p { margin: 0; opacity: 0.85; line-height: 1.4; }
+.ban-ic { font-size: 48px; }
+.promo-row { display: flex; gap: 8px; }
+.promo-row input { flex: 1; min-width: 0; text-transform: uppercase; }
+.support-box textarea { width: 100%; min-height: 90px; box-sizing: border-box; resize: vertical; font: inherit; padding: 10px; border-radius: 12px; border: 1px solid var(--line, #ccc); background: transparent; color: inherit; }

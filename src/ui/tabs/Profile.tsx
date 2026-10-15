@@ -4,7 +4,7 @@ import { rankOf, xpToNext } from '../../game/progression';
 import { ITEM_BY_ID, DECOR_IDS } from '../../game/shop';
 import { fmt } from '../../game/sim';
 import { ageDays } from '../../game/age';
-import { isPlus, logoutTelegram, now, openSheet, setName, setSetting, startOver, toggleDecor, useStore } from '../../game/store';
+import { isPlus, logoutTelegram, redeemPromo, sendSupport, toast, now, openSheet, setName, setSetting, startOver, toggleDecor, useStore } from '../../game/store';
 import { platform } from '../../platform';
 import { CONFIG } from '../../config';
 import { linkedAccount, online, sendSettings } from '../../net/api';
@@ -114,7 +114,58 @@ export function Profile() {
         </p>
         <StartOver />
       </section>
+
+      {online() && <Help />}
     </div>
+  );
+}
+
+/** Промокод и «Написать в поддержку»: сообщение становится обращением, ответ придёт от бота. */
+function Help() {
+  const pf = platform();
+  const [code, setCode] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [msg, setMsg] = useState('');
+  const [sent, setSent] = useState(false);
+  const redeem = async () => {
+    if (!code.trim() || busy) return;
+    setBusy(true);
+    const err = await redeemPromo(code.trim());
+    setBusy(false);
+    if (err) toast(err);
+    else setCode('');
+  };
+  const send = async () => {
+    if (!msg.trim() || busy) return;
+    setBusy(true);
+    const ok = await sendSupport(msg.trim());
+    setBusy(false);
+    if (ok) { setMsg(''); setSent(true); } else toast('Не отправилось. Попробуй ещё раз или напиши боту');
+  };
+  return (
+    <section className="panel">
+      <h3><Emo e="🎟️" /> Промокод</h3>
+      <div className="promo-row">
+        <input value={code} maxLength={32} placeholder="Например, ОСЕНЬ" onChange={(e) => setCode(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && redeem()} />
+        <Btn small kind="primary" disabled={!code.trim() || busy} onClick={redeem}>Активировать</Btn>
+      </div>
+      <h3><Emo e="💌" /> Написать в поддержку</h3>
+      {pf.kind === 'telegram' ? (
+        <div className="support-box">
+          {sent ? (
+            <p className="small"><Emo e="✅" /> Сообщение отправлено! Ответ придёт в чат с ботом игры.</p>
+          ) : (
+            <>
+              <textarea value={msg} maxLength={2000} placeholder="Что случилось? Опиши, пожалуйста, подробнее" onChange={(e) => setMsg(e.target.value)} />
+              <Btn kind="primary" disabled={!msg.trim() || busy} onClick={send}>Отправить</Btn>
+            </>
+          )}
+          {CONFIG.tgBot && <p className="muted small">Можно и просто написать боту <a href={`https://t.me/${CONFIG.tgBot}`} onClick={(e) => { e.preventDefault(); pf.openLink(`https://t.me/${CONFIG.tgBot}`); }}>@{CONFIG.tgBot}</a> — фото и скриншоты тоже дойдут.</p>}
+        </div>
+      ) : CONFIG.tgBot ? (
+        <Btn onClick={() => pf.openLink(`https://t.me/${CONFIG.tgBot}`)}><Emo e="💌" /> Написать боту @{rich(CONFIG.tgBot)}</Btn>
+      ) : null}
+    </section>
   );
 }
 
