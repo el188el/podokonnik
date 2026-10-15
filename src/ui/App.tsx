@@ -1,6 +1,7 @@
 import { useTheme } from './theme';
 import { AnimatePresence, motion } from 'framer-motion';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, type CSSProperties } from 'react';
+import { roomVars } from '../game/room';
 import { D, H, MIN } from '../game/constants';
 import { decodeGift, legacyGift } from '../game/gifts';
 import { xpToNext } from '../game/progression';
@@ -37,6 +38,9 @@ export function App() {
   const toasts = useStore((s) => s.toasts);
   const coopOn = useStore((s) => s.coopOn);
   useTheme();
+  // на подоконнике комната (обои) — на весь экран, интерфейс поверх
+  const onSill = tab === 'sill' && !coopOn;
+  const activeSill = g.sills.find((s) => s.id === g.activeSill) ?? g.sills[0];
   const questsReady = g.quests.list.some((q) => !q.claimed && q.progress >= q.target);
   // новая вкладка открывается с самого верха, а не там, где прокрутили прошлую
   const main = useRef<HTMLElement>(null);
@@ -71,7 +75,7 @@ export function App() {
   }, []);
 
   return (
-    <div className="app skin">
+    <div className={'app skin' + (onSill ? ' on-sill' : '')} style={onSill ? (roomVars(activeSill?.colors) as CSSProperties) : undefined}>
       <header className="topbar">
         <button className="lvl-ring" onClick={() => openSheet({ kind: 'levels' })} aria-label={`Уровень ${g.level}: ${g.xp} из ${xpToNext(g.level)} опыта`}>
           <svg viewBox="0 0 40 40" aria-hidden>

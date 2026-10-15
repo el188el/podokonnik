@@ -228,9 +228,9 @@ export function SillScene({ decor, tod, winter, sky, theme, win = 'E', cell, han
           {snow && <div className="snow" />}
           {rain && <div className="rain" />}
           {sky === 'fog' && <div className="fog" />}
-          {theme === 'autumn' && <div className="fall">{['🍂', '🍁', '🍂', '🍁', '🍂'].map((x, i) => <span key={i} style={{ left: `${8 + i * 19}%`, animationDelay: `${i * 1.7}s` }}>{rich(x)}</span>)}</div>}
-          {theme === 'summer' && <div className="fall butterflies">{['🦋', '🐝', '🦋'].map((x, i) => <span key={i} style={{ left: `${15 + i * 30}%`, animationDelay: `${i * 2.6}s` }}>{rich(x)}</span>)}</div>}
-          {theme === 'spring' && <div className="fall petals">{['🌸', '🌸', '🌸', '🌸'].map((x, i) => <span key={i} style={{ left: `${12 + i * 22}%`, animationDelay: `${i * 2.1}s` }}>{rich(x)}</span>)}</div>}
+          {theme === 'autumn' && <div className="fall">{['🍂', '🍁', '🍂', '🍁', '🍂'].map((x, i) => <span key={i} style={{ left: `${8 + i * 19}%`, animationDelay: `${i * 1.7}s` }}>{x}</span>)}</div>}
+          {theme === 'summer' && <div className="fall butterflies">{['🦋', '🐝', '🦋'].map((x, i) => <span key={i} style={{ left: `${15 + i * 30}%`, animationDelay: `${i * 2.6}s` }}>{x}</span>)}</div>}
+          {theme === 'spring' && <div className="fall petals">{['🌸', '🌸', '🌸', '🌸'].map((x, i) => <span key={i} style={{ left: `${12 + i * 22}%`, animationDelay: `${i * 2.1}s` }}>{x}</span>)}</div>}
           {windowD.includes('feeder') && <div className="feeder"><DecorArt id="feeder" /></div>}
           {windowD.includes('birdhouse') && <div className="birdhouse"><DecorArt id="birdhouse" /></div>}
           {windowD.includes('suncatcher') && <div className="suncatcher"><DecorArt id="suncatcher" /></div>}
