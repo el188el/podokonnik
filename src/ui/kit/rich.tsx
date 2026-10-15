@@ -36,7 +36,7 @@ export const EMOJI: Record<string, Glyph> = {
   '☀': [Sun, Y], '🌤': [CloudSun, Y], '⛅': [CloudSun, C], '🌥': [CloudSun, C], '☁': [Cloud, C], '🌦': [CloudSunRain, C], '🌧': [CloudRain, '#5f7f9a'],
   '⛈': [CloudLightning, '#5f7f9a'], '🌨': [CloudSnow, '#5aa8d8'], '❄': [Snowflake, '#5aa8d8'], '⛄': [Snowflake, '#5aa8d8'], '🌫': [CloudFog, C],
   '🌈': [Rainbow, P], '💨': [Wind, C], '😮‍💨': [Wind, C], '🌀': [Fan, '#5f9fc9'], '🎐': [Wind, T], '🌙': [Moon, '#6b6fc9'], '🌑': [Moon, '#4a4f6a'],
-  '🌅': [Sunrise, O], '🌇': [Sunset, O], '🏜': [Mountain, '#c9a050'], '🪨': [Mountain, K], '🌡': [Thermometer, '#e0685a'],
+  '🌅': [Sunrise, O], '🌇': [Sunset, O], '🏜': [Sun, O], '🪨': [Mountain, K], '🌡': [Thermometer, '#e0685a'],
   '🥵': [ThermometerSun, R], '🥶': [ThermometerSnowflake, '#5aa8d8'], '♨': [Heater, O], '🔥': [Flame, O], '🕯': [Flame, Y],
   '⚡': [Zap, Y], '💡': [Lightbulb, Y], '🔦': [Flashlight, S], '🏮': [Lamp, R], '🔌': [Plug, S],
   '🎁': [Gift, P], '📦': [Package, W], '🎟': [Ticket, P], '🎂': [Cake, P], '🛒': [ShoppingCart, GD],

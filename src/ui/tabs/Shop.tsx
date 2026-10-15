@@ -184,6 +184,7 @@ function StarsShop() {
         <div className="plus-head"><Icon name="crown" size={20} tone="#e8a325" /> <b>Садовник+</b>{plus && <span className="owned">активен ещё {rich(fmt(Math.max(g.plusUntil ?? 0, t) - t))}</span>}</div>
         <ul>
           <li><Icon name="leaf" size={16} tone={TONE.leaf} /> ×2 листиков за задания и серию заходов</li>
+          <li><Icon name="waterAll" size={16} tone={TONE.water} /> «Полить всех» — весь подоконник одной кнопкой</li>
           <li><Icon name="water" size={16} tone={TONE.water} /> Соседка поливает до 7 дней в любое время</li>
           <li><Icon name="flame" size={16} tone="#e8743b" /> Серия не сгорает, если пропустить один день</li>
           <li><Icon name="crown" size={16} tone="#e8a325" /> Золотой горшок и корона у имени у друзей</li>

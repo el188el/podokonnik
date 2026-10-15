@@ -71,7 +71,7 @@ export function App() {
   }, []);
 
   return (
-    <div className="app">
+    <div className="app skin">
       <header className="topbar">
         <button className="lvl-ring" onClick={() => openSheet({ kind: 'levels' })} aria-label={`Уровень ${g.level}: ${g.xp} из ${xpToNext(g.level)} опыта`}>
           <svg viewBox="0 0 40 40" aria-hidden>

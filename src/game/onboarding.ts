@@ -91,9 +91,9 @@ export interface FirstStep {
 }
 
 export const FIRST_STEPS: FirstStep[] = [
-  { icon: '💧', title: 'Полей растение', hint: 'Возьми лейку внизу и тапни по горшку', leaves: 10, done: (g) => g.stats.waters > 0 },
+  { icon: '💧', title: 'Полей растение', hint: 'Выбери «Уход» внизу и нажми на горшок', leaves: 10, done: (g) => g.stats.waters > 0 },
   { icon: '✏️', title: 'Дай растению имя', hint: 'Открой карточку растения и нажми на название', leaves: 10, done: (g) => g.plants.some((p) => !!p.nick) },
-  { icon: '💦', title: 'Опрыскай растение', hint: 'Опрыскиватель — рядом с лейкой', leaves: 10, done: (g) => g.stats.mists > 0 },
+  { icon: '💦', title: 'Опрыскай растение', hint: 'Выбери «Уход» и нажми на цветок, который любит влагу', leaves: 10, done: (g) => g.stats.mists > 0 },
   { icon: '🍂', title: 'Поймай падающий листик', hint: 'Иногда сверху падают листики — лови!', leaves: 15, done: (g) => (g.stats.caughtAll ?? 0) > 0 },
   { icon: '🌱', title: 'Посади второе растение', hint: 'Купи черенок в магазине и поставь в воду', leaves: 20, pots: 1, done: (g) => g.stats.planted >= 2 },
   { icon: '📖', title: 'Загляни в Гербарий', hint: 'Вкладка внизу — там всё о твоих видах', leaves: 10, done: (g) => (g.stats.herbarium ?? 0) > 0 },

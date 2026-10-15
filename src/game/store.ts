@@ -1632,6 +1632,7 @@ function grantTester(g: GameState, t: number) {
 
 /** Полить всех на подоконнике, у кого подсохла земля. */
 export function waterAll(sillId: string) {
+  if (!isPlus(get().game)) { toast('👑 «Полить всех» — с подпиской Садовник+'); return 0; }
   const ids = get().game.plants.filter((p) => p.sill === sillId && p.stage >= 2 && p.moisture < WET_FULL).map((p) => p.id);
   for (const id of ids) water(id);
   if (ids.length) toast(`💧 Полито растений: ${ids.length}`);

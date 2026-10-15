@@ -1428,10 +1428,10 @@ button:focus:not(:focus-visible) { outline: none; }
 .tool-tip button { flex: none; width: 30px; height: 30px; border: 0; border-radius: 50%; background: var(--soft); display: grid; place-items: center; color: var(--muted); }
 :root[data-theme='dark'] .tool-tip { background: #1f2a26; box-shadow: 0 6px 20px #0008, 0 0 0 1px #ffffff12; }
 :root[data-theme='dark'] .tool-tip b { color: #7fd09a; }
-.slot.want::before { content: ''; position: absolute; left: 50%; bottom: -2px; width: 92%; height: 34%; transform: translateX(-50%); border-radius: 50%; background: radial-gradient(closest-side, #ffe27acc, #ffd24a55 60%, transparent); animation: want-glow 1.4s ease-in-out infinite; pointer-events: none; z-index: 0; }
+.slot.want .want-ring { content: ''; position: absolute; left: 50%; bottom: -2px; width: 92%; height: 34%; transform: translateX(-50%); border-radius: 50%; background: radial-gradient(closest-side, #ffe27acc, #ffd24a55 60%, transparent); animation: want-glow 1.4s ease-in-out infinite; pointer-events: none; z-index: 0; }
 .slot.want .art { filter: drop-shadow(0 0 6px #ffd54acc); }
 @keyframes want-glow { 0%, 100% { opacity: .55; transform: translateX(-50%) scale(.92); } 50% { opacity: 1; transform: translateX(-50%) scale(1.05); } }
-@media (prefers-reduced-motion: reduce) { .slot.want::before { animation: none; } }
+@media (prefers-reduced-motion: reduce) { .slot.want .want-ring { animation: none; } }
 /* обучение: аватар-рисунок и шаги точками */
 .guide { box-shadow: 0 8px 24px #1f3a2c1f, 0 0 0 1px #0000000a; border-radius: 22px; }
 .guide-avatar { background: none; overflow: hidden; width: 52px; height: 52px; box-shadow: 0 0 0 3px #fff, 0 3px 10px #0002; }
@@ -1468,7 +1468,9 @@ button:focus:not(:focus-visible) { outline: none; }
 .tool-tip .tt-n { min-width: 22px; height: 22px; border-radius: 11px; background: var(--want, #3b8fd6); color: #fff; display: grid; place-items: center; font-size: 12px; padding: 0 6px; }
 .tool-tip button { width: 26px; height: 26px; }
 .want-water { --want: #3b8fd6; } .want-mist { --want: #2fa3a0; } .want-feed { --want: #8b5cc7; } .want-cut { --want: #e0685a; }
-.slot.want::before { background: radial-gradient(closest-side, color-mix(in srgb, var(--want, #ffd24a) 45%, transparent), transparent); box-shadow: 0 0 0 3px var(--want, #ffd24a); height: 18%; bottom: 2px; width: 84%; }
+.slot.want .want-ring { background: radial-gradient(closest-side, color-mix(in srgb, var(--want, #ffd24a) 45%, transparent), transparent); box-shadow: 0 0 0 3px var(--want, #ffd24a); height: 18%; bottom: 2px; width: 84%; }
 .slot.want .art { filter: drop-shadow(0 0 5px color-mix(in srgb, var(--want, #ffd24a) 70%, transparent)); }
 .tool-tip-wrap { position: absolute; left: 8px; right: 8px; bottom: calc(100% + 8px); z-index: 6; display: flex; justify-content: center; pointer-events: none; }
 .tool-tip-wrap .tool-tip { position: relative; left: auto; right: auto; bottom: auto; transform: none; pointer-events: auto; max-width: 100%; }
+.slot.want .want-ring { z-index: 0; }
+.slot.want .art { position: relative; z-index: 1; }

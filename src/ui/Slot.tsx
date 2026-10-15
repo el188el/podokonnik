@@ -48,11 +48,13 @@ function bubbleFor(p: Plant, t: number, flash?: { text: string; until: number })
   return null;
 }
 
+const wantsMist = (p: Plant, t: number) => sp(p.sp).mist === 'love' && !(p.mistUntil && t < p.mistUntil) && !p.wetLeaves;
+
 /** Подсветка: выбранный инструмент сейчас пригодится этому растению. */
 export function wantsTool(tool: string, p: Plant, t: number): boolean {
   if (p.stage < 2) return false;
-  if (tool === 'water') return p.moisture < 0.5;
-  if (tool === 'mist') return sp(p.sp).mist === 'love' && !(p.mistUntil && t < p.mistUntil) && !p.wetLeaves;
+  if (tool === 'water') return p.moisture < 0.5 || wantsMist(p, t);
+  if (tool === 'mist') return wantsMist(p, t);
   if (tool === 'feed') return !(p.feedUntil && t < p.feedUntil) && p.stage < 4;
   if (tool === 'cut') return canCut(p, t);
   return false;
@@ -131,6 +133,8 @@ export function Slot({ plant: p, sill, slot }: { plant: Plant; sill: string; slo
     const tool = useStore.getState().tool;
     if (tool === 'look') return openSheet({ kind: 'card', plant: p.id });
     const again = Date.now() - (lastEnough[p.id] ?? 0) < 1800;
+    // «Уход» — полив и опрыскивание в одном: пить хочет — поливаем, любит влажность — опрыскиваем
+    if (tool === 'water' && !again && p.moisture >= 0.5 && wantsMist(p, now())) { mist(p.id); return; }
     if (tool === 'mist') {
       const ok = mist(p.id, again);
       if (!ok && sp(p.sp).mist === 'no' && !again) lastEnough[p.id] = Date.now();
@@ -207,6 +211,7 @@ export function Slot({ plant: p, sill, slot }: { plant: Plant; sill: string; slo
     >
       {bubble && !covered && <FloatBubble anchor={ref} text={bubble.text} cls={bubble.cls} k={bubble.text.startsWith('🌱 ') ? 'roots' : bubble.text} />}
       {p.stage === 0 && !p.rootStart && <div className="finger"><Emo e="👆" /></div>}
+      {want && <i className="want-ring" aria-hidden />}
       {roundPending && <div className="round-dot" title="загляни в обходе" aria-label="не осмотрено в обходе" />}
       {p.problem && <div className={'pest pest-' + p.problem.kind} style={{ opacity: 0.45 + 0.55 * p.problem.sev }}>{p.problem.kind === 'gnats' ? <><i /><i /><i /></> : null}</div>}
       {p.boostUntil && t < p.boostUntil && <div className="boost-glow" />}

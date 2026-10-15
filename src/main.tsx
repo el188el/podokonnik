@@ -5,6 +5,7 @@ import { boot, pushNow, saveNow, tick } from './game/store';
 import { inDiscord, inNative, initPlatform, launchedInTelegram, loadTelegramScript } from './platform';
 import { flushTrack, sessionStart } from './net/track';
 import './ui/styles.css';
+import './ui/skin.css';
 
 async function start() {
   // Скрипт Telegram грузим только внутри Telegram — веб-версия от него не зависит.

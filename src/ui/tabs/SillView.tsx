@@ -4,7 +4,7 @@ import { Icon, TONE, type IconName } from '../kit/icons';
 import { activeEvent, eventSeason, tierOf } from '../../game/events';
 import { canCut, isWinter, fmt } from '../../game/sim';
 import { sp } from '../../game/species';
-import { now, openSheet, plantAt, setTool, showGift, useStore, waterAll, type Tool } from '../../game/store';
+import { isPlus, now, openSheet, plantAt, setTab, setTool, showGift, useStore, waterAll, type Tool } from '../../game/store';
 import { CoopSill } from './CoopSill';
 import { canFulfil } from '../../game/orders';
 import { FallingTokens } from '../FallingTokens';
@@ -85,6 +85,7 @@ export function dayTiles(g: GameState, t: number): DayTile[] {
 
 function OwnSill() {
   const g = useStore((s) => s.game);
+  const toolNow = useStore((s) => s.tool);
   const arrange = useStore((s) => s.arrange);
   useEffect(() => () => setArrange(false), []);
   useChatter(g.activeSill);
@@ -151,7 +152,7 @@ function OwnSill() {
         </div>
       )}
 
-      {g.tutorial < TUTORIAL_DONE ? <Guide /> : !arrange && (
+      {g.tutorial < TUTORIAL_DONE ? <Guide /> : !arrange && toolNow !== 'look' && g.plants.some((p) => p.sill === sill.id && p.stage >= 2) ? <ToolTip sill={sill.id} /> : !arrange && (
         <div className="info-strip">
           {platform().kind !== 'discord' && (
             <button className={'strip-clim' + (climBad ? ' alert' : '')} onClick={() => openSheet({ kind: 'climate' })} aria-label="Погода и климат в комнате">
@@ -248,18 +249,16 @@ function SceneFit({ hang, children }: { hang: boolean; children: (style: CSSProp
 
 const TOOLS: [Tool, IconName, string][] = [
   ['look', 'look', 'Осмотр'],
-  ['water', 'water', 'Лейка'],
-  ['mist', 'mist', 'Опрыскать'],
+  ['water', 'water', 'Уход'],
   ['feed', 'feed', 'Подкормка'],
   ['cut', 'cut', 'Черенок'],
 ];
 
 /** Подсказка над инструментами: что делать, когда инструмент в руке. */
 const TOOL_TIP: Partial<Record<Tool, [IconName, string, string]>> = {
-  water: ['water', 'Нажми на цветок, чтобы полить', 'Пить никто не хочет — все довольны'],
-  mist: ['mist', 'Нажми на цветок, чтобы опрыскать', 'Опрыскивать сейчас некого'],
-  feed: ['feed', 'Нажми на цветок, чтобы подкормить', 'Подкормка сейчас не нужна'],
-  cut: ['cut', 'Нажми на цветок, чтобы взять черенок', 'Черенков пока нет — цветы растут'],
+  water: ['water', 'Нажми на цветок', 'Всем хорошо — уход не нужен'],
+  feed: ['feed', 'Нажми на цветок', 'Подкормка не нужна'],
+  cut: ['cut', 'Нажми на цветок', 'Черенков пока нет'],
 };
 
 function Toolbar({ sill }: { sill: string }) {
@@ -267,23 +266,9 @@ function Toolbar({ sill }: { sill: string }) {
   const g = useStore((s) => s.game);
   const potted = g.plants.filter((p) => p.sill === sill && p.stage >= 2);
   if (!potted.length) return null;
-  const thirsty = potted.filter((p) => p.moisture < 0.5).length;
   const cuts = potted.filter((p) => canCut(p, now())).length;
-  const fits = tool === 'look' ? 0 : potted.filter((p) => wantsTool(tool, p, now())).length;
   return (
     <div className="toolbar">
-      <div className="tool-tip-wrap">
-      <AnimatePresence>
-        {tool !== 'look' && TOOL_TIP[tool] && (
-          <motion.div key={tool} className={"tool-tip want-" + tool} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 8 }}>
-            <Icon name={TOOL_TIP[tool][0]} size={18} tone={TONE[TOOL_TIP[tool][0] as keyof typeof TONE]} />
-            <span>{fits ? TOOL_TIP[tool][1] : TOOL_TIP[tool][2]}</span>
-            {fits > 0 && <b className="tt-n" aria-label={`подсвечено: ${fits}`}>{fits}</b>}
-            <button onClick={() => setTool('look')} aria-label="Убрать инструмент"><Icon name="close" size={16} /></button>
-          </motion.div>
-        )}
-      </AnimatePresence>
-      </div>
       <div className="tools">
         {TOOLS.map(([k, icon, label]) => (
           <button key={k} className={'tool' + (tool === k ? ' on' : '')} onClick={() => setTool(tool === k && k !== 'look' ? 'look' : k)} aria-pressed={tool === k}>
@@ -293,14 +278,37 @@ function Toolbar({ sill }: { sill: string }) {
             {k === 'cut' && cuts > 0 && <i className="tool-badge ready">{cuts}</i>}
           </button>
         ))}
-        {thirsty >= 2 && (
-          <button className="tool water-all-tool" onClick={() => waterAll(sill)} aria-label={`Полить всех, кто хочет пить: ${thirsty}`}>
-            <span><Icon name="waterAll" size={24} tone={TONE.water} /></span>
-            <small>Всем · {thirsty}</small>
-          </button>
-        )}
       </div>
     </div>
+  );
+}
+
+/** Пока инструмент в руке — сверху подсказка (вместо полоски дел), чтобы не закрывать цветы. */
+function ToolTip({ sill }: { sill: string }) {
+  const tool = useStore((s) => s.tool);
+  const g = useStore((s) => s.game);
+  const potted = g.plants.filter((p) => p.sill === sill && p.stage >= 2);
+  const thirsty = potted.filter((p) => p.moisture < 0.5).length;
+  const plus = isPlus(g);
+  const fits = tool === 'look' ? 0 : potted.filter((p) => wantsTool(tool, p, now())).length;
+  return (
+    <div className="tool-tip-wrap">
+      <AnimatePresence>
+        {tool !== 'look' && TOOL_TIP[tool] && (
+          <motion.div key={tool} className={"tool-tip want-" + tool} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 8 }}>
+            <Icon name={TOOL_TIP[tool][0]} size={18} tone={TONE[TOOL_TIP[tool][0] as keyof typeof TONE]} />
+            <span>{fits ? TOOL_TIP[tool][1] : TOOL_TIP[tool][2]}</span>
+            {fits > 0 && <b className="tt-n" aria-label={`подсвечено: ${fits}`}>{fits}</b>}
+            {tool === 'water' && thirsty >= 2 && (
+              <button className={'tt-all' + (plus ? '' : ' locked')} onClick={() => (plus ? waterAll(sill) : (toast('👑 «Полить всех» — с подпиской Садовник+'), setTab('shop')))}>
+                <Icon name={plus ? 'waterAll' : 'crown'} size={16} /> Всем
+              </button>
+            )}
+            <button onClick={() => setTool('look')} aria-label="Убрать инструмент"><Icon name="close" size={16} /></button>
+          </motion.div>
+        )}
+      </AnimatePresence>
+      </div>
   );
 }
 
