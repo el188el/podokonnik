@@ -43,7 +43,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: supabase/setup-cli@v1
         with:
-          version: latest
+          version: 2.121.0 # закреплено: «latest» ломается на лимите запросов GitHub
 
       - name: База данных
         run: |
