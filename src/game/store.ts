@@ -8,7 +8,7 @@ import { fetchWeather } from '../net/weather';
 import { compress, deletePhoto, savePhoto } from '../net/photos';
 import { photoReward, pushPhoto } from './twins';
 import type { Place } from './weather';
-import type { CoopAction, CoopResult } from './coop';
+import { coopAct as coopActLocal, type CoopAction, type CoopResult } from './coop';
 import { CONTEST_ENTRY_REWARD, CONTEST_VOTE_REWARD, weekKey } from './contest';
 import { platform } from '../platform';
 import { ACHIEVEMENTS, checkAchievements } from './achievements';
@@ -1839,10 +1839,13 @@ export async function cancelSwap(id: number) {
 // ─────────────────── совместный подоконник ───────────────────
 const putCoop = (c: api.CoopView) => set((s) => ({ coops: [...(s.coops ?? []).filter((x) => x.id !== c.id), c].sort((a, b) => a.id - b.id) }));
 
+let coopPending = 0; // действия, ответ на которые ещё не пришёл: опрос не должен затирать их
+
 export async function loadCoops() {
   if (!api.loggedIn()) return;
   try {
     const { coops } = await api.coopList();
+    if (coopPending) return;
     set((s) => ({ coops, coopOn: coops.some((c) => c.id === s.coopOn) ? s.coopOn : null }));
   } catch { /* нет сети */ }
 }
@@ -1907,6 +1910,19 @@ export async function coopDo(id: number, action: CoopAction, cuttingId?: string)
   if (action.kind === 'pot') {
     if (potsLeft(get().game) <= 0) { openSheet({ kind: 'pots' }); return null; }
   }
+  // сразу показываем результат у себя (те же правила, что на сервере), а сервер потом подтверждает
+  const prev = get().coops?.find((c) => c.id === id);
+  let instant = false;
+  if (prev && action.kind !== 'cut') {
+    const st = clone(prev.state);
+    const me = prev.members.find((m) => m.id === api.playerId())?.name ?? 'Садовник';
+    if (coopActLocal(st, action, me, now(), 'local-' + makeCode(6)).ok) {
+      putCoop({ ...prev, state: st });
+      instant = true;
+      haptic('light');
+    }
+  }
+  coopPending++;
   try {
     const r = await api.coopAct(id, action);
     if (r.coop) putCoop(r.coop);
@@ -1921,11 +1937,11 @@ export async function coopDo(id: number, action: CoopAction, cuttingId?: string)
         addXp(g, XP.water);
         quest(g, 'water');
         eventToken(g, 'water', t);
-        haptic('light');
+        if (!instant) haptic('light');
       } else if (res.effect === 'misted') {
         addXp(g, XP.mist);
         quest(g, 'mist');
-        haptic('light');
+        if (!instant) haptic('light');
       } else if (res.effect === 'potted') {
         g.owned.pot = Math.max(0, potsLeft(g) - 1);
         g.stats.planted += 1;
@@ -1946,8 +1962,11 @@ export async function coopDo(id: number, action: CoopAction, cuttingId?: string)
     });
     return res;
   } catch {
+    if (instant && prev) putCoop(prev); // не дошло до сервера — откатываем
     toast('Нет связи с общим подоконником. Попробуй ещё раз');
     return null;
+  } finally {
+    coopPending--;
   }
 }
 

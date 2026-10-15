@@ -52,7 +52,13 @@ export function CoopSill({ coop }: { coop: CoopView }) {
     coopAdvance(c, tSec * 1000);
     return c;
   }, [coop, tSec]);
-  useEffect(() => { const i = setInterval(loadCoops, 60e3); return () => clearInterval(i); }, []);
+  // пока подоконник открыт — подтягиваем действия соседей каждые 8 с (и сразу при возвращении в игру)
+  useEffect(() => {
+    const tick = () => { if (document.visibilityState === 'visible') loadCoops(); };
+    const i = setInterval(tick, 8e3);
+    document.addEventListener('visibilitychange', tick);
+    return () => { clearInterval(i); document.removeEventListener('visibilitychange', tick); };
+  }, []);
 
   const ctx: Ctx = { sill: { id: COOP_SILL, name: st.name, window: st.window, decor: [] }, lamp: false, neighbor: false };
   const me = playerId();

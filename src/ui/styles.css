@@ -1406,3 +1406,4 @@ button:focus:not(:focus-visible) { outline: none; }
   .app { height: min(calc(100dvh - 40px), 940px); margin-top: max(20px, calc((100dvh - 940px) / 2)); border-radius: 32px; }
 }
 @media (min-width: 600px) and (max-width: 1000px) { body::before, body::after { display: none; } }
+.deco.off .fan-blades { animation: none; }

@@ -446,14 +446,18 @@ async function isMember(sill: number, playerId: string) {
 }
 
 /** Подоконник для клиента: состояние, досчитанное до текущего момента, и участники. */
-async function coopView(row: { id: number; code: string; state: CoopState; version: number }) {
-  const state = row.state;
-  coopAdvance(state, Date.now());
-  const { data: ms } = await db.from('coop_members').select('player_id, players(name)').eq('sill_id', row.id).order('joined_at');
-  const members = (ms ?? []).map((m) => {
+async function coopMembers(sill: number) {
+  const { data: ms } = await db.from('coop_members').select('player_id, players(name)').eq('sill_id', sill).order('joined_at');
+  return (ms ?? []).map((m) => {
     const pl = (Array.isArray(m.players) ? m.players[0] : m.players) as { name?: string } | null;
     return { id: m.player_id as string, name: pl?.name || 'Садовник' };
   });
+}
+
+async function coopView(row: { id: number; code: string; state: CoopState; version: number }, known?: { id: string; name: string }[]) {
+  const state = row.state;
+  coopAdvance(state, Date.now());
+  const members = known ?? (await coopMembers(row.id));
   return { id: row.id, code: row.code, version: row.version, state, members };
 }
 
@@ -512,18 +516,22 @@ async function coopActRoute(playerId: string, b: Body) {
   const id = Number(b.id);
   const action = cleanAction(b.action);
   if (!Number.isFinite(id) || !action) return fail('bad_args');
-  if (!(await isMember(id, playerId))) return fail('not_member', 403);
-  const who = await playerName(playerId);
+  // участники (заодно проверка членства и имя) и сам подоконник — одним заходом, параллельно
+  const load = () => db.from('coop_sills').select('id, code, state, version').eq('id', id).maybeSingle();
+  const [members, first] = await Promise.all([coopMembers(id), load()]);
+  const me = members.find((m) => m.id === playerId);
+  if (!me) return fail('not_member', 403);
+  let row = first.data;
   for (let i = 0; i < 4; i++) {
-    const { data: row } = await db.from('coop_sills').select('id, code, state, version').eq('id', id).maybeSingle();
+    if (i > 0) row = (await load()).data;
     if (!row) return json({ result: { ok: false, reason: 'gone' } });
     const state = row.state as CoopState;
-    const result = coopAct(state, action, who, Date.now(), randomCode(8));
-    if (!result.ok) return json({ result, coop: await coopView({ ...row, state } as never) });
+    const result = coopAct(state, action, me.name, Date.now(), randomCode(8));
+    if (!result.ok) return json({ result, coop: await coopView({ ...row, state } as never, members) });
     const { data: upd } = await db.from('coop_sills')
       .update({ state, version: row.version + 1, updated_at: new Date().toISOString() })
       .eq('id', id).eq('version', row.version).select('id');
-    if (upd?.length) return json({ result, coop: await coopView({ ...row, state, version: row.version + 1 } as never) });
+    if (upd?.length) return json({ result, coop: await coopView({ ...row, state, version: row.version + 1 } as never, members) });
   }
   return fail('busy', 409);
 }

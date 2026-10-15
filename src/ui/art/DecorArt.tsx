@@ -203,11 +203,51 @@ const ART: Record<string, { w: number; h: number; draw: (o: DrawOpts) => ReactNo
     <circle cx="19" cy="5" r="2" fill={C.red} />
     {[[13, 15], [21, 13], [25, 20], [15, 22], [9, 19]].map(([x, y], i) => <circle key={i} cx={x} cy={y} r="1.6" fill={C.red} />)}
   </>) },
-  plaid: { w: 58, h: 18, draw: () => (<>
-    {shadow(29, 16, 26)}
-    <path d="M3 15 Q8 4 18 6 Q30 2 40 6 Q52 3 55 15 Z" fill="#c4553d" />
-    <path d="M10 6 V15 M22 5 V15 M34 4 V15 M46 5 V15" stroke="#e9b949" strokeWidth="1.6" opacity=".8" />
-    <path d="M5 11 H53" stroke="#7c2f22" strokeWidth="1.4" opacity=".7" />
+  // сложенный клетчатый плед: три слоя, тартан из полупрозрачных полос, бахрома
+  plaid: { w: 46, h: 27, draw: () => (<>
+    {shadow(23, 25, 21)}
+    <path d="M6.75 17H43V24.5H6.75A3.75 3.75 0 0 1 6.75 17Z" fill="#b2443a" />
+    <rect x="11" y="17" width="3.2" height="7.5" fill="#5a1f1a" opacity=".38" />
+    <rect x="15.6" y="17" width=".8" height="7.5" fill="#f2cf63" opacity=".8" />
+    <rect x="21" y="17" width="3.2" height="7.5" fill="#5a1f1a" opacity=".38" />
+    <rect x="25.6" y="17" width=".8" height="7.5" fill="#f2cf63" opacity=".8" />
+    <rect x="31" y="17" width="3.2" height="7.5" fill="#5a1f1a" opacity=".38" />
+    <rect x="35.6" y="17" width=".8" height="7.5" fill="#f2cf63" opacity=".8" />
+    <rect x="4.5" y="19.45" width="38.5" height="2.6" fill="#5a1f1a" opacity=".38" />
+    <rect x="4.5" y="23.1" width="38.5" height=".7" fill="#f2cf63" opacity=".7" />
+    <path d="M7.75 17.5H42" stroke="#fff" strokeWidth=".7" opacity=".25" />
+    <path d="M43 18.0h2.2" stroke="#b2443a" strokeWidth=".9" strokeLinecap="round" />
+    <path d="M43 19.8h2.2" stroke="#b2443a" strokeWidth=".9" strokeLinecap="round" />
+    <path d="M43 21.6h2.2" stroke="#b2443a" strokeWidth=".9" strokeLinecap="round" />
+    <path d="M43 23.4h2.2" stroke="#b2443a" strokeWidth=".9" strokeLinecap="round" />
+    <path d="M7.75 9.8H43V17.3H7.75A3.75 3.75 0 0 1 7.75 9.8Z" fill="#bf4c3f" />
+    <rect x="11" y="9.8" width="3.2" height="7.5" fill="#5a1f1a" opacity=".38" />
+    <rect x="15.6" y="9.8" width=".8" height="7.5" fill="#f2cf63" opacity=".8" />
+    <rect x="21" y="9.8" width="3.2" height="7.5" fill="#5a1f1a" opacity=".38" />
+    <rect x="25.6" y="9.8" width=".8" height="7.5" fill="#f2cf63" opacity=".8" />
+    <rect x="31" y="9.8" width="3.2" height="7.5" fill="#5a1f1a" opacity=".38" />
+    <rect x="35.6" y="9.8" width=".8" height="7.5" fill="#f2cf63" opacity=".8" />
+    <rect x="5.5" y="12.25" width="37.5" height="2.6" fill="#5a1f1a" opacity=".38" />
+    <rect x="5.5" y="15.9" width="37.5" height=".7" fill="#f2cf63" opacity=".7" />
+    <path d="M8.75 10.3H42" stroke="#fff" strokeWidth=".7" opacity=".25" />
+    <path d="M43 10.8h2.2" stroke="#bf4c3f" strokeWidth=".9" strokeLinecap="round" />
+    <path d="M43 12.6h2.2" stroke="#bf4c3f" strokeWidth=".9" strokeLinecap="round" />
+    <path d="M43 14.4h2.2" stroke="#bf4c3f" strokeWidth=".9" strokeLinecap="round" />
+    <path d="M43 16.2h2.2" stroke="#bf4c3f" strokeWidth=".9" strokeLinecap="round" />
+    <path d="M8.75 2.6H42.5V10.1H8.75A3.75 3.75 0 0 1 8.75 2.6Z" fill="#cc5647" />
+    <rect x="11" y="2.6" width="3.2" height="7.5" fill="#5a1f1a" opacity=".38" />
+    <rect x="15.6" y="2.6" width=".8" height="7.5" fill="#f2cf63" opacity=".8" />
+    <rect x="21" y="2.6" width="3.2" height="7.5" fill="#5a1f1a" opacity=".38" />
+    <rect x="25.6" y="2.6" width=".8" height="7.5" fill="#f2cf63" opacity=".8" />
+    <rect x="31" y="2.6" width="3.2" height="7.5" fill="#5a1f1a" opacity=".38" />
+    <rect x="35.6" y="2.6" width=".8" height="7.5" fill="#f2cf63" opacity=".8" />
+    <rect x="6.5" y="5.05" width="36.0" height="2.6" fill="#5a1f1a" opacity=".38" />
+    <rect x="6.5" y="8.7" width="36.0" height=".7" fill="#f2cf63" opacity=".7" />
+    <path d="M9.75 3.1H41.5" stroke="#fff" strokeWidth=".7" opacity=".25" />
+    <path d="M42.5 3.6h2.2" stroke="#cc5647" strokeWidth=".9" strokeLinecap="round" />
+    <path d="M42.5 5.4h2.2" stroke="#cc5647" strokeWidth=".9" strokeLinecap="round" />
+    <path d="M42.5 7.2h2.2" stroke="#cc5647" strokeWidth=".9" strokeLinecap="round" />
+    <path d="M42.5 9.0h2.2" stroke="#cc5647" strokeWidth=".9" strokeLinecap="round" />
   </>) },
   tangerines: { w: 42, h: 22, draw: () => (<>
     {shadow(21, 20, 18)}
@@ -341,12 +381,12 @@ const ART: Record<string, { w: number; h: number; draw: (o: DrawOpts) => ReactNo
     <path d="M12 2 L14 30" stroke="#e5486a" strokeWidth="1.6" />
     <ellipse cx="9" cy="8" rx="3" ry="1.5" fill={C.green} transform="rotate(-30 9 8)" />
   </>) },
-  fan: { w: 34, h: 46, draw: () => (<>
+  fan: { w: 34, h: 46, draw: ({ on }) => (<>
     {shadow(17, 44, 12)}
     <path d="M8 44 h18 l-2 -4 h-14 Z" fill={C.grey2} />
     <rect x="15.5" y="26" width="3" height="15" fill={C.grey} />
     <circle cx="17" cy="16" r="14" fill="#cfe3ec" stroke={C.grey} strokeWidth="1.4" />
-    <g className="fan-blades">
+    <g className={on ? 'fan-blades' : undefined}>
       {[0, 120, 240].map((a) => <ellipse key={a} cx="17" cy="9" rx="4" ry="7" fill="#7fb2d6" transform={`rotate(${a} 17 16)`} />)}
     </g>
     <circle cx="17" cy="16" r="2.4" fill={C.grey2} />
