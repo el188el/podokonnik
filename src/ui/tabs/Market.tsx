@@ -9,6 +9,7 @@ import type { Cutting } from '../../game/types';
 import * as api from '../../net/api';
 import { PlantArt } from '../art/PlantArt';
 import { Btn } from '../kit/kit';
+import { Icon, TONE } from '../kit/icons';
 
 const label = (c: { sp: string; form?: string | null; hue?: string | null }) =>
   c.form && FORM_BY_ID[c.form] ? `✨ ${FORM_BY_ID[c.form].name}` : `${sp(c.sp).name}${c.hue ? ' · ' + (hueOf(c.sp, c.hue)?.name ?? '') : ''}`;
@@ -33,7 +34,7 @@ export function Market() {
   return (
     <div>
       <section className="panel">
-        <h3>🔄 Барахолка черенков</h3>
+        <h3 className="ih3"><Icon name="market" size={20} tone={TONE.share} />Барахолка черенков</h3>
         <p className="muted small">Меняйся черенками с другими садоводами: выставь свой и укажи, что хочешь взамен. Так быстрее собрать коллекцию и редкие цвета.</p>
         {listing ? (
           <ListForm cuttings={g.cuttings} onDone={() => { setListing(false); setTimeout(load, 800); }} />
@@ -79,7 +80,7 @@ export function Market() {
               <PlantArt sp={o.sp} form={o.form ?? undefined} hue={o.hue ?? undefined} stage={4} seed={'s' + o.id} blooming noPot className="mini" />
               <div className="swap-body">
                 <b>{label(o)}</b>
-                <span className="muted small">от {o.owner} · ⭐ {o.level}</span>
+                <span className="muted small">от {o.owner} · <Icon name="star" size={12} className="inl" /> {o.level}</span>
                 <span className="small">хочет: {o.wants.length ? o.wants.map((w) => sp(w).name).join(', ') : 'любой черенок'}</span>
                 {offerFor === o.id && (
                   <div className="give-pick">

@@ -10,6 +10,7 @@ import * as api from '../../net/api';
 import { PlantArt } from '../art/PlantArt';
 import { Btn } from '../kit/kit';
 import { SillScene } from '../SillScene';
+import { Icon, Money } from '../kit/icons';
 
 const MEDAL = ['🥇', '🥈', '🥉'];
 
@@ -56,10 +57,10 @@ export function Contest() {
   return (
     <div>
       <section className="panel contest-head">
-        <h3>🏆 Подоконник недели</h3>
+        <h3 className="ih3"><Icon name="trophy" size={20} tone="#e8a325" />Подоконник недели</h3>
         <p><b>Тема: {data.theme.title}</b><br /><span className="muted small">{data.theme.hint}</span></p>
         <p className="muted small">
-          Итоги через {fmt(data.endsAt - now())} · участников: {data.total} · призы {CONTEST_PRIZES.map((p, i) => `${MEDAL[i]} ${p}`).join(' ')} 🍃
+          Итоги через {fmt(data.endsAt - now())} · участников: {data.total} · призы {CONTEST_PRIZES.map((p, i) => `${MEDAL[i]} ${p}`).join(' ')} листиков
         </p>
         {data.mine ? (
           <>
@@ -68,10 +69,10 @@ export function Contest() {
           </>
         ) : (
           <Btn kind="gold" disabled={busy} onClick={async () => { setBusy(true); await enterContest(sill.id); load(); setBusy(false); }}>
-            Участвовать подоконником «{sill.name}» · +{CONTEST_ENTRY_REWARD} 🍃
+            Участвовать подоконником «{sill.name}» · <Money n={CONTEST_ENTRY_REWARD} plus />
           </Btn>
         )}
-        <p className="muted small">Голосов у тебя: {left} из {data.votesMax} · за каждый +{CONTEST_VOTE_REWARD} 🍃</p>
+        <p className="muted small">Голосов у тебя: {left} из {data.votesMax} · за каждый <Money n={CONTEST_VOTE_REWARD} plus size={13} /></p>
       </section>
 
       {data.last.top.length > 0 && (
@@ -98,7 +99,7 @@ export function Contest() {
             <div key={e.id} className="entry">
               <ShotScene shot={e.shot} />
               <div className="entry-foot">
-                <span><b>{e.shot.name}</b> <span className="muted small">⭐ {e.shot.level}{e.friend ? ' · друг' : ''}</span></span>
+                <span><b>{e.shot.name}</b> <span className="muted small"><Icon name="star" size={12} className="inl" /> {e.shot.level}{e.friend ? ' · друг' : ''}</span></span>
                 <Btn small kind={voted ? 'soft' : 'gold'} disabled={voted || left <= 0} onClick={async () => { if (await voteContest(e.id)) load(); }}>
                   {voted ? "❤️" : "🤍"} {e.votes}
                 </Btn>

@@ -1,6 +1,7 @@
 import { AnimatePresence, animate, motion, useMotionValue, type MotionValue } from 'framer-motion';
 import { Component, useEffect, useRef, type MouseEvent, type PointerEvent, type ReactNode } from 'react';
 import { platform } from '../../platform';
+import { Icon, TONE } from './icons';
 
 // Окно открывается по отпусканию пальца, а следом браузер шлёт «клик» —
 // он попадал в фон только что открытого окна и сразу закрывал его.
@@ -145,7 +146,7 @@ export function Btn({ children, onClick, kind = 'soft', disabled, small }: { chi
 
 export const Leaves = ({ n }: { n: number }) => (
   <span className="leaves">
-    {n} <span aria-label="листиков">🍃</span>
+    {n} <Icon name="leaf" size={18} tone={TONE.leaf} />
   </span>
 );
 

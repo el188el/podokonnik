@@ -4,6 +4,7 @@ import { claimInvite, useStore } from '../../game/store';
 import * as api from '../../net/api';
 import { Btn } from '../kit/kit';
 import { shareInvite } from '../share';
+import { Icon, Money, TONE } from '../kit/icons';
 
 /** Лестница приглашений: друзья приходят по ссылке — награды растут. */
 export function InviteLadder() {
@@ -14,9 +15,9 @@ export function InviteLadder() {
   const next = INVITE_LADDER.find((s) => active < s.n);
   return (
     <section className="panel invite">
-      <h3>👯 Позови друзей — забери награды</h3>
+      <h3 className="ih3"><Icon name="friends" size={20} tone={TONE.share} />Позови друзей — забери награды</h3>
       <p className="muted small">
-        Друг получит +30 🍃 на старт, а ты — +50 🍃 сразу и награды лестницы. Друг засчитывается, когда дорастёт до 2 уровня.
+        Друг получит <Money n={30} plus size={13} /> на старт, а ты — <Money n={50} plus size={13} /> сразу и награды лестницы. Друг засчитывается, когда дорастёт до 2 уровня.
         {inv && <> Пришли по ссылке: <b>{inv.joined}</b>, засчитано: <b>{active}</b>.</>}
       </p>
       <div className="ladder">

@@ -1364,3 +1364,21 @@ button:focus:not(:focus-visible) { outline: none; }
 .me { display: grid; place-items: center; color: var(--ink); }
 .strip-clim > span:first-child { display: grid; place-items: center; }
 .stat-chips span { display: inline-flex; align-items: center; gap: 4px; }
+.money-v { display: inline-flex; align-items: center; gap: 3px; white-space: nowrap; vertical-align: middle; }
+.btn .money-v .ico, .chip .ico { flex: none; }
+/* иконки во вкладках */
+.ih3 { display: flex; align-items: center; gap: 8px; }
+.icon-chip { gap: 6px; }
+.icon-chip .ico { opacity: .85; }
+.qicon { display: grid; place-items: center; width: 42px; height: 42px; border-radius: 14px; flex: none; font-size: 0; }
+.ico.inl { display: inline-block; vertical-align: -2px; margin-right: 3px; }
+.fmeta .ico, .segment button .ico, .thirsty .ico, .streak .ico, .btn .ico, .plus-card li .ico, .aicon .ico { display: inline-block; vertical-align: -3px; }
+.segment button { display: inline-flex; align-items: center; justify-content: center; gap: 6px; }
+.box-icon { display: grid; place-items: center; }
+.cpc-icon, .cpc-go { display: grid; place-items: center; }
+.plus-head { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.plus-card li { list-style: none; display: flex; align-items: center; gap: 8px; }
+.plus-card ul { padding-left: 0; }
+.ricon .ico { display: block; }
+.btn.primary .ico, .chip.on .ico { stroke: currentColor; }
+.btn:disabled .ico { opacity: .7; }
