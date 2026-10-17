@@ -1538,3 +1538,6 @@ button:focus:not(:focus-visible) { outline: none; }
 .fx-badges .fxb.ask { background: #ffe39a; animation: fxb-ask 1.4s ease-in-out infinite; }
 @keyframes fxb-ask { 50% { transform: scale(1.18); } }
 .tray .cutting.wilting { box-shadow: 0 0 0 2px #e8907a; border-radius: 12px; }
+
+/* обёртка для анимации свайпа: сцена по-прежнему занимает всё место, панель инструментов — внизу */
+.room-slide { flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column; }
