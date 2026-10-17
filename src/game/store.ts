@@ -9,7 +9,7 @@ import { fetchWeather } from '../net/weather';
 import { compress, deletePhoto, savePhoto } from '../net/photos';
 import { photoReward, pushPhoto } from './twins';
 import type { Place } from './weather';
-import { coopAct as coopActLocal, type CoopAction, type CoopResult } from './coop';
+import { coopAct as coopActLocal, coopAdvance, COOP_SILL, COOP_SLOTS, type CoopAction, type CoopItem, type CoopResult } from './coop';
 import { CONTEST_ENTRY_REWARD, CONTEST_VOTE_REWARD, weekKey } from './contest';
 import { platform } from '../platform';
 import { ACHIEVEMENTS, checkAchievements } from './achievements';
@@ -305,6 +305,7 @@ const findPlant = (g: GameState, id: string) => g.plants.find((p) => p.id === id
 export const plantAt = (g: GameState, sill: string, slot: number) => g.plants.find((p) => p.sill === sill && p.slot === slot);
 /** Открыто ли место: четвёртые места — с уровня или после покупки, кашпо — если повешены. */
 export function placeOpen(g: GameState, sill: string, slot: number) {
+  if (sill === COOP_SILL) return COOP_SLOTS.includes(slot); // на общем подоконнике открыто всё, и пол тоже
   if (isFloor(slot)) return g.level >= FLOOR_LEVEL;
   if (HANG_SLOTS.includes(slot)) return !!g.sills.find((s) => s.id === sill)?.decor.includes('hangers') && (g.owned.hangers ?? 0) > 0;
   return !EXTRA_PLACES[slot] || (g.places ?? []).includes(slot);
@@ -957,6 +958,8 @@ export type WaterResult = 'rooting' | 'glass' | 'enough' | 'watered' | 'topped' 
  * Опыт и задания — за полив, но не чаще раза в 3 часа на растение.
  */
 export function water(plantId: string, insist = false): WaterResult | null {
+  const co = coopOfPlant(plantId);
+  if (co) return coopWater(co, plantId, insist);
   return mut((g, t) => {
     const p = findPlant(g, plantId);
     if (!p) return null;
@@ -1007,6 +1010,8 @@ export function water(plantId: string, insist = false): WaterResult | null {
 export const potsLeft = (g: GameState) => g.owned.pot ?? 0;
 
 export function plantInPot(plantId: string) {
+  const co = coopOfPlant(plantId);
+  if (co) { void coopDo(co, { kind: 'pot', plant: plantId }); return; }
   const g0 = get().game;
   const p0 = findPlant(g0, plantId);
   if (p0?.stage === 1 && potsLeft(g0) <= 0) {
@@ -1055,7 +1060,7 @@ const isBad = (g: GameState, p: Plant, t: number) => { const c = ctxFor(g, p, t)
 
 /** Переставить в другой ряд: на свободное место, а если его нет — поменяться с соседом. */
 export function move(plantId: string, zone: Zone) {
-  const g0 = get().game;
+  const g0 = viewGame();
   const p0 = findPlant(g0, plantId);
   if (!p0 || p0.zone === zone || sp(p0.sp).big) return;
   const free = rowSlots(zone).find((s) => placeOpen(g0, p0.sill, s) && !plantAt(g0, p0.sill, s));
@@ -1064,6 +1069,8 @@ export function move(plantId: string, zone: Zone) {
 
 /** Переставить на место slot (если оно занято — растения меняются местами). */
 export function swap(plantId: string, sill: string, slot: number) {
+  const co = coopOfPlant(plantId);
+  if (co) return coopSwap(co, plantId, slot);
   mut((g, t) => {
     const p = findPlant(g, plantId);
     if (!p) return;
@@ -1088,6 +1095,8 @@ export function swap(plantId: string, sill: string, slot: number) {
 }
 
 export function mist(plantId: string, insist = true) {
+  const co = coopOfPlant(plantId);
+  if (co) return coopMist(co, plantId, insist);
   return mut((g, t) => {
     const p = findPlant(g, plantId);
     if (!p || p.stage < 2) return false;
@@ -1136,6 +1145,8 @@ export function mist(plantId: string, insist = true) {
 
 /** Протереть мокрые листья салфеткой — пятен не будет. */
 export function wipeLeaves(plantId: string) {
+  const co = coopOfPlant(plantId);
+  if (co) { void coopDo(co, { kind: 'wipe', plant: plantId }); say(plantId, 'Сухо и чисто, спасибо! 🧻', 2400); return; }
   mut((g) => {
     const p = findPlant(g, plantId);
     if (!p?.wetLeaves) return;
@@ -1146,6 +1157,8 @@ export function wipeLeaves(plantId: string) {
 }
 
 export function feed(plantId: string): boolean {
+  const co = coopOfPlant(plantId);
+  if (co) return coopUse(co, plantId, 'feed');
   return mut((g, t) => {
     const p = findPlant(g, plantId);
     if (!p || p.stage < 2) return false;
@@ -1176,6 +1189,8 @@ export const potsOf = (g: GameState, size: number) => g.owned[POT_SIZE_ITEM[size
 
 /** Пересадить в горшок побольше. По умолчанию — в тот, что нужен по возрасту. */
 export function repot(plantId: string, careful = false, size?: number) {
+  const co = coopOfPlant(plantId);
+  if (co) { void coopDo(co, { kind: 'repot', plant: plantId, ...(size ? { size } : {}) }, undefined, careful); return; }
   mut((g, t) => {
     const p = findPlant(g, plantId);
     if (!p || p.stage < 2) return;
@@ -1205,7 +1220,9 @@ export function repot(plantId: string, careful = false, size?: number) {
   });
 }
 
-export function takeCutting(plantId: string) {
+export function takeCutting(plantId: string): string | null {
+  const co = coopOfPlant(plantId);
+  if (co) { void coopDo(co, { kind: 'cut', plant: plantId }); return null; }
   return mut((g, t) => {
     const p = findPlant(g, plantId);
     if (!p || !canCut(p, t)) return null;
@@ -1232,6 +1249,7 @@ export function takeCutting(plantId: string) {
 }
 
 export function plantCutting(cuttingId: string, sill?: string, slot?: number) {
+  if (sill === COOP_SILL && slot !== undefined) return coopPlantCutting(cuttingId, slot);
   mut((g, t) => {
     const c = g.cuttings.find((x) => x.id === cuttingId);
     if (!c) return;
@@ -1272,6 +1290,8 @@ export function giftCutting(cuttingId: string, from: string, note: number) {
 }
 
 export function removePlant(plantId: string) {
+  const co = coopOfPlant(plantId);
+  if (co) { void coopDo(co, { kind: 'remove', plant: plantId }); closeSheet(); return; }
   mut((g) => {
     const p = findPlant(g, plantId);
     if (p && p.stage >= 2) { const sz = potSizeOf(p); g.owned[POT_SIZE_ITEM[sz]] = potsOf(g, sz) + 1; } // горшок освободился
@@ -1281,6 +1301,8 @@ export function removePlant(plantId: string) {
 }
 
 export function renamePlant(plantId: string, nick: string) {
+  const co = coopOfPlant(plantId);
+  if (co) { void coopDo(co, { kind: 'nick', plant: plantId, nick }); return; }
   mut((g) => {
     const p = findPlant(g, plantId);
     if (!p) return;
@@ -1297,11 +1319,15 @@ export function renamePlant(plantId: string, nick: string) {
 const NAME_REWARD = 5;
 
 export function setPot(plantId: string, pot: string) {
+  const co = coopOfPlant(plantId);
+  if (co) { if (ownsPot(get().game, pot)) void coopDo(co, { kind: 'design', plant: plantId, pot }); return; }
   mut((g) => { const p = findPlant(g, plantId); if (p && ownsPot(g, pot)) p.pot = pot; });
 }
 
 export const ownsShape = (g: GameState, shape: string) => shape === 'classic' || (g.owned['shape_' + shape] ?? 0) > 0;
 export function setPotShape(plantId: string, shape: string) {
+  const co = coopOfPlant(plantId);
+  if (co) { if (ownsShape(get().game, shape)) { void coopDo(co, { kind: 'design', plant: plantId, shape }); haptic('select'); } return; }
   mut((g) => { const p = findPlant(g, plantId); if (p && ownsShape(g, shape)) { p.shape = shape === 'classic' ? undefined : shape; haptic('select'); } });
 }
 
@@ -1920,7 +1946,7 @@ function grantTester(g: GameState, t: number) {
 /** Полить всех на подоконнике, у кого подсохла земля. */
 export function waterAll(sillId: string) {
   if (!isPlus(get().game)) { toast('👑 «Полить всех» — с подпиской Садовник+'); return 0; }
-  const ids = get().game.plants.filter((p) => p.sill === sillId && p.stage >= 2 && p.moisture < WET_FULL).map((p) => p.id);
+  const ids = viewGame().plants.filter((p) => p.sill === sillId && p.stage >= 2 && p.moisture < WET_FULL).map((p) => p.id);
   for (const id of ids) water(id);
   if (ids.length) toast(`💧 Полито растений: ${ids.length}`);
   return ids.length;
@@ -2193,27 +2219,33 @@ const COOP_FAIL: Record<string, string> = {
 };
 
 /** Действие на общем подоконнике. cuttingId — какой черенок из запаса посадить. */
-export async function coopDo(id: number, action: CoopAction, cuttingId?: string): Promise<CoopResult | null> {
+export async function coopDo(id: number, action: CoopAction, cuttingId?: string, careful = false): Promise<CoopResult | null> {
   if (action.kind === 'cut' && get().game.cuttings.length >= MAX_CUTTINGS) {
     toast('В стаканах на кухне уже 10 черенков — подари или посади их');
     return null;
   }
   if (action.kind === 'pot') {
-    if (potsLeft(get().game) <= 0) { openSheet({ kind: 'pots' }); return null; }
+    if (potsLeft(get().game) <= 0) { openSheet({ kind: 'pots', plant: action.plant }); return null; }
   }
-  if (action.kind === 'use' && (get().game.owned[action.item] ?? 0) <= 0) {
-    toast(`${ITEM_BY_ID[action.item]?.icon ?? ''} ${ITEM_BY_ID[action.item]?.name ?? 'Этого'} нет в инвентаре — загляни в магазин`);
-    return null;
+  if (action.kind === 'use') {
+    // как дома: нет в запасе — покупаем за листики
+    const g = get().game;
+    if ((g.owned[action.item] ?? 0) <= 0 && g.leaves < (ITEM_BY_ID[action.item]?.price ?? 0)) {
+      toast(`Нужно ${ITEM_BY_ID[action.item]?.price ?? 0} 🍃`);
+      haptic('warning');
+      return null;
+    }
   }
   if (action.kind === 'repot') {
     const p = get().coops?.find((c) => c.id === id)?.state.plants.find((x) => x.id === action.plant);
-    const to = p ? Math.max(potSizeOf(p) + 1, needSize(p.stage)) : 0;
+    const to = p ? action.size ?? Math.max(potSizeOf(p) + 1, needSize(p.stage)) : 0;
     const g = get().game;
     if (to > 4) { toast('Горшок уже самый большой'); return null; }
     if (to && potsOf(g, to) <= 0 && g.leaves < ITEM_BY_ID[POT_SIZE_ITEM[to]].price) { toast(`Нужен горшок ${POT_SIZE_NAME[to]}: загляни в магазин 🪴`); return null; }
   }
   // сразу показываем результат у себя (те же правила, что на сервере), а сервер потом подтверждает
   const prev = get().coops?.find((c) => c.id === id);
+  const before = prev?.state.plants.find((x) => 'plant' in action && x.id === action.plant);
   let instant = false;
   if (prev && action.kind !== 'cut') {
     const st = clone(prev.state);
@@ -2233,50 +2265,74 @@ export async function coopDo(id: number, action: CoopAction, cuttingId?: string)
       if (!(res.reason === 'enough' && action.kind === 'water' && action.insist)) toast(COOP_FAIL[res.reason] ?? 'Не получилось');
       return res;
     }
+    let cut: string | null = null;
     mut((g, t) => {
       if (res.effect === 'watered') {
         g.stats.waters += 1;
-        addXp(g, XP.water);
-        quest(g, 'water');
-        eventToken(g, 'water', t);
+        if (!before?.wateredAt || t - before.wateredAt >= WATER_REWARD_MS) { addXp(g, XP.water); quest(g, 'water'); eventToken(g, 'water', t); }
         if (!instant) haptic('light');
-      } else if (res.effect === 'misted') {
-        addXp(g, XP.mist);
-        quest(g, 'mist');
+      } else if (res.effect === 'misted' || res.effect === 'wetted') {
+        g.stats.mists += 1;
+        if (res.effect === 'misted' && (!before?.mistedAt || t - before.mistedAt >= WATER_REWARD_MS)) {
+          addXp(g, XP.mist);
+          eventToken(g, 'mist', t);
+          if (before && sp(before.sp).mist === 'love') quest(g, 'mist');
+          else weekly(g, 'mist');
+        }
+        for (const n of res.splashed ?? []) say(n, 'Брр, брызги! Протри меня 💧', 2600);
+        if (res.splashed?.length) toast('💦 Брызги попали на соседей — протри им листья салфеткой или переставь подальше');
         if (!instant) haptic('light');
       } else if (res.effect === 'potted') {
         g.owned.pot = Math.max(0, potsLeft(g) - 1);
         g.stats.planted += 1;
         addXp(g, XP.plant);
+        eventToken(g, 'plant', t);
         quest(g, 'plant');
+        fx(action.kind === 'pot' ? action.plant : '', 'grow');
+        if (before) toast(`${sp(before.sp).name} в горшке! Поливай, когда подсохнет 💧`);
         haptic('success');
       } else if (res.effect === 'repotted' && res.size) {
-        // горшок — из своего запаса (или покупаем за листики, как дома)
+        // горшок — из своего запаса (или покупаем за листики, как дома); старый освобождается
         const item = POT_SIZE_ITEM[res.size];
         if (potsOf(g, res.size) > 0) g.owned[item] -= 1;
         else g.leaves = Math.max(0, g.leaves - (ITEM_BY_ID[item]?.price ?? 0));
+        if (res.from) g.owned[POT_SIZE_ITEM[res.from]] = potsOf(g, res.from) + 1;
         g.stats.repots += 1;
         addXp(g, XP.repot);
         quest(g, 'repot');
+        if (action.kind === 'repot') fx(action.plant, 'grow');
+        if (careful) { g.leaves += 10; toast('Идеальная пересадка — корни целы! +10 🍃'); }
+        else toast(res.size >= 4 ? 'Пересажено в XL! В просторе черенки отрастают быстрее 🪴' : `Пересажено в горшок ${POT_SIZE_NAME[res.size]} — растём дальше 🪴`);
         haptic('success');
       } else if (res.effect === 'used' && res.item) {
-        g.owned[res.item] = Math.max(0, (g.owned[res.item] ?? 0) - 1);
-        if (res.item === 'feed') { addXp(g, XP.feed); quest(g, 'feed'); }
-        if ((g.owned[res.item] ?? 0) <= 0 && get().tool === 'use') set({ tool: 'look', useItem: undefined });
-        toast(`${ITEM_BY_ID[res.item]?.icon ?? ''} Готово: ${ITEM_BY_ID[res.item]?.name ?? ''}`);
+        const it = res.item;
+        if ((g.owned[it] ?? 0) > 0) g.owned[it] -= 1;
+        else g.leaves = Math.max(0, g.leaves - (ITEM_BY_ID[it]?.price ?? 0));
+        if (it === 'feed') { addXp(g, XP.feed); quest(g, 'feed'); }
+        if (it === 'boost') { const day = dayKey(t); g.boosts = { day, n: (g.boosts?.day === day ? g.boosts.n : 0) + 1 }; addXp(g, 3); }
+        if (CURES[it] && before?.problem) { g.stats.cured = (g.stats.cured ?? 0) + 1; addXp(g, 15); }
+        if ((g.owned[it] ?? 0) <= 0 && get().tool === 'use') set({ tool: 'look', useItem: undefined });
+        toast(CURES[it] && before?.problem ? `${ITEM_BY_ID[it]?.icon ?? '💊'} Вылечено: ${PROBLEMS[before.problem.kind].name.toLowerCase()}! Неделю растение под защитой` : USED_TEXT[it] ?? `${ITEM_BY_ID[it]?.icon ?? ''} Готово: ${ITEM_BY_ID[it]?.name ?? ''}`);
         haptic('success');
       } else if (res.effect === 'planted' && cuttingId) {
-        g.cuttings = g.cuttings.filter((c) => c.id !== cuttingId);
+        const c = g.cuttings.find((x) => x.id === cuttingId);
+        g.cuttings = g.cuttings.filter((x) => x.id !== cuttingId);
+        if (c) { collectHue(g, c.sp, c.hue); collectForm(g, c.form); discover(g, c.sp); }
+        toast('Черенок в стакане. Налей воды — и он пустит корни 💧');
       } else if (res.effect === 'cut' && res.cutting) {
-        g.cuttings.push({ id: makeCode(8), at: t, ...res.cutting });
+        cut = makeCode(8);
+        g.cuttings.push({ id: cut, at: t, ...res.cutting, ...(before ? { line: childLine(before, g.name, t) } : {}) });
         g.stats.cuts += 1;
+        mastery(g, res.cutting.sp, 'cut');
         addXp(g, XP.cut);
+        eventToken(g, 'cut', t);
         quest(g, 'cut');
         if (res.cutting.form) toast(`✨ Редкость! Черенок оказался формой «${FORM_BY_ID[res.cutting.form]?.name}»`);
-        else toast('✂️ Черенок у тебя в запасе');
         haptic('success');
       }
     });
+    // черенок с общего подоконника — как дома: сразу предлагаем посадить или подарить
+    if (cut) openSheet({ kind: 'send', cutting: cut });
     return res;
   } catch {
     if (instant && prev) putCoop(prev); // не дошло до сервера — откатываем
@@ -2285,6 +2341,156 @@ export async function coopDo(id: number, action: CoopAction, cuttingId?: string)
   } finally {
     coopPending--;
   }
+}
+
+/** Что сказать, когда средство применили на общем подоконнике (как дома). */
+const USED_TEXT: Record<string, string> = {
+  feed: `🧪 Подкормлено: до следующей стадии на ${FEED_GROW_H} ч меньше`,
+  bloomfeed: '🌸 Три дня будет цвести, даже не в сезон — если хватает света, воды и здоровья',
+  kornevin: '🫙 Корневин: корни появятся вчетверо быстрее',
+  boost: `⚡ Стимулятор: до следующей стадии на ${BOOST_GROW_H} ч меньше`,
+  drain: '🪨 Дренаж готов: лишняя вода будет уходить быстро',
+  soil: '🟫 Пересажено в свежий грунт — перелив больше не страшен',
+};
+
+// ─────────────── общий подоконник — тот же экран и те же инструменты, что и дома ───────────────
+const viewCache = new WeakMap<GameState, { c: api.CoopView; v: GameState }>();
+
+/**
+ * Игра «как её видно сейчас»: своя, а если открыт общий подоконник — вместе с его
+ * растениями и комнатой (она становится активной). Так общий подоконник рисуется
+ * и работает тем же кодом, что и свой.
+ */
+export function viewGame(s: Store = get()): GameState {
+  const c = s.coopOn != null ? s.coops?.find((x) => x.id === s.coopOn) : undefined;
+  if (!c) return s.game;
+  const hit = viewCache.get(s.game);
+  if (hit && hit.c === c) return hit.v;
+  const st = clone(c.state);
+  coopAdvance(st, now());
+  const v: GameState = {
+    ...s.game,
+    plants: [...s.game.plants, ...st.plants.map((p) => ({ ...p, sill: COOP_SILL }))],
+    sills: [...s.game.sills, { id: COOP_SILL, name: st.name, window: st.window, decor: [] }],
+    activeSill: COOP_SILL,
+  };
+  viewCache.set(s.game, { c, v });
+  return v;
+}
+export const useGame = () => useStore(viewGame);
+
+/** На каком общем подоконнике растёт растение (или null — оно своё). */
+function coopOfPlant(plantId: string): number | null {
+  return get().coops?.find((c) => c.state.plants.some((p) => p.id === plantId))?.id ?? null;
+}
+const coopPlant = (plantId: string) => viewGame().plants.find((p) => p.id === plantId && p.sill === COOP_SILL);
+
+function coopWater(co: number, plantId: string, insist: boolean): WaterResult | null {
+  const p = coopPlant(plantId);
+  if (!p) return null;
+  if (p.stage === 0 && !p.rootStart) {
+    void coopDo(co, { kind: 'water', plant: plantId });
+    fx(plantId, 'water');
+    say(plantId, 'Буль-буль 💧', 1500);
+    return 'rooting';
+  }
+  if (p.stage <= 1) {
+    say(plantId, p.stage === 1 ? 'Посади меня в горшок 🪴' : 'В стакане хватает воды');
+    return 'glass';
+  }
+  if (p.moisture >= WET_FULL) {
+    if ((get().game.owned.meter ?? 0) > 0) {
+      say(plantId, `📟 ${Math.round(p.moisture * 100)}% — мокро`, 2200);
+      toast('📟 Влагомер: земля мокрая — лишняя вода уйдёт в поддон. Полей, когда подсохнет');
+      haptic('warning');
+      return 'enough';
+    }
+    if (!insist) {
+      say(plantId, p.moisture > 1 ? 'Я и так мокрое 😵' : 'Я ещё мокрое 💧', 2200);
+      haptic('warning');
+      return 'enough';
+    }
+  }
+  const r = pour(clone(p));
+  void coopDo(co, { kind: 'water', plant: plantId, insist: true });
+  fx(plantId, 'water');
+  if (r === 'over') {
+    say(plantId, 'Ой, вода в поддоне! 😵', 2600);
+    toast(sp(p.sp).overwater === 'sensitive' ? `${sp(p.sp).name} не любит перелив — слей воду из поддона, иначе корни загниют` : 'Вода ушла в поддон. Слей её или дай земле просохнуть');
+  } else if (r === 'topped') say(plantId, 'Подлили до краёв 💧', 1800);
+  return r;
+}
+
+function coopMist(co: number, plantId: string, insist: boolean): boolean {
+  const p = coopPlant(plantId);
+  if (!p || p.stage < 2) return false;
+  const s = sp(p.sp);
+  if (s.mist === 'no' && !insist) {
+    say(plantId, 'Меня лучше не опрыскивать! 🙅', 2600);
+    haptic('warning');
+    return false;
+  }
+  void coopDo(co, { kind: 'mist', plant: plantId, insist });
+  fx(plantId, 'mist');
+  if (s.mist === 'no') {
+    say(plantId, 'Ой, листья мокрые! Протри меня 😣', 4000);
+    toast(`💧 ${s.name}: на мокрых листьях появятся пятна и плесень. Протри салфеткой`);
+  } else {
+    say(plantId, s.mist === 'love' ? 'Спасибо! 😊' : 'Освежилось 🌿');
+    toast(s.mist === 'love' ? `${s.name} радуется! 12 ч растёт быстрее 💦` : `${s.name} освежилось — 6 ч растёт быстрее 💦`);
+  }
+  return true;
+}
+
+/** Средство из инвентаря — на растение с общего подоконника. Те же причины отказа, что дома. */
+function coopUse(co: number, plantId: string, item: string): boolean {
+  const p = coopPlant(plantId);
+  if (!p) return false;
+  const t = now();
+  const it = ITEM_BY_ID[item];
+  const bloomWhy = item === 'bloomfeed' ? bloomFeedBlock(p, t) : null;
+  const why =
+    item === 'kornevin' ? (p.stage !== 0 ? '🫙 Корневин — для черенков в стакане' : p.rootBoost ? '🫙 Корневин уже в стакане' : null)
+    : p.stage < 2 ? 'Сначала посади в горшок'
+    : item === 'bloomfeed' ? (bloomWhy ? `🌸 Удобрение для цветения: ${bloomWhy}` : null)
+    : item === 'feed' ? (p.stage >= 4 ? 'Взрослому подкормка не нужна — оно уже выросло 🌿' : tight(p) ? 'Тесно в горшке — сначала пересади, иначе подкормка не поможет 🪴' : p.feedUntil && t < p.feedUntil ? `🧪 Снова можно через ${fmt(p.feedUntil - t)}. Перекорм обжигает корни — подожди` : null)
+    : item === 'boost' ? boostWhy(boostBlock(get().game, p, t), p, t)
+    : item === 'drain' ? (p.drain ? '🪨 Дренаж здесь уже есть' : null)
+    : item === 'soil' ? (p.moisture <= 1 && !(p.problem && CURES.soil.includes(p.problem.kind)) ? '🟫 Земля не мокрая — менять грунт незачем' : null)
+    : CURES[item] ? (!p.problem ? `${it?.icon ?? '💊'} Растение здорово — лечить нечего` : !CURES[item].includes(p.problem.kind) ? `${it?.name} не поможет: тут ${PROBLEMS[p.problem.kind].name.toLowerCase()}. Нужно: ${cureFor(p.problem.kind).map((c) => ITEM_BY_ID[c]?.name).join(' или ')}` : null)
+    : 'Это средство здесь не пригодится';
+  if (why) { toast(why); return false; }
+  void coopDo(co, { kind: 'use', plant: plantId, item: item as CoopItem });
+  fx(plantId, item === 'kornevin' ? 'water' : item === 'feed' || item === 'boost' ? 'feed' : 'grow');
+  return true;
+}
+
+function coopSwap(co: number, plantId: string, slot: number) {
+  const g = viewGame();
+  const p = coopPlant(plantId);
+  if (!p) return;
+  const other = plantAt(g, COOP_SILL, slot);
+  if (other?.id === p.id) return;
+  if (!fitsSlot(p.sp, slot) || (other && !fitsSlot(other.sp, p.slot))) {
+    toast(sp(p.sp).big || (other && sp(other.sp).big) ? '🌴 Большие растения живут только на полу, а на пол — только они' : 'Сюда это растение не поставить');
+    return;
+  }
+  void coopDo(co, { kind: 'move', plant: plantId, slot });
+  haptic('select');
+  const zone = zoneOfSlot(slot);
+  if (zone !== p.zone && p.stage >= 2) {
+    const q = { ...p, slot, zone };
+    const bad = badLight(q, now(), ctxFor(g, q, now()));
+    toast(bad === 'hot' ? `${sp(p.sp).name}: тут жарко на солнце 🥵` : bad === 'dark' ? `${sp(p.sp).name}: тут темновато 🌥` : `${sp(p.sp).name}: ${zone === 'glass' ? 'у стекла ☀️' : 'в глубине 🛋'} — тут хорошо`);
+  }
+}
+
+function coopPlantCutting(cuttingId: string, slot: number) {
+  const co = get().coopOn;
+  const c = get().game.cuttings.find((x) => x.id === cuttingId);
+  if (co == null || !c) return;
+  if (!fitsSlot(c.sp, slot)) { toast('🌴 Большие растения живут только на полу, а на пол — только они'); return; }
+  void coopDo(co, { kind: 'plant', slot, cutting: { sp: c.sp, ...(c.form ? { form: c.form } : {}), ...(c.hue ? { hue: c.hue } : {}) } }, cuttingId);
 }
 
 export const coopInviteCode = (c: api.CoopView) => 'c' + c.code;
@@ -2504,6 +2710,8 @@ export function fulfilOrder(id: string, plantId?: string) {
 // ─────────────────── лечение ───────────────────
 /** Обработать растение средством. Если средства нет — купить за листики. */
 export function treat(plantId: string, cure: string) {
+  const co = coopOfPlant(plantId);
+  if (co) return coopUse(co, plantId, cure);
   return mut((g, t) => {
     const p = findPlant(g, plantId);
     const pr = p?.problem;
@@ -2547,6 +2755,8 @@ export function petCat() {
 // ─────────────────── перелив ───────────────────
 /** Слить воду из поддона: земле становится чуть легче. Бесплатно. */
 export function drainTray(plantId: string) {
+  const co = coopOfPlant(plantId);
+  if (co) { void coopDo(co, { kind: 'tray', plant: plantId }); fx(plantId, 'water'); say(plantId, 'Фух, полегче 😮‍💨', 1800); return; }
   mut((g) => {
     const p = findPlant(g, plantId);
     if (!p || p.moisture <= 1) return;
@@ -2559,6 +2769,8 @@ export function drainTray(plantId: string) {
 
 /** Пересадить в сухую свежую землю — без проблемы, просто от перелива. */
 export function freshSoil(plantId: string) {
+  const co = coopOfPlant(plantId);
+  if (co) { coopUse(co, plantId, 'soil'); return; }
   mut((g) => {
     const p = findPlant(g, plantId);
     if (!p || p.stage < 2) return;
@@ -2576,6 +2788,8 @@ export function freshSoil(plantId: string) {
 
 /** Насыпать керамзит: навсегда в этом горшке. */
 export function addDrain(plantId: string) {
+  const co = coopOfPlant(plantId);
+  if (co) { coopUse(co, plantId, 'drain'); return; }
   mut((g) => {
     const p = findPlant(g, plantId);
     if (!p || p.stage < 2 || p.drain) return;
@@ -2612,6 +2826,8 @@ export function itemFits(g: GameState, id: string, p: Plant, t: number): boolean
 
 /** Применить предмет из инвентаря к растению. Кончился — инструмент возвращается к «Осмотру». */
 export function applyItem(plantId: string, id: string) {
+  const co = coopOfPlant(plantId);
+  if (co) return coopUse(co, plantId, id);
   const g = get().game;
   const p = g.plants.find((x) => x.id === plantId);
   if (!p || (p.stage < 2 && id !== 'kornevin')) return false;
@@ -2780,6 +2996,8 @@ export function bloomFeedBlock(p: Plant, t: number): string | null {
 }
 
 export function bloomFeed(plantId: string) {
+  const co = coopOfPlant(plantId);
+  if (co) return coopUse(co, plantId, 'bloomfeed');
   return mut((g, t) => {
     const p = findPlant(g, plantId);
     if (!p) return false;
@@ -2798,6 +3016,8 @@ export function bloomFeed(plantId: string) {
 
 /** Корневин: черенок в стакане пускает корни вчетверо быстрее. */
 export function rootBoost(plantId: string) {
+  const co = coopOfPlant(plantId);
+  if (co) return coopUse(co, plantId, 'kornevin');
   return mut((g, t) => {
     const p = findPlant(g, plantId);
     if (!p || p.stage !== 0) { toast('🫙 Корневин — для черенков в стакане'); return false; }
@@ -2828,17 +3048,25 @@ export function boostBlock(g: GameState, p: Plant, t: number): BoostBlock {
   return null;
 }
 
+/** Почему нельзя дать стимулятор — словами (null — можно). */
+function boostWhy(why: BoostBlock, p: Plant, t: number): string | null {
+  if (why === 'level') return `Стимулятор откроется на ${ITEM_BY_ID.boost.level} уровне`;
+  if (why === 'adult') return p.stage >= 4 ? 'Взрослому стимулятор не нужен — он уже вырос 🌿' : 'Сначала посади в горшок';
+  if (why === 'sick') return 'Сначала вылечи: больному растению стимулятор только навредит';
+  if (why === 'tight') return 'Тесно в горшке — сначала пересади 🪴';
+  if (why === 'cooldown') return `⚡ Снова можно через ${fmt(p.boostAt! + BOOST_COOLDOWN - t)} — иначе растение истощится`;
+  if (why === 'daily') return `⚡ Сегодня уже ${BOOST_PER_DAY} стимулятора — хватит. Завтра можно снова`;
+  return null;
+}
+
 export function boostPlant(plantId: string) {
+  const co = coopOfPlant(plantId);
+  if (co) return coopUse(co, plantId, 'boost');
   return mut((g, t) => {
     const p = findPlant(g, plantId);
     if (!p) return false;
-    const why = boostBlock(g, p, t);
-    if (why === 'level') { toast(`Стимулятор откроется на ${ITEM_BY_ID.boost.level} уровне`); return false; }
-    if (why === 'adult') { toast(p.stage >= 4 ? 'Взрослому стимулятор не нужен — он уже вырос 🌿' : 'Сначала посади в горшок'); return false; }
-    if (why === 'sick') { toast('Сначала вылечи: больному растению стимулятор только навредит'); return false; }
-    if (why === 'tight') { toast('Тесно в горшке — сначала пересади 🪴'); return false; }
-    if (why === 'cooldown') { toast(`⚡ Снова можно через ${fmt(p.boostAt! + BOOST_COOLDOWN - t)} — иначе растение истощится`); return false; }
-    if (why === 'daily') { toast(`⚡ Сегодня уже ${BOOST_PER_DAY} стимулятора — хватит. Завтра можно снова`); return false; }
+    const why = boostWhy(boostBlock(g, p, t), p, t);
+    if (why) { toast(why); return false; }
     if (!payItem(g, 'boost')) return false;
     const day = dayKey(t);
     g.boosts = { day, n: (g.boosts?.day === day ? g.boosts.n : 0) + 1 };

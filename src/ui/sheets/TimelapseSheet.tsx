@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { sp } from '../../game/species';
-import { closeSheet, now, toast, useStore } from '../../game/store';
+import { closeSheet, now, toast, useStore, viewGame } from '../../game/store';
 import * as api from '../../net/api';
 import { track } from '../../net/track';
 import { platform } from '../../platform';
@@ -19,7 +19,7 @@ const toDataUrl = (b: Blob) => new Promise<string>((ok, fail) => {
 });
 
 export function TimelapseSheet({ id }: { id: string }) {
-  const p = useStore((s) => s.game.plants.find((x) => x.id === id));
+  const p = useStore((s) => viewGame(s).plants.find((x) => x.id === id));
   const [prog, setProg] = useState(0);
   const [res, setRes] = useState<Timelapse | null>(null);
   const [url, setUrl] = useState('');

@@ -3,8 +3,9 @@ import type { GameState } from '../../game/types';
 import { Icon, TONE, type IconName } from '../kit/icons';
 import { activeEvent, eventSeason, tierOf } from '../../game/events';
 import { canCut, isWinter, fmt } from '../../game/sim';
-import { isPlus, now, openSheet, plantAt, setTab, setTool, showGift, USABLE, useStore, waterAll, type Tool } from '../../game/store';
-import { CoopSill } from './CoopSill';
+import { isPlus, now, openSheet, plantAt, setTab, setTool, showGift, USABLE, useGame, useStore, viewGame, waterAll, type Tool } from '../../game/store';
+import { CoopHead } from './CoopSill';
+import type { CoopView } from '../../net/api';
 import { canFulfil } from '../../game/orders';
 import { FallingTokens } from '../FallingTokens';
 import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react';
@@ -28,7 +29,7 @@ import { swipeDir, useRoomSwipe } from '../useRoomSwipe';
 
 export function SillView() {
   const coop = useStore((s) => s.coops?.find((c) => c.id === s.coopOn));
-  return coop ? <CoopSill coop={coop} /> : <OwnSill />;
+  return <OwnSill coop={coop} />;
 }
 
 /** Время от времени одно из растений что-нибудь говорит. */
@@ -36,7 +37,7 @@ function useChatter(sillId: string) {
   useEffect(() => {
     const talk = () => {
       if (document.hidden || useStore.getState().sheet) return;
-      const g = useStore.getState().game;
+      const g = viewGame();
       const t = now();
       const list = g.plants.filter((p) => p.sill === sillId && p.stage >= 2);
       if (!list.length) return;
@@ -82,8 +83,9 @@ export function dayTiles(g: GameState, t: number): DayTile[] {
   return tiles.sort((x, y) => Number(/ready|alert/.test(y.cls)) - Number(/ready|alert/.test(x.cls)));
 }
 
-function OwnSill() {
-  const g = useStore((s) => s.game);
+/** Подоконник — свой или общий: один и тот же экран, инструменты и правила. */
+function OwnSill({ coop }: { coop?: CoopView }) {
+  const g = useGame();
   const toolNow = useStore((s) => s.tool);
   const arrange = useStore((s) => s.arrange);
   useEffect(() => () => setArrange(false), []);
@@ -92,7 +94,7 @@ function OwnSill() {
   const sill = g.sills.find((s) => s.id === g.activeSill) ?? g.sills[0];
   const tod = timeOfDay(t);
   const winter = isWinter(t);
-  const decor = sill.decor.filter((d) => (g.owned[d] ?? 0) > 0);
+  const decor = coop ? [] : sill.decor.filter((d) => (g.owned[d] ?? 0) > 0);
   // весь купленный декор, который можно поставить или убрать (кашпо и обои — в профиле)
   const stash = ITEMS.filter((it) => it.cat === 'decor' && !it.consumable && it.place && it.place !== 'spot' && it.place !== 'wallpaper' && (g.owned[it.id] ?? 0) > 0).map((it) => it.id);
   const ev = activeEvent(t);
@@ -137,17 +139,19 @@ function OwnSill() {
   const swipe = useRoomSwipe();
   const clim = climateOf(g, sill, t);
   const climBad = clim.draft || clim.bugs || clim.temp < 16 || clim.temp > 29 || clim.rh < 30;
+  const shared = !!coop;
 
   return (
     <div className="sillview fit" {...swipe}>
-      {arrange && (
+      {coop && <CoopHead coop={coop} />}
+      {arrange && !shared && (
         <div className="arrange-bar">
           <span>Перетаскивай предметы и котиков, <Emo e="✕" /> — убрать</span>
           <button className="linkish" onClick={() => openSheet({ kind: 'room' })}><Emo e="🎨" /> Цвета</button>
           <button className="btn small primary" onClick={() => setArrange(false)}>Готово</button>
         </div>
       )}
-      {arrange && (
+      {arrange && !shared && (
         <div className="stash" aria-label="Твой декор">
           {stash.map((id) => {
             const here = sill.decor.includes(id);
@@ -160,7 +164,7 @@ function OwnSill() {
         </div>
       )}
 
-      {g.tutorial < TUTORIAL_DONE ? <Guide /> : !arrange && toolNow !== 'look' && g.plants.some((p) => p.sill === sill.id && p.stage >= 2) ? <ToolTip sill={sill.id} /> : !arrange && (
+      {g.tutorial < TUTORIAL_DONE && !shared ? <Guide /> : !arrange && toolNow !== 'look' && g.plants.some((p) => p.sill === sill.id && p.stage >= 2) ? <ToolTip sill={sill.id} /> : !arrange && !shared && (
         <div className="info-strip">
           {platform().kind !== 'discord' && (
             <button className={'strip-clim' + (climBad ? ' alert' : '')} onClick={() => openSheet({ kind: 'climate' })} aria-label="Погода и климат в комнате">
@@ -197,17 +201,17 @@ function OwnSill() {
             hangCell={cellAt}
             cell={cellAt}
             floorCell={cellAt}
-            onCat={petCat}
+            onCat={shared ? undefined : petCat}
             pos={sill.pos}
             off={sill.off}
             catColors={g.catColors}
-            onHide={(id) => toggleDecor(sill.id, id)}
+            onHide={shared ? undefined : (id) => toggleDecor(sill.id, id)}
             vent={sill.vent}
             curtains={sill.curtains}
             draft={climateOf(g, sill, t).draft}
-            arrange={arrange}
-            onItem={(id) => itemTap(sill.id, id)}
-            onMove={(id, x, row) => moveItem(sill.id, id, x, row)}
+            arrange={arrange && !shared}
+            onItem={shared ? undefined : (id) => itemTap(sill.id, id)}
+            onMove={shared ? undefined : (id, x, row) => moveItem(sill.id, id, x, row)}
           />
         )}
       </SceneFit>
@@ -222,7 +226,7 @@ function OwnSill() {
 /**
  * Подоконник занимает всё оставшееся место: высоту рядов считаем по размеру экрана,
  * чтобы окно со столиком помещались целиком. Ниже — пол с большими растениями:
- * виден краешек, а комнату можно прокрутить от потолка до пола.
+ * комнату можно прокрутить от потолка до пола.
  */
 function SceneFit({ hang, children }: { hang: boolean; children: (style: CSSProperties) => ReactNode }) {
   const ref = useRef<HTMLDivElement>(null);
@@ -236,8 +240,8 @@ function SceneFit({ hang, children }: { hang: boolean; children: (style: CSSProp
       if (!scene) return;
       const cur = parseFloat(getComputedStyle(scene).getPropertyValue('--cellh')) || 150;
       const floor = scene.querySelector<HTMLElement>('.floor')?.offsetHeight ?? 0;
-      // всё, кроме двух рядов (рамка, подоконник, столик, кашпо), не зависит от высоты ряда; от пола — краешек
-      const overhead = scene.offsetHeight - floor - 2 * cur + (floor ? FLOOR_PEEK : 0);
+      // всё, кроме двух рядов (рамка, подоконник, столик, кашпо), не зависит от высоты ряда; пол — ниже, прокруткой
+      const overhead = scene.offsetHeight - floor - 2 * cur;
       const next = Math.max(58, Math.min(200, Math.floor((el.clientHeight - 8 - overhead) / 2)));
       setCellh((c) => (Math.abs(c - next) > 1 ? next : c));
     };
@@ -260,9 +264,6 @@ function SceneFit({ hang, children }: { hang: boolean; children: (style: CSSProp
   );
 }
 
-/** Сколько пикселей пола видно без прокрутки. */
-const FLOOR_PEEK = 30;
-
 const TOOLS: [Tool, IconName, string][] = [
   ['look', 'look', 'Осмотр'],
   ['water', 'water', 'Уход'],
@@ -280,7 +281,7 @@ const TOOL_TIP: Partial<Record<Tool, [IconName, string, string]>> = {
 
 function Toolbar({ sill }: { sill: string }) {
   const tool = useStore((s) => s.tool);
-  const g = useStore((s) => s.game);
+  const g = useGame();
   const [care, setCare] = useState(false);
   const useItem = useStore((s) => s.useItem); // все хуки — до раннего выхода
   const potted = g.plants.filter((p) => p.sill === sill && p.stage >= 2);
@@ -346,7 +347,7 @@ function Toolbar({ sill }: { sill: string }) {
 function ToolTip({ sill }: { sill: string }) {
   const tool = useStore((s) => s.tool);
   const useItem = useStore((s) => s.useItem);
-  const g = useStore((s) => s.game);
+  const g = useGame();
   const potted = g.plants.filter((p) => p.sill === sill && p.stage >= 2);
   const fits = tool === 'look' ? 0 : potted.filter((p) => wantsTool(tool, p, now())).length;
   return (

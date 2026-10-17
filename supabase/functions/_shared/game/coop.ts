@@ -3,20 +3,23 @@
 // Хранится на сервере, любое действие проходит через coopAct — одинаково
 // на клиенте (для предпросмотра) и на сервере (решающее слово).
 
-import { GLASS_ROW, DEEP_ROW, zoneOfSlot } from './layout.ts';
+import { GLASS_ROW, DEEP_ROW, FLOOR_ROW, isFloor, zoneOfSlot } from './layout.ts';
 import { hueOf } from './breeding.ts';
 import { FORM_BY_ID, RARE_DROP, formsOf, pickForm } from './products.ts';
-import { advance, BOOST_GROW_H, canCut, FEED_GROW_H, growNow, needSize, potSizeOf, pour, tight, WET_FULL } from './sim.ts';
-import { BOOST_COOLDOWN, FEED_MS } from './constants.ts';
+import { advance, BLOOM_FEED_EVERY, BLOOM_FEED_MS, BOOST_GROW_H, canCut, FEED_GROW_H, growNow, needSize, neighborsOf, potSizeOf, pour, ROOT_BOOST, rootsAt, tight, WET_FULL } from './sim.ts';
+import { BOOST_COOLDOWN, FEED_MS, MIST_MS } from './constants.ts';
 import { CURES, GUARD_MS, PROBLEMS } from './problems.ts';
 import { sp } from './species.ts';
+import { POT_SHAPES, POTS } from './shop.ts';
 import type { GameState, Plant, WindowSide } from './types.ts';
 
 export const COOP_MAX_MEMBERS = 4;
 export const COOP_MAX_PER_PLAYER = 2;
 export const COOP_SILL = 'coop';
-/** На общем подоконнике сразу открыты все 8 мест. */
-export const COOP_SLOTS = [...GLASS_ROW, ...DEEP_ROW];
+/** На общем подоконнике сразу открыты все 8 мест и пол для больших растений. */
+export const COOP_SLOTS = [...GLASS_ROW, ...DEEP_ROW, ...FLOOR_ROW];
+/** Большие растения — только на полу, на пол — только большие (как дома). */
+const fits = (spId: string, slot: number) => !!sp(spId).big === isFloor(slot);
 
 export interface CoopLog {
   at: number;
@@ -41,22 +44,26 @@ export interface CoopCutting {
 
 export type CoopAction =
   | { kind: 'water'; plant: string; insist?: boolean }
-  | { kind: 'mist'; plant: string }
+  | { kind: 'mist'; plant: string; insist?: boolean }
+  | { kind: 'wipe'; plant: string }
+  | { kind: 'tray'; plant: string }
+  | { kind: 'design'; plant: string; pot?: string; shape?: string }
+  | { kind: 'nick'; plant: string; nick: string }
   | { kind: 'move'; plant: string; slot: number }
   | { kind: 'plant'; slot: number; cutting: CoopCutting }
   | { kind: 'pot'; plant: string }
   | { kind: 'cut'; plant: string }
   | { kind: 'remove'; plant: string }
-  | { kind: 'repot'; plant: string }
+  | { kind: 'repot'; plant: string; size?: number }
   | { kind: 'use'; plant: string; item: CoopItem }
   | { kind: 'window'; side: WindowSide };
 
 /** Что из своего инвентаря можно применить к растению на общем подоконнике. */
-export const COOP_ITEMS = ['feed', 'boost', 'soap', 'acaricide', 'traps', 'fungicide', 'soil', 'drain'] as const;
+export const COOP_ITEMS = ['feed', 'bloomfeed', 'kornevin', 'boost', 'soap', 'acaricide', 'traps', 'fungicide', 'soil', 'drain'] as const;
 export type CoopItem = (typeof COOP_ITEMS)[number];
 
 export type CoopResult =
-  | { ok: true; effect: 'watered' | 'rooting' | 'misted' | 'moved' | 'planted' | 'potted' | 'cut' | 'removed' | 'window' | 'repotted' | 'used'; cutting?: CoopCutting; size?: number; item?: CoopItem }
+  | { ok: true; effect: 'watered' | 'rooting' | 'misted' | 'wetted' | 'wiped' | 'drained' | 'moved' | 'planted' | 'potted' | 'cut' | 'removed' | 'window' | 'repotted' | 'used' | 'designed' | 'named'; cutting?: CoopCutting; size?: number; item?: CoopItem; from?: number; splashed?: string[] }
   | { ok: false; reason: 'gone' | 'enough' | 'busy' | 'no_mist' | 'not_ready' | 'bad' | 'no_need' };
 
 export function newCoop(name: string, window: WindowSide, t: number): CoopState {
@@ -105,7 +112,7 @@ export function coopAct(c: CoopState, a: CoopAction, who: string, t: number, id 
   if (a.kind === 'plant') {
     if (!COOP_SLOTS.includes(a.slot) || plantAt(c, a.slot)) return { ok: false, reason: 'busy' };
     const s = sp(a.cutting.sp);
-    if (s.id !== a.cutting.sp) return { ok: false, reason: 'bad' };
+    if (s.id !== a.cutting.sp || !fits(s.id, a.slot)) return { ok: false, reason: 'bad' };
     c.plants.push({
       id, sp: s.id, sill: COOP_SILL, slot: a.slot, zone: zoneOfSlot(a.slot), pot: 'terracotta', bigPot: false,
       createdAt: t, stage: 0, growth: 0, moisture: 0, dryFor: 0, badLightFor: 0, health: 100, rest: 0,
@@ -130,31 +137,68 @@ export function coopAct(c: CoopState, a: CoopAction, who: string, t: number, id 
       if (p.moisture >= WET_FULL && !a.insist) return { ok: false, reason: 'enough' };
       pour(p);
       p.waterBy = { name: who, at: t };
+      p.wateredAt = t;
       log(c, who, `полил(а) ${sp(p.sp).acc}${p.moisture > 1 ? ' — перелили 😵' : ''}`, t);
       return { ok: true, effect: 'watered' };
     }
     case 'mist': {
       if (p.stage < 2) return { ok: false, reason: 'not_ready' };
-      if (sp(p.sp).mist === 'no') return { ok: false, reason: 'no_mist' };
-      p.mistUntil = t + (sp(p.sp).mist === 'love' ? 12 : 6) * 3600e3;
-      log(c, who, `опрыскал(а) ${sp(p.sp).acc}`, t);
-      return { ok: true, effect: 'misted' };
+      const s = sp(p.sp);
+      if (s.mist === 'no') {
+        // как дома: опрыскать можно, но листья намокнут — придётся протереть
+        if (!a.insist) return { ok: false, reason: 'no_mist' };
+        p.wetLeaves = t;
+        log(c, who, `опрыскал(а) ${s.acc} — листья мокрые, протрите 💧`, t);
+        return { ok: true, effect: 'wetted' };
+      }
+      p.mistUntil = t + (s.mist === 'love' ? MIST_MS : MIST_MS / 2);
+      p.mistedAt = t;
+      if (p.problem?.kind === 'mite') p.problem.sev = Math.max(0.1, p.problem.sev - 0.15);
+      // брызги летят на соседей: тех, кого нельзя мочить, придётся протереть
+      const splashed = neighborsOf(c, p).filter((n) => n.stage >= 2 && sp(n.sp).mist === 'no');
+      for (const n of splashed) n.wetLeaves = t;
+      log(c, who, `опрыскал(а) ${s.acc}`, t);
+      return { ok: true, effect: 'misted', ...(splashed.length ? { splashed: splashed.map((n) => n.id) } : {}) };
+    }
+    case 'wipe': {
+      if (!p.wetLeaves) return { ok: false, reason: 'no_need' };
+      p.wetLeaves = undefined;
+      log(c, who, `протёр(ла) листья ${sp(p.sp).gen} 🧻`, t);
+      return { ok: true, effect: 'wiped' };
+    }
+    case 'tray': {
+      if (p.moisture <= 1) return { ok: false, reason: 'no_need' };
+      p.moisture = Math.max(1, p.moisture - 0.25);
+      log(c, who, `слил(а) воду из поддона ${sp(p.sp).gen}`, t);
+      return { ok: true, effect: 'drained' };
+    }
+    case 'design': {
+      if (a.pot && POTS[a.pot]) p.pot = a.pot;
+      if (a.shape && (a.shape === 'classic' || POT_SHAPES[a.shape])) p.shape = a.shape === 'classic' ? undefined : a.shape;
+      return { ok: true, effect: 'designed' };
+    }
+    case 'nick': {
+      p.nick = a.nick.trim().slice(0, 20) || undefined;
+      if (p.nick) log(c, who, `назвал(а) ${sp(p.sp).acc} «${p.nick}»`, t);
+      return { ok: true, effect: 'named' };
     }
     case 'move': {
       if (!COOP_SLOTS.includes(a.slot)) return { ok: false, reason: 'bad' };
       const other = plantAt(c, a.slot);
+      if (!fits(p.sp, a.slot) || (other && other.id !== p.id && !fits(other.sp, p.slot))) return { ok: false, reason: 'bad' };
       if (other && other.id !== p.id) {
         other.slot = p.slot;
         other.zone = zoneOfSlot(p.slot);
       }
+      const zoneWas = p.zone;
       p.slot = a.slot;
       p.zone = zoneOfSlot(a.slot);
-      log(c, who, `переставил(а) ${sp(p.sp).acc} ${p.zone === 'glass' ? 'к стеклу' : 'в глубину'}`, t);
+      if (zoneWas !== p.zone) log(c, who, `переставил(а) ${sp(p.sp).acc} ${p.zone === 'glass' ? 'к стеклу' : 'в глубину'}`, t);
       return { ok: true, effect: 'moved' };
     }
     case 'pot': {
       if (p.stage !== 1) return { ok: false, reason: 'not_ready' };
-      Object.assign(p, { stage: 2, plantedAt: t, growth: 0, moisture: 1, health: 100 });
+      Object.assign(p, { stage: 2, potSize: 1, plantedAt: t, growth: 0, moisture: 1, health: 100 });
       log(c, who, `посадил(а) ${sp(p.sp).acc} в горшок`, t);
       return { ok: true, effect: 'potted' };
     }
@@ -170,18 +214,33 @@ export function coopAct(c: CoopState, a: CoopAction, who: string, t: number, id 
     case 'repot': {
       if (p.stage < 2) return { ok: false, reason: 'not_ready' };
       const cur = potSizeOf(p);
-      const to = Math.max(cur + 1, needSize(p.stage));
-      if (to > 4) return { ok: false, reason: 'no_need' };
+      const to = a.size && Number.isInteger(a.size) ? a.size : Math.max(cur + 1, needSize(p.stage));
+      if (to <= cur || to > 4) return { ok: false, reason: 'no_need' };
       p.potSize = to;
       p.bigPot = to >= 4;
       p.repottedAt = t;
       log(c, who, `пересадил(а) ${sp(p.sp).acc} в горшок побольше`, t);
-      return { ok: true, effect: 'repotted', size: to };
+      return { ok: true, effect: 'repotted', size: to, from: cur };
     }
     case 'use': {
-      if (p.stage < 2) return { ok: false, reason: 'not_ready' };
       const it = a.item;
-      if (it === 'feed') {
+      if (it === 'kornevin') {
+        // Корневин — только черенкам в стакане: корни вчетверо быстрее
+        if (p.stage !== 0 || p.rootBoost) return { ok: false, reason: 'no_need' };
+        if (!p.rootStart) p.rootStart = t;
+        const left = Math.max(0, rootsAt(p)! - t);
+        p.rootStart -= left * (1 - 1 / ROOT_BOOST);
+        p.rootBoost = true;
+        log(c, who, `добавил(а) Корневин черенку ${sp(p.sp).gen} 🫙`, t);
+        return { ok: true, effect: 'used', item: it };
+      }
+      if (p.stage < 2) return { ok: false, reason: 'not_ready' };
+      if (it === 'bloomfeed') {
+        if (!sp(p.sp).bloom || p.stage < 4 || (p.bloomUntil && t < p.bloomUntil) || (p.bloomFedAt && t - p.bloomFedAt < BLOOM_FEED_EVERY)) return { ok: false, reason: 'no_need' };
+        p.bloomUntil = t + BLOOM_FEED_MS;
+        p.bloomFedAt = t;
+        log(c, who, `подкормил(а) ${sp(p.sp).acc} удобрением для цветения 🌸`, t);
+      } else if (it === 'feed') {
         if ((p.feedUntil && t < p.feedUntil) || p.stage >= 4 || tight(p)) return { ok: false, reason: 'no_need' };
         p.feedUntil = t + FEED_MS;
         growNow(p, FEED_GROW_H);
@@ -199,6 +258,7 @@ export function coopAct(c: CoopState, a: CoopAction, who: string, t: number, id 
         if (p.moisture <= 1) return { ok: false, reason: 'no_need' };
         p.moisture = 0.6;
         p.wetFor = 0;
+        p.health = Math.max(0, p.health - 3);
         log(c, who, `пересадил(а) ${sp(p.sp).acc} в сухой грунт`, t);
       } else {
         if (!p.problem || !CURES[it]?.includes(p.problem.kind)) return { ok: false, reason: 'no_need' };
@@ -227,7 +287,11 @@ export function cleanAction(v: unknown): CoopAction | null {
   const slot = Number(o.slot);
   switch (o.kind) {
     case 'water': return plant ? { kind: 'water', plant, insist: o.insist === true } : null;
-    case 'mist': case 'pot': case 'cut': case 'remove': case 'repot': return plant ? { kind: o.kind, plant } : null;
+    case 'mist': return plant ? { kind: 'mist', plant, insist: o.insist === true } : null;
+    case 'pot': case 'cut': case 'remove': case 'wipe': case 'tray': return plant ? { kind: o.kind, plant } : null;
+    case 'repot': return plant ? { kind: 'repot', plant, ...([2, 3, 4].includes(Number(o.size)) ? { size: Number(o.size) } : {}) } : null;
+    case 'design': return plant ? { kind: 'design', plant, ...(typeof o.pot === 'string' ? { pot: o.pot.slice(0, 24) } : {}), ...(typeof o.shape === 'string' ? { shape: o.shape.slice(0, 24) } : {}) } : null;
+    case 'nick': return plant && typeof o.nick === 'string' ? { kind: 'nick', plant, nick: o.nick.slice(0, 20) } : null;
     case 'use': return plant && (COOP_ITEMS as readonly string[]).includes(String(o.item)) ? { kind: 'use', plant, item: o.item as CoopItem } : null;
     case 'move': return plant && Number.isInteger(slot) ? { kind: 'move', plant, slot } : null;
     case 'window': return ['N', 'E', 'S', 'W'].includes(String(o.side)) ? { kind: 'window', side: o.side as WindowSide } : null;

@@ -2,14 +2,14 @@
 
 import { potSizeOf } from '../../game/sim';
 import { sp } from '../../game/species';
-import { closeSheet, openSheet, useStore } from '../../game/store';
+import { closeSheet, openSheet, useStore, viewGame } from '../../game/store';
 import { PlantArt } from '../art/PlantArt';
 import { Btn } from '../kit/kit';
 import { sharePlantStory } from '../story';
 import { rich } from '../kit/rich';
 
 export function ShareSheet({ id }: { id: string }) {
-  const p = useStore((s) => s.game.plants.find((x) => x.id === id));
+  const p = useStore((s) => viewGame(s).plants.find((x) => x.id === id));
   if (!p) return null;
   const name = p.nick || sp(p.sp).name;
   const opts = [

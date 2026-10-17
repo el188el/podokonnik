@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { sp } from '../../game/species';
-import { closeSheet, renamePlant, useStore } from '../../game/store';
+import { closeSheet, renamePlant, useStore, viewGame } from '../../game/store';
 import { PlantArt } from '../art/PlantArt';
 import { Btn } from '../kit/kit';
 import { Emo, rich } from '../kit/rich';
@@ -9,7 +9,7 @@ const NAMES = ['Зелёнка', 'Кеша', 'Листик', 'Фрося', 'Ти
 
 /** Как назовёшь? Сразу после посадки в горшок. */
 export function NameSheet({ plant }: { plant: string }) {
-  const p = useStore((s) => s.game.plants.find((x) => x.id === plant));
+  const p = useStore((s) => viewGame(s).plants.find((x) => x.id === plant));
   const [nick, setNick] = useState('');
   const ideas = useMemo(() => [...NAMES].sort(() => Math.random() - 0.5).slice(0, 5), []);
   if (!p) return null;

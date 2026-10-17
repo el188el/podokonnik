@@ -5,7 +5,7 @@ import { motion } from 'framer-motion';
 import { useEffect, useRef, useState } from 'react';
 import { ITEM_BY_ID } from '../../game/shop';
 import { sp } from '../../game/species';
-import { closeSheet, potsOf, repot, useStore } from '../../game/store';
+import { closeSheet, potsOf, repot, useGame } from '../../game/store';
 import { needSize, POT_SIZE_ITEM, POT_SIZE_NAME, potSizeOf, tight } from '../../game/sim';
 import { platform } from '../../platform';
 import { PlantArt } from '../art/PlantArt';
@@ -15,7 +15,7 @@ import { Emo, rich } from '../kit/rich';
 const HOLD_MS = 1600;
 
 export function RepotGame({ id }: { id: string }) {
-  const g = useStore((s) => s.game);
+  const g = useGame();
   const p = g.plants.find((x) => x.id === id);
   const [step, setStep] = useState(0);
   const [taps, setTaps] = useState(0);

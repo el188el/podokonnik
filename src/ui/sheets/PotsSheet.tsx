@@ -1,12 +1,12 @@
 import { ITEM_BY_ID } from '../../game/shop';
-import { buyPots, closeSheet, grannyPotReady, potsLeft, takeGrannyPot, useStore } from '../../game/store';
+import { buyPots, closeSheet, grannyPotReady, potsLeft, takeGrannyPot, useGame } from '../../game/store';
 import { PlantArt } from '../art/PlantArt';
 import { Btn } from '../kit/kit';
 import { Emo, rich } from '../kit/rich';
 
 /** Горшки закончились — купить или попросить у Валентины Петровны. */
 export function PotsSheet({ plant }: { plant?: string }) {
-  const g = useStore((s) => s.game);
+  const g = useGame();
   const p = plant ? g.plants.find((x) => x.id === plant) : undefined;
   const offers = ['pot', 'pot5', 'pot12'].map((id) => ITEM_BY_ID[id]).filter((it) => it && (!it.level || g.level >= it.level));
   return (

@@ -7,7 +7,7 @@ import { BOOST_GROW_H, canCut, cramped, ctxFor, cutLeft, FEED_GROW_H, fmt, fussy
 import { Eta } from '../kit/Eta';
 import { DIFFICULTY_LABEL, sp } from '../../game/species';
 import {
-  adsLeft, addDrain, buyItem, toggleVent, bloomFeed, bloomFeedBlock, boostBlock, boostPlant, rootBoost, breedPartners, drainTray, freshSoil, treat, feed, mist, pollinate, watchAd, move, now, openSheet, wipeLeaves, plantInPot, removePlant, renamePlant, takeCutting, useStore, water,
+  adsLeft, addDrain, buyItem, toggleVent, bloomFeed, bloomFeedBlock, boostBlock, boostPlant, rootBoost, breedPartners, drainTray, freshSoil, treat, feed, mist, pollinate, watchAd, move, now, openSheet, wipeLeaves, plantInPot, removePlant, renamePlant, takeCutting, useGame, water,
 } from '../../game/store';
 import { adsAvailable } from '../../net/ads';
 import { ageDays, ageMark, daysText, nextAgeMark } from '../../game/age';
@@ -30,10 +30,12 @@ import type { Ancestor } from '../../game/types';
 import { Icon, TONE } from '../kit/icons';
 import { Emo, rich } from '../kit/rich';
 import { PotDesigner } from './PotDesigner';
+import { COOP_SILL } from '../../game/coop';
 
 export function PlantCard({ id }: { id: string }) {
-  const g = useStore((s) => s.game);
+  const g = useGame();
   const p = g.plants.find((x) => x.id === id);
+  const shared = p?.sill === COOP_SILL;
   const [real, setReal] = useState(false);
   const [sure, setSure] = useState(false);
   const [pots, setPots] = useState(false);
@@ -198,7 +200,7 @@ export function PlantCard({ id }: { id: string }) {
       {p.stage === 1 && <Btn kind="primary" onClick={() => plantInPot(p.id)}><Emo e="🪴" /> Посадить в горшок</Btn>}
       {p.stage === 0 && !p.rootStart && <Btn kind="primary" onClick={() => doWater()}><Emo e="💧" /> Налить воды в стакан</Btn>}
       {p.stage === 0 && !p.rootBoost && <Btn onClick={() => rootBoost(p.id)}><Emo e="🫙" /> Корневин — корни вчетверо быстрее {rich((g.owned.kornevin ?? 0) > 0 ? `· есть ${g.owned.kornevin}` : `· ${ITEM_BY_ID.kornevin.price} 🍃`)}</Btn>}
-      {p.stage === 0 && !!p.rootStart && adsAvailable() && adsLeft(g) > 0 && (
+      {p.stage === 0 && !!p.rootStart && !shared && adsAvailable() && adsLeft(g) > 0 && (
         <Btn kind="gold" onClick={() => watchAd({ kind: 'root', plant: p.id })}><Emo e="🎬" /> Ролик — и корни сразу</Btn>
       )}
       {potted && (
@@ -223,7 +225,7 @@ export function PlantCard({ id }: { id: string }) {
 
       {potted && pots && <PotDesigner p={p} />}
 
-      {canBreed(p.sp) && p.blooming && (
+      {canBreed(p.sp) && p.blooming && !shared && (
         <div className="block breed">
           <h3><Emo e="🐝" /> Скрестить · <span className="hue-dot" style={{ background: hueOf(p.sp, p.hue)?.color }} /> {rich(hueOf(p.sp, p.hue)?.name)}{rich(p.hue && hueOf(p.sp, p.hue)?.rare && ' 🌈')}</h3>
           {p.pollinatedAt && t - p.pollinatedAt < BREED_COOLDOWN ? (
@@ -243,7 +245,7 @@ export function PlantCard({ id }: { id: string }) {
         </div>
       )}
 
-      {p.from && showoff && <Btn kind="primary" onClick={() => shareShowoff(p)}><Emo e="📸" /> Показать дарителю, как подросло</Btn>}
+      {p.from && showoff && !shared && <Btn kind="primary" onClick={() => shareShowoff(p)}><Emo e="📸" /> Показать дарителю, как подросло</Btn>}
 
       {/* ── всё остальное — свёрнуто ── */}
       {potted && (
@@ -282,7 +284,7 @@ export function PlantCard({ id }: { id: string }) {
         {isHeirloom(p, t) && <p className="small"><Emo e="🏺" /> <b>Семейная реликвия</b> — год на подоконнике.</p>}
         {p.line?.length ? <Lineage line={p.line} /> : null}
         {canBreed(p.sp) && !p.blooming && p.stage >= 2 && <p className="small"><Emo e="🐝" /> Цвет: {rich(hueOf(p.sp, p.hue)?.name)}. Скрещивать можно, когда цветут два растения этого вида.</p>}
-        {p.from && <Btn small onClick={() => shareThanks(p.sp)}>Сказать спасибо {rich(p.from.name)} <Emo e="🌱" /></Btn>}
+        {p.from && !shared && <Btn small onClick={() => shareThanks(p.sp)}>Сказать спасибо {rich(p.from.name)} <Emo e="🌱" /></Btn>}
         <ul className="facts">{s.facts.map((x) => <li key={x}>{rich(x)}</li>)}</ul>
       </details>
 
@@ -293,9 +295,9 @@ export function PlantCard({ id }: { id: string }) {
         <p className="small"><b>Бесплатно:</b> попроси черенок у знакомых или на «Авито» в «Отдам даром». Как укоренить: {rich(s.free)}</p>
       </details>
 
-      {potted && <Btn onClick={() => openSheet({ kind: 'sell', plant: p.id })}><Emo e="🏷" /> Продать: соседям, друзьям или в магазин</Btn>}
+      {potted && !shared && <Btn onClick={() => openSheet({ kind: 'sell', plant: p.id })}><Emo e="🏷" /> Продать: соседям, друзьям или в магазин</Btn>}
       <button className={'linkish remove-link' + (sure ? ' warn' : '')} onClick={() => (sure ? removePlant(p.id) : setSure(true))}>
-        {rich(sure ? 'Точно убрать? Нажми ещё раз' : 'Убрать с подоконника')}
+        {rich(sure ? 'Точно убрать? Нажми ещё раз' : shared ? 'Убрать с общего подоконника' : 'Убрать с подоконника')}
       </button>
     </div>
   );
@@ -317,7 +319,7 @@ export function Lineage({ line, title = '🌳 Родословная' }: { line:
 
 /** Здоровье: почему падает и что сделать — с кнопками действий и покупок. */
 function HealthBox({ p }: { p: Plant }) {
-  const g = useStore((st) => st.game);
+  const g = useGame();
   const t = now();
   // перелив и болезнь показаны своими блоками ниже
   const causes = diagnose(g, p, t).filter((c) => c.title !== 'Перелив' && !(p.problem && c.title === PROBLEMS[p.problem.kind].name));
@@ -332,7 +334,7 @@ function HealthBox({ p }: { p: Plant }) {
     else if (f.kind === 'mist') mist(p.id, true);
     else if (f.kind === 'wipe') wipeLeaves(p.id);
     else if (f.kind === 'move') move(p.id, f.to);
-    else if (f.kind === 'vent') toggleVent(sill.id);
+    else if (f.kind === 'vent') { if (sill.id !== COOP_SILL) toggleVent(sill.id); }
     else if (f.kind === 'tray') drainTray(p.id);
     else if (f.kind === 'soil') freshSoil(p.id);
     else if (f.kind === 'drain') addDrain(p.id);

@@ -7,7 +7,9 @@ import { badLight, canCut, cramped, ctxFor, fmt, isSad, isLightSad, isThirstySad
 import { Eta } from './kit/Eta';
 import { SHOWOFF_MS } from '../game/constants';
 import { sp } from '../game/species';
-import { applyItem, checkRound, feed, itemFits, mist, now, openSheet, plantInPot, say, swap, takeCutting, toast, useStore, water } from '../game/store';
+import { applyItem, checkRound, feed, itemFits, mist, now, openSheet, plantInPot, say, swap, takeCutting, toast, useStore, viewGame, water } from '../game/store';
+import { COOP_SILL } from '../game/coop';
+import { coopWaterLine } from './tabs/CoopSill';
 import { canCut as canCutNow } from '../game/sim';
 import type { Plant } from '../game/types';
 import { PlantArt } from './art/PlantArt';
@@ -21,7 +23,7 @@ import { Emo, rich } from './kit/rich';
 const lastEnough: Record<string, number> = {};
 
 function bubbleFor(p: Plant, t: number, flash?: { text: string; until: number }) {
-  const g = useStore.getState().game;
+  const g = viewGame();
   const ctx = ctxFor(g, p, t);
   if (flash && flash.until > Date.now()) return { text: flash.text, cls: 'pop' };
   if (p.stage === 0 && p.rootStart) {
@@ -44,7 +46,7 @@ function bubbleFor(p: Plant, t: number, flash?: { text: string; until: number })
   if (bad === 'hot') return { text: isLightSad(p) ? 'Жарко на солнце 🥵' : 'Жарковато', cls: '' };
   if (bad === 'dark') return { text: isLightSad(p) ? 'Темновато… 🌥' : 'Темновато', cls: '' };
   if (cramped(p, t)) return { text: 'Тесно в горшке 🪴', cls: '' };
-  if (p.from && !p.showoffDone && t - (p.claimedAt ?? p.createdAt) >= SHOWOFF_MS) return { text: '📸 Покажи', cls: 'ready' };
+  if (p.from && p.sill !== COOP_SILL && !p.showoffDone && t - (p.claimedAt ?? p.createdAt) >= SHOWOFF_MS) return { text: '📸 Покажи', cls: 'ready' };
   // черенки готовы — показываем только с инструментом «Черенок» (иначе ножницы над каждым горшком)
   if (canCut(p, t) && useStore.getState().tool === 'cut') return { text: '✂️', cls: 'ready icon' };
   return null;
@@ -56,27 +58,27 @@ const wantsMist = (p: Plant, t: number) => sp(p.sp).mist === 'love' && !(p.mistU
 
 /** Подсветка: выбранный инструмент сейчас пригодится этому растению. */
 export function wantsTool(tool: string, p: Plant, t: number): boolean {
-  if (tool === 'use') { const st = useStore.getState(); return !!st.useItem && itemFits(st.game, st.useItem, p, t); }
+  if (tool === 'use') { const st = useStore.getState(); return !!st.useItem && itemFits(viewGame(st), st.useItem, p, t); }
   if (p.stage < 2) return false;
   if (tool === 'water') return p.moisture < 0.5;
   if (tool === 'mist') return wantsMist(p, t);
   if (tool === 'feed') return !(p.feedUntil && t < p.feedUntil) && p.stage < 4;
   if (tool === 'cut') return canCut(p, t);
-  if (tool === 'use') { const st = useStore.getState(); return !!st.useItem && itemFits(st.game, st.useItem, p, t); }
+  if (tool === 'use') { const st = useStore.getState(); return !!st.useItem && itemFits(viewGame(st), st.useItem, p, t); }
   return false;
 }
 
 /** Маленький таймер под горшком: сколько до следующей стадии и не ускорено ли растение. */
 function timerFor(p: Plant, t: number): { ms: number; speed: number } | null {
   if (p.stage < 2 || p.stage >= 4) return null;
-  const ctx = ctxFor(useStore.getState().game, p, t);
+  const ctx = ctxFor(viewGame(), p, t);
   const at = nextStageAt(p, t, ctx);
   if (!at) return null;
   return { ms: at - t, speed: timerSpeed(p, t, ctx) };
 }
 
 export function etaFor(p: Plant, t: number) {
-  const g = useStore.getState().game;
+  const g = viewGame();
   if (p.stage === 0) return p.rootStart ? 'черенок пускает корни' : 'полей меня 💧';
   if (p.stage === 1) return 'тапни, чтобы посадить';
   if (p.stage < 4) {
@@ -110,8 +112,8 @@ export function Slot({ plant: p, sill, slot }: { plant: Plant; sill: string; slo
   // пока открыто окно или всплывашка — растения молчат
   const covered = useStore((st) => !!st.sheet || st.popups.length > 0);
   const meter = useStore((st) => (st.game.owned.meter ?? 0) > 0);
-  const ri = p.stage >= 2 ? roundInfo(useStore.getState().game, t) : null;
-  const roundPending = !!ri && !ri.done && !(round?.key === ri.key && round.checked.includes(p.id));
+  const ri = p.stage >= 2 ? roundInfo(viewGame(), t) : null;
+  const roundPending = p.sill !== COOP_SILL && !!ri && !ri.done && !(round?.key === ri.key && round.checked.includes(p.id));
   const sad = isSad(p);
   const fresh = fx && Date.now() - fx.at < 1400;
   const age = ageMark(p, t);
@@ -177,7 +179,7 @@ export function Slot({ plant: p, sill, slot }: { plant: Plant; sill: string; slo
     const r = water(p.id, again);
     if (r === 'enough') lastEnough[p.id] = Date.now();
     else delete lastEnough[p.id];
-    if (r === 'enough' && !again && (useStore.getState().game.owned.meter ?? 0) <= 0) toast('Земля мокрая — вода уйдёт в поддон. Тапни ещё раз, если всё равно хочешь полить');
+    if (r === 'enough' && !again && (viewGame().owned.meter ?? 0) <= 0) toast('Земля мокрая — вода уйдёт в поддон. Тапни ещё раз, если всё равно хочешь полить');
   }
 
   return (
@@ -284,6 +286,7 @@ export function Slot({ plant: p, sill, slot }: { plant: Plant; sill: string; slo
           </div>
         )}
         {(() => { const tm = timerFor(p, t); return tm && <span className="timer-chip"><Emo e="⏱" size={10} /> <Eta ms={tm.ms} speed={tm.speed} compact /></span>; })()}
+        {p.sill === COOP_SILL && p.waterBy && <span className="coop-who">{rich(coopWaterLine(p, useStore.getState().game.name, t))}</span>}
       </div>
     </div>
   );
@@ -307,7 +310,8 @@ function FloatBubble({ anchor, text, cls, k }: { anchor: RefObject<HTMLDivElemen
       const scene = slot.closest('.scene')?.getBoundingClientRect() ?? { left: 0, right: window.innerWidth, top: 0, bottom: window.innerHeight };
       // горшок не виден (подоконник ужат или прокручен) — облачко не показываем
       const view = slot.closest('.scene-fit')?.getBoundingClientRect() ?? scene;
-      if (r.top < view.top - 4 || r.top + 30 > view.bottom) { setPos(null); return; }
+      const art = slot.querySelector('.art')?.getBoundingClientRect() ?? r;
+      if (r.top < view.top - 4 || r.top + 30 > view.bottom || art.top + art.height / 2 > view.bottom) { setPos(null); return; }
       const w = el.offsetWidth;
       const cx = r.left + r.width / 2;
       const x = Math.max(scene.left + 4, Math.min(scene.right - 4 - w, cx - w / 2));
