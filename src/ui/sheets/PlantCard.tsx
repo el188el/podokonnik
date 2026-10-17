@@ -292,6 +292,7 @@ export function PlantCard({ id }: { id: string }) {
         <p className="small"><b>Бесплатно:</b> попроси черенок у знакомых или на «Авито» в «Отдам даром». Как укоренить: {rich(s.free)}</p>
       </details>
 
+      {potted && <Btn onClick={() => openSheet({ kind: 'sell', plant: p.id })}><Emo e="🏷" /> Продать: соседям, друзьям или в магазин</Btn>}
       <button className={'linkish remove-link' + (sure ? ' warn' : '')} onClick={() => (sure ? removePlant(p.id) : setSure(true))}>
         {rich(sure ? 'Точно убрать? Нажми ещё раз' : 'Убрать с подоконника')}
       </button>

@@ -76,6 +76,7 @@ export function inboxLeaves(kind: string, p: Record<string, unknown>) {
     case 'tester': return 5000;
     case 'chat_water': case 'admin_gift': case 'contest_win': return num(p.leaves);
     case 'water_reward': return num(p.reward);
+    case 'swap_sold': return num(p.leaves);
     case 'purchase': { const pr = PRODUCT_BY_ID[String(p.product)]; return num(p.leaves) || pr?.leaves || 0; }
     default: return 0;
   }

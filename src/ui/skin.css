@@ -547,3 +547,16 @@ body:has(.skin) { background: var(--bg, #f5f2ec); }
 :root[data-theme='dark'] .skin .bag-cut.wilting { background: #3d2620; }
 :root .skin .cut-life { color: var(--muted); }
 :root .skin .cut-life.soon { color: #b5523b; font-weight: 600; }
+
+/* продажа */
+:root .skin .sell { display: grid; gap: 12px; }
+:root .skin .sell-head { display: flex; gap: 12px; align-items: center; }
+:root .skin .sell-head .mini { width: 64px; height: 80px; flex: none; }
+:root .skin .sell-head h2 { margin: 0; font-size: 20px; }
+:root .skin .sell-opt { display: grid; gap: 8px; padding: 12px; border-radius: 18px; background: var(--soft); }
+:root .skin .sell-opt h3 { margin: 0; font-size: 15px; font-weight: 600; display: flex; align-items: center; gap: 6px; }
+:root .skin .sell-opt .row-item { background: var(--card); }
+:root .skin .price-pick { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+:root .skin .price-inp { width: 90px; padding: 8px 10px; }
+:root .skin .friend-tag { font-style: normal; font-size: 11px; font-weight: 600; padding: 1px 6px; border-radius: 99px; background: #e3f0fb; color: #2f5fa8; margin-right: 4px; }
+:root .skin .swap.from-friend { box-shadow: inset 3px 0 0 #7fb2f0; }

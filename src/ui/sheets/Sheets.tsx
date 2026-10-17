@@ -1,10 +1,10 @@
 import { useState } from 'react';
 import { LIGHT_NAME, NEIGHBOR_FREE_DAYS, NOTES, WINDOWS } from '../../game/constants';
 import { approx, fmt, plural } from '../../game/sim';
-import { cuttingLeft, cuttingPrice } from '../../game/cuttings';
+import { cuttingLeft } from '../../game/cuttings';
 import { DIFFICULTY_LABEL, SPECIES, STARTERS, sp } from '../../game/species';
 import {
-  chooseWindow, closeSheet, giftCutting, now, openSheet, placeCutting, plantCutting, sellCutting, setTab, startNeighbor, stopNeighbor, useStore,
+  chooseWindow, closeSheet, giftCutting, now, openSheet, placeCutting, plantCutting, setTab, startNeighbor, stopNeighbor, useStore,
 } from '../../game/store';
 import type { WindowSide } from '../../game/types';
 import { formsOf, TIER_NAME, tierOfForm } from '../../game/products';
@@ -38,6 +38,7 @@ import { OrdersSheet } from './OrdersSheet';
 import { StarterSheet } from './StarterSheet';
 import { HowToSheet } from './HowToSheet';
 import { InventorySheet } from './InventorySheet';
+import { SellSheet } from './SellSheet';
 import { AchievementsSheet } from './AchievementsSheet';
 import { TodoSheet } from './TodoSheet';
 import { Emo, rich } from '../kit/rich';
@@ -78,6 +79,7 @@ export function Sheets() {
       {sheet?.kind === 'todo' && <TodoSheet />}
       {sheet?.kind === 'howto' && <HowToSheet />}
       {sheet?.kind === 'inventory' && <InventorySheet />}
+      {sheet?.kind === 'sell' && <SellSheet cutting={sheet.cutting} plant={sheet.plant} />}
       {sheet?.kind === 'achievements' && <AchievementsSheet />}
       {sheet?.kind === 'starter' && <StarterSheet />}
       </Safe>
@@ -197,7 +199,7 @@ function CuttingSheet({ id }: { id: string }) {
         </div>
       </div>
       <Btn kind="primary" onClick={() => { plantCutting(c!.id); closeSheet(); }}><Emo e="🫙" /> Поставить в воду у себя</Btn>
-      <Btn onClick={() => { if (sellCutting(c!.id)) closeSheet(); }}><Emo e="🌷" /> Сдать в цветочную лавку · +{cuttingPrice(c!)} <Emo e="🍃" /></Btn>
+      <Btn onClick={() => openSheet({ kind: 'sell', cutting: c!.id })}><Emo e="🏷" /> Продать: соседям, друзьям или в магазин</Btn>
       <h3><Emo e="🎁" /> Подарить другу</h3>
       <label className="lbl" htmlFor="from">От кого</label>
       <input id="from" className="inp" maxLength={24} placeholder="Твоё имя" value={name} onChange={(e) => setName(e.target.value)} />

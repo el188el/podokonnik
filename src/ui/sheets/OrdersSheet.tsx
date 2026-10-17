@@ -29,7 +29,7 @@ export function OrdersSheet() {
             </div>
             <div className="order-actions">
               <Btn small kind={can.ok ? 'gold' : 'soft'} disabled={!can.ok} onClick={() => fulfilOrder(o.id)}>
-                {rich(can.ok ? (orderGives(o) ? 'Отдать' : 'Показать') : orderNeed(o))}
+                {rich(can.ok ? (o.kind === 'buy' ? `Продать · ${o.reward} 🍃` : orderGives(o) ? 'Отдать' : 'Показать') : orderNeed(o))}
               </Btn>
               {!can.ok && <button className="linkish order-skip" onClick={() => declineOrder(o.id)}>Отказаться</button>}
             </div>

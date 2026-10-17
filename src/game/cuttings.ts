@@ -31,6 +31,12 @@ export function cuttingPrice(c: Cutting): number {
   return n;
 }
 
+/** Цена растения в цветочном магазине — дёшево: магазин берёт всё, но платит мало. */
+const STAGE_K = [1, 1, 1.5, 2.5, 4];
+export const plantPrice = (p: Pick<Cutting, 'sp' | 'form' | 'hue'> & { stage: number }) => Math.round(cuttingPrice({ id: '', at: 0, sp: p.sp, form: p.form, hue: p.hue }) * STAGE_K[p.stage]);
+/** Подсказка цены для барахолки: игроки платят заметно больше магазина. */
+export const marketPrice = (shop: number) => Math.max(10, Math.round((shop * 3) / 5) * 5);
+
 /** Компост: три обычных черенка → одна подкормка. Редкие в компост не идут. */
 export const COMPOST_N = 3;
 export const compostable = (list: Cutting[]) => list.filter((c) => !special(c)).sort((a, b) => a.at - b.at);

@@ -256,13 +256,13 @@ function Toolbar({ sill }: { sill: string }) {
   const tool = useStore((s) => s.tool);
   const g = useStore((s) => s.game);
   const [care, setCare] = useState(false);
+  const useItem = useStore((s) => s.useItem);
   const potted = g.plants.filter((p) => p.sill === sill && p.stage >= 2);
   if (!potted.length) return null;
   const cuts = potted.filter((p) => canCut(p, now())).length;
   const thirsty = potted.filter((p) => p.moisture < 0.5).length;
   const plus = isPlus(g);
   const careOn = tool === 'water' || tool === 'mist';
-  const useItem = useStore((s) => s.useItem);
   const usable = USABLE.reduce((n, id) => n + (g.owned[id] ?? 0), 0);
   const careIcon: IconName = tool === 'mist' ? 'mist' : 'water';
   // «Уход» — меню из трёх: полить, опрыскать или полить всех (Садовник+)

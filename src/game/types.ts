@@ -188,7 +188,7 @@ export interface WeeklyQuest {
   claimed: boolean;
 }
 
-export type OrderKind = 'cutting' | 'bloom' | 'adult' | 'healthy' | 'rare' | 'hue';
+export type OrderKind = 'cutting' | 'bloom' | 'adult' | 'healthy' | 'rare' | 'hue' | 'buy';
 
 export interface Order {
   id: string;

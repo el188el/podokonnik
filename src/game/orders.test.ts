@@ -111,3 +111,23 @@ describe('доска без повторов', () => {
     expect(g.orders!.list.filter((x) => x.kind === 'bloom' && x.sp === 'spathiphyllum').length).toBe(1);
   });
 });
+
+describe('соседи покупают растения', () => {
+  it('заказ «куплю» выполним только со взрослым растением этого вида и платит больше черенка', () => {
+    const g = game();
+    const buy = { id: 'b', who: 'ashot', kind: 'buy' as const, sp: 'geranium', reward: 200, xp: 30, at: T0, until: T0 + 24 * H };
+    expect(canFulfil(g, buy)).toMatchObject({ ok: true, plant: g.plants[0].id });
+    g.plants[0].stage = 3;
+    expect(canFulfil(g, buy).ok).toBe(false);
+    let seed = 3;
+    const rnd = () => ((seed = (seed * 16807) % 2147483647) / 2147483647);
+    const g2 = game(); g2.level = 8;
+    let sawBuy = false;
+    for (let i = 0; i < 40 && !sawBuy; i++) {
+      g2.orders = undefined;
+      rollOrders(g2, T0 + i * 24 * H, rnd);
+      sawBuy = !!(g2 as { orders?: { list: { kind: string; sp: string }[] } }).orders?.list.some((o) => o.kind === 'buy' && o.sp === 'geranium');
+    }
+    expect(sawBuy).toBe(true);
+  });
+});

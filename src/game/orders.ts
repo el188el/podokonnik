@@ -43,6 +43,7 @@ export function orderText(o: Order): string {
     case 'healthy': return `Мой ${s.name.toLowerCase()} хиреет… Покажи своё здоровое — как ты ухаживаешь?`;
     case 'rare': return `Ищу редкость — черенок «${FORM_BY_ID[o.form!]?.name ?? s.name}». Выручишь?`;
     case 'hue': return `Мечтаю увидеть, как цветёт ${s.name.toLowerCase()} цвета «${hueOf(o.sp, o.hue)?.name ?? o.hue}»!`;
+    case 'buy': return `Куплю у тебя взрослое растение — ${s.name.toLowerCase()}, ${why}. Хорошо заплачу!`;
   }
 }
 
@@ -51,6 +52,7 @@ export function orderText(o: Order): string {
  * Цветение — только у тех, что уже взрослые и цветут в этот сезон, иначе просьбу не выполнить.
  */
 function poolFor(g: GameState, kind: OrderKind, t: number): string[] {
+  if (kind === 'buy') return [...new Set(g.plants.filter((p) => p.stage === 4).map((p) => p.sp))];
   if (kind === 'bloom') {
     const m = new Date(t).getMonth() + 1;
     const adults = new Set(g.plants.filter((p) => p.stage === 4).map((p) => p.sp));
@@ -70,11 +72,11 @@ function clash(list: Order[], kind: OrderKind, spId: string, form?: string, hue?
 /** Набор заказов по уровню: чем выше уровень, тем интереснее и сложнее просьбы. */
 function kindsFor(level: number): [OrderKind, number][] {
   if (level <= 2) return [['cutting', 5], ['adult', 3], ['healthy', 2]];
-  if (level <= 6) return [['cutting', 4], ['bloom', 3], ['adult', 2], ['healthy', 1]];
-  return [['cutting', 4], ['bloom', 3], ['adult', 1], ['healthy', 1], ['rare', 2], ['hue', 2]];
+  if (level <= 6) return [['cutting', 4], ['bloom', 3], ['adult', 2], ['healthy', 1], ['buy', 2]];
+  return [['cutting', 4], ['bloom', 3], ['adult', 1], ['healthy', 1], ['rare', 2], ['hue', 2], ['buy', 2]];
 }
 
-const MULT: Record<OrderKind, number> = { cutting: 1, bloom: 1.2, adult: 0.9, healthy: 0.7, rare: 2.5, hue: 2.2 };
+const MULT: Record<OrderKind, number> = { cutting: 1, bloom: 1.2, adult: 0.9, healthy: 0.7, rare: 2.5, hue: 2.2, buy: 2.6 };
 
 /** Придумать один заказ под игрока (или null, если нечего просить). */
 function makeOrder(g: GameState, t: number, rnd: () => number, taken: Order[]): Order | null {
@@ -143,8 +145,12 @@ export function rollOrders(g: GameState, t: number, rnd = Math.random): boolean 
 }
 
 /** Можно ли выполнить заказ прямо сейчас. Для черенков — id подходящих черенков из запаса. */
-export function canFulfil(g: GameState, o: Order): { ok: boolean; cutting?: string; cuttings?: string[] } {
+export function canFulfil(g: GameState, o: Order, plantId?: string): { ok: boolean; cutting?: string; cuttings?: string[]; plant?: string } {
   switch (o.kind) {
+    case 'buy': {
+      const p = g.plants.find((x) => (plantId ? x.id === plantId : true) && x.sp === o.sp && x.stage === 4);
+      return { ok: !!p, plant: p?.id };
+    }
     case 'cutting': {
       const list = g.cuttings.filter((x) => x.sp === o.sp && !x.form && !x.seed).slice(0, o.n ?? 1).map((x) => x.id);
       return { ok: list.length >= (o.n ?? 1), cutting: list[0], cuttings: list };
@@ -169,6 +175,7 @@ export function orderNeed(o: Order): string {
     case 'hue': return 'нет цветущей такого цвета';
     case 'adult': return 'ещё не взрослое';
     case 'healthy': return 'нет здорового';
+    case 'buy': return 'нет взрослого';
   }
 }
 

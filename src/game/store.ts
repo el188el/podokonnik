@@ -38,7 +38,7 @@ import { BREED_COOLDOWN, canBreed, crossHue, hueOf } from './breeding';
 import { FIRST_CHEST, FIRST_STEPS, FIRST_YOUNG_H, ROUND_REWARD, STARTER, dailyToday, firstChest, roundInfo, starterDone, starterLeft } from './onboarding';
 import { childLine } from './lineage';
 import { climateOf } from './climate';
-import { COMPOST_N, compostable, cuttingLeft, cuttingLife, cuttingPrice } from './cuttings';
+import { COMPOST_N, compostable, cuttingLeft, cuttingLife, cuttingPrice, plantPrice } from './cuttings';
 import { loadCloud, loadLocal, newPlant, newState, pickNewer, saveCloud, saveLocal, switchLocal, upgrade } from './storage';
 import type { Cutting, EventProgress, GameState, PendingGift, Plant, QuestKind, Twin, WeeklyKind, Zone } from './types';
 
@@ -107,6 +107,7 @@ export type Sheet =
   | { kind: 'orders' }
   | { kind: 'howto' }
   | { kind: 'inventory' }
+  | { kind: 'sell'; cutting?: string; plant?: string }
   | { kind: 'achievements' }
   | { kind: 'todo' }
   | null;
@@ -596,11 +597,18 @@ function applyInbox(items: api.InboxItem[]) {
         if (sp(spId).id === spId) {
           const form = it.payload.form ? String(it.payload.form) : undefined;
           const hue = it.payload.hue ? String(it.payload.hue) : undefined;
-          g.cuttings.push({ id: makeCode(8), sp: spId, at: Date.now(), ...(form ? { form } : {}), ...(hue ? { hue } : {}) });
-          discover(g, spId);
-          if (it.kind === 'swap_return') toast(`Черенок ${sp(spId).gen} вернулся с барахолки`);
-          else gifted(g, 'Черенок по обмену!', [form ? RW.form(form) : RW.cutting(spId, hue)], '🔄', `От: ${String(it.payload.from ?? 'Садовник')}`);
+          const plant = it.payload.plant && typeof it.payload.plant === 'object' ? (it.payload.plant as api.SalePlant) : null;
+          const placed = placeSalePlant(g, { sp: spId, form, hue, plant }, Date.now());
+          const what = plant ? (placed ? 'Растение' : 'Растение (нет места — пришло черенком)') : 'Черенок';
+          const paid = Number(it.payload.paid) || 0;
+          if (it.kind === 'swap_return') toast(`${plant ? 'Растение' : 'Черенок'} ${sp(spId).gen} вернулся с барахолки${plant && !placed ? ' — места нет, оно в стакане черенком' : ''}`);
+          else gifted(g, paid ? `${what} куплено!` : 'Черенок по обмену!', [form ? RW.form(form) : RW.cutting(spId, hue)], paid ? '🌷' : '🔄', `От: ${String(it.payload.from ?? 'Садовник')}${paid ? ` · ${paid} листиков` : ''}`);
         }
+      } else if (it.kind === 'swap_sold') {
+        const n = Number(it.payload.leaves) || 0;
+        g.leaves += n;
+        g.stats.sold = (g.stats.sold ?? 0) + n;
+        gifted(g, `${it.payload.plant ? 'Растение' : 'Черенок'} продано!`, [RW.leaves(n)], '🌷', `${String(it.payload.from ?? 'Садовник')} купил(а) ${it.payload.plant ? 'растение' : 'черенок'} ${sp(String(it.payload.sp)).gen}`);
       } else if (it.kind === 'plus_gift') {
         const code = String(it.payload.code ?? '');
         if (code && !(g.plusGifts ?? []).some((x) => x.code === code)) g.plusGifts = [...(g.plusGifts ?? []), { code, at: Date.now() }];
@@ -2443,14 +2451,22 @@ export function declineOrder(id: string) {
     toast(`${neighborOf(o.who).name} не обидится 🙂 Новая записка — через час`);
   });
 }
-export function fulfilOrder(id: string) {
+export function fulfilOrder(id: string, plantId?: string) {
   mut((g, t) => {
     const board = g.orders;
     const o = board?.list.find((x) => x.id === id);
     if (!board || !o) return;
-    const can = canFulfil(g, o);
+    const can = canFulfil(g, o, plantId);
     if (!can.ok) { toast(`Пока не выйдет: ${orderNeed(o)} — ${sp(o.sp).name.toLowerCase()}`); return; }
     if (can.cuttings?.length) g.cuttings = g.cuttings.filter((c) => !can.cuttings!.includes(c.id));
+    if (o.kind === 'buy' && can.plant) {
+      // соседу уходит растение, а горшок остаётся у тебя
+      const p = g.plants.find((x) => x.id === can.plant)!;
+      const sz = potSizeOf(p);
+      g.owned[POT_SIZE_ITEM[sz]] = potsOf(g, sz) + 1;
+      g.plants = g.plants.filter((x) => x.id !== can.plant);
+      if (get().sheet?.kind === 'card') set({ sheet: null });
+    }
     board.list = board.list.filter((x) => x.id !== id);
     board.done += 1;
     g.leaves += o.reward;
@@ -2619,6 +2635,98 @@ export function sellCutting(id: string) {
     toast(`🌷 Лавка купила черенок ${sp(c.sp).gen}: +${n} 🍃`);
     return n;
   });
+}
+
+/** Сдать растение в цветочный магазин — быстро, но дёшево. Горшок остаётся у тебя. */
+export function sellPlantToShop(plantId: string) {
+  return mut((g) => {
+    const p = findPlant(g, plantId);
+    if (!p) return 0;
+    const n = plantPrice(p);
+    if (p.stage >= 2) { const sz = potSizeOf(p); g.owned[POT_SIZE_ITEM[sz]] = potsOf(g, sz) + 1; }
+    g.plants = g.plants.filter((x) => x.id !== plantId);
+    g.leaves += n;
+    g.stats.sold = (g.stats.sold ?? 0) + n;
+    track('plant_sell', { sp: p.sp, stage: p.stage });
+    haptic('success');
+    toast(`🌷 Цветочный магазин купил ${sp(p.sp).acc}: +${n} 🍃`);
+    return n;
+  });
+}
+
+/** Растение, пришедшее с барахолки (купили или вернулось), — на свободное место; нет места — черенком. */
+function placeSalePlant(g: GameState, x: { sp: string; form?: string; hue?: string; plant?: api.SalePlant | null }, t: number): boolean {
+  const s = sp(x.sp);
+  if (s.id !== x.sp) return false;
+  const place = x.plant ? anyFreeSlot(g, x.sp, t) : null;
+  if (!x.plant || !place) {
+    g.cuttings.push({ id: makeCode(8), sp: x.sp, at: t, ...(x.form ? { form: x.form } : {}), ...(x.hue ? { hue: x.hue } : {}) });
+    discover(g, x.sp);
+    return false;
+  }
+  const [a, b] = stageMarks(x.sp);
+  const stage = Math.min(4, Math.max(2, x.plant.stage)) as Plant['stage'];
+  const p = newPlant({ sp: x.sp, sill: place.sill, slot: place.slot, zone: zoneOfSlot(place.slot), stage, growth: stage === 4 ? b : stage === 3 ? a : 0, moisture: 0.8, potSize: x.plant.potSize, pot: x.plant.pot, ...(x.plant.shape ? { shape: x.plant.shape } : {}), ...(x.form ? { form: x.form } : {}), ...(x.hue ? { hue: x.hue } : {}), plantedAt: t, ...(stage === 4 ? { adultAt: t } : {}) }, t);
+  g.plants.push(p);
+  collectForm(g, x.form);
+  collectHue(g, x.sp, x.hue);
+  discover(g, x.sp);
+  return true;
+}
+
+/** Выставить черенок или растение на продажу за листики (всем или только друзьям). */
+export async function listForSale(o: { cutting?: string; plant?: string; price: number; friendsOnly: boolean }) {
+  const g = get().game;
+  let back: (() => void) | null = null;
+  let body: Parameters<typeof api.swapCreate>[0] | null = null;
+  if (o.cutting) {
+    const c = takeCuttingOut(o.cutting);
+    if (!c) return false;
+    back = () => putCuttingBack(c);
+    body = { ...refOf(c), wants: [], price: o.price, friendsOnly: o.friendsOnly };
+  } else if (o.plant) {
+    const p = g.plants.find((x) => x.id === o.plant);
+    if (!p || p.stage < 2) return false;
+    const copy = clone(p);
+    mut((gg) => { gg.plants = gg.plants.filter((x) => x.id !== p.id); });
+    back = () => mut((gg) => { if (!gg.plants.some((x) => x.id === copy.id)) gg.plants.push(copy); });
+    body = { sp: p.sp, ...(p.form ? { form: p.form } : {}), ...(p.hue ? { hue: p.hue } : {}), wants: [], price: o.price, friendsOnly: o.friendsOnly, plant: { stage: p.stage, potSize: potSizeOf(p), pot: p.pot, ...(p.shape ? { shape: p.shape } : {}) } };
+  }
+  if (!body || !back) return false;
+  try {
+    await api.swapCreate(body);
+    track('sale_list', { sp: body.sp, plant: !!body.plant, friends: o.friendsOnly });
+    toast(o.friendsOnly ? '🤝 Выставлено для друзей — когда купят, листики придут тебе' : '🏷 Выставлено на барахолку — когда купят, листики придут тебе');
+    pushNow();
+    return true;
+  } catch (e) {
+    back();
+    toast(String((e as Error).message) === 'too_many' ? 'Слишком много объявлений — сними какое-нибудь' : 'Не получилось выставить — проверь интернет');
+    return false;
+  }
+}
+
+/** Купить с барахолки за листики. */
+export async function buySwap(offer: api.SwapOffer) {
+  const g = get().game;
+  const price = offer.price ?? 0;
+  if (!price) return false;
+  if (g.leaves < price) { toast('Не хватает листиков 🍃'); return false; }
+  if (offer.plant && !anyFreeSlot(g, offer.sp)) { toast('Нет свободного места на подоконниках — освободи место для растения'); return false; }
+  try {
+    const r = await api.swapBuy(offer.id);
+    if (r.status === 'poor') { toast('Не хватает листиков 🍃'); return false; }
+    if (r.status !== 'ok') { toast('Уже купили — выбери другое'); return false; }
+    mut((gg) => { gg.leaves = Math.max(0, gg.leaves - price); });
+    track('sale_buy', { sp: offer.sp, plant: !!offer.plant });
+    haptic('success');
+    toast(offer.plant ? '🌷 Куплено! Растение уже несут — встанет на свободное место' : '🌷 Куплено! Черенок уже в пути');
+    setTimeout(() => pushNow(), 600);
+    return true;
+  } catch {
+    toast('Не получилось купить — проверь интернет');
+    return false;
+  }
 }
 
 /** Три обычных черенка — в компост, получится подкормка. */

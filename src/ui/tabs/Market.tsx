@@ -4,7 +4,8 @@ import { useCallback, useEffect, useState } from 'react';
 import { hueOf } from '../../game/breeding';
 import { FORM_BY_ID } from '../../game/products';
 import { SPECIES, sp } from '../../game/species';
-import { cancelSwap, listSwap, takeSwap, useStore } from '../../game/store';
+import { buySwap, cancelSwap, listSwap, takeSwap, useStore } from '../../game/store';
+import { STAGE_NAME } from '../../game/constants';
 import type { Cutting } from '../../game/types';
 import * as api from '../../net/api';
 import { PlantArt } from '../art/PlantArt';
@@ -29,14 +30,15 @@ export function Market() {
   useEffect(() => { load(); const t = setInterval(load, 45e3); return () => clearInterval(t); }, [load]);
 
   const fits = (o: api.SwapOffer) => g.cuttings.filter((c) => !o.wants.length || o.wants.includes(c.sp));
-  const market = (data?.market ?? []).filter((o) => !onlyMine || fits(o).length > 0);
-  const open = (data?.mine ?? []).filter((m) => !m.taken);
+  // сначала — от друзей
+  const market = (data?.market ?? []).filter((o) => !onlyMine || o.price != null || fits(o).length > 0).sort((a, b) => Number(!!b.friend) - Number(!!a.friend));
+  const open = (data?.mine ?? []).filter((m) => !m.taken && m.price == null);
 
   return (
     <div>
       <section className="panel">
-        <h3 className="ih3"><Icon name="market" size={20} tone={TONE.share} />Барахолка черенков</h3>
-        <p className="muted small">Меняйся черенками с другими садоводами: выставь свой и укажи, что хочешь взамен. Так быстрее собрать коллекцию и редкие цвета.</p>
+        <h3 className="ih3"><Icon name="market" size={20} tone={TONE.share} />Барахолка</h3>
+        <p className="muted small">Меняйся черенками или покупай у других садоводов черенки и взрослые растения за листики. Чтобы продать своё — кнопка «Продать» в карточке растения или черенка.</p>
         {listing ? (
           <ListForm cuttings={g.cuttings} onDone={() => { setListing(false); setTimeout(load, 800); }} />
         ) : (
@@ -51,10 +53,13 @@ export function Market() {
           <h3>Мои объявления</h3>
           {data!.mine.map((m) => (
             <div key={m.id} className="swap mine">
-              <PlantArt sp={m.sp} form={m.form ?? undefined} hue={m.hue ?? undefined} stage={4} seed={"m" + m.id} blooming noPot className="mini" />
+              <PlantArt sp={m.sp} form={m.form ?? undefined} hue={m.hue ?? undefined} stage={m.plant ? (m.plant.stage as 2) : 4} seed={"m" + m.id} blooming noPot={!m.plant} pot={m.plant?.pot} size={m.plant?.potSize} className="mini" />
               <div className="swap-body">
-                <b>{rich(label(m))}</b>
-                {m.taken ? (
+                <b>{rich(label(m))}{m.plant ? ` · ${STAGE_NAME[m.plant.stage]}` : ''}</b>
+                {m.price != null ? (
+                  m.taken ? <span className="small ok-text"><Emo e="✓" /> Продано за {m.price} <Emo e="🍃" /></span>
+                    : <span className="muted small">Продаётся за {m.price} <Emo e="🍃" />{m.friendsOnly ? ' · только друзьям' : ''}</span>
+                ) : m.taken ? (
                   <span className="small ok-text"><Emo e="✓" /> Обменяли на {rich(m.given ? label(m.given) : 'черенок')}</span>
                 ) : (
                   <span className="muted small">Ждёт обмена · хочу: {rich(m.wants.length ? m.wants.map((w) => sp(w).name).join(', ') : 'любой')}</span>
@@ -76,6 +81,19 @@ export function Market() {
         {data && market.length === 0 && <p className="muted">Пока пусто. Выстави свой черенок первым — и приглашай друзей!</p>}
         {market.map((o) => {
           const mine = fits(o);
+          if (o.price != null) {
+            return (
+              <div key={o.id} className={'swap for-sale' + (o.friend ? ' from-friend' : '')}>
+                <PlantArt sp={o.sp} form={o.form ?? undefined} hue={o.hue ?? undefined} stage={o.plant ? (o.plant.stage as 2) : 0} seed={'s' + o.id} blooming noPot={!o.plant} pot={o.plant?.pot} size={o.plant?.potSize} className="mini" />
+                <div className="swap-body">
+                  <b>{rich(label(o))}</b>
+                  <span className="small">{rich(o.plant ? `растение · ${STAGE_NAME[o.plant.stage]}` : 'черенок')}</span>
+                  <span className="muted small">{o.friend && <i className="friend-tag">друг</i>} от {rich(o.owner)} · <Icon name="star" size={12} className="inl" /> {o.level}</span>
+                </div>
+                <Btn small kind="gold" disabled={g.leaves < o.price} onClick={async () => { if (await buySwap(o)) setTimeout(load, 800); }}>Купить · {o.price} <Emo e="🍃" /></Btn>
+              </div>
+            );
+          }
           return (
             <div key={o.id} className="swap">
               <PlantArt sp={o.sp} form={o.form ?? undefined} hue={o.hue ?? undefined} stage={4} seed={'s' + o.id} blooming noPot className="mini" />

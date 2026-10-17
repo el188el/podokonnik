@@ -268,7 +268,12 @@ export interface SwapOffer {
   at: number;
   owner: string;
   level: number;
+  price?: number | null;     // продажа за листики (нет — обмен)
+  plant?: SalePlant | null;  // растение в горшке
+  friendsOnly?: boolean;
+  friend?: boolean;          // продаёт друг
 }
+export interface SalePlant { stage: number; potSize: number; pot: string; shape?: string }
 export interface MySwap {
   id: number;
   sp: string;
@@ -277,12 +282,16 @@ export interface MySwap {
   wants: string[];
   at: number;
   taken: boolean;
-  given?: { sp: string; form?: string; hue?: string } | null;
+  given?: { sp: string; form?: string; hue?: string; paid?: number } | null;
+  price?: number | null;
+  plant?: SalePlant | null;
+  friendsOnly?: boolean;
 }
 type CuttingRef = { sp: string; form?: string; hue?: string };
 
 export const swaps = () => call<{ market: SwapOffer[]; mine: MySwap[] }>('/swaps', {});
-export const swapCreate = (c: CuttingRef & { wants: string[]; note?: string }) => call<{ id: number }>('/swaps/create', c);
+export const swapCreate = (c: CuttingRef & { wants: string[]; note?: string; price?: number; plant?: SalePlant; friendsOnly?: boolean }) => call<{ id: number }>('/swaps/create', c);
+export const swapBuy = (id: number) => call<{ status: 'ok' | 'gone' | 'poor'; price?: number }>('/swaps/buy', { id });
 export const swapTake = (id: number, give: CuttingRef) => call<{ status: 'ok' | 'gone' }>('/swaps/take', { id, give });
 export const swapCancel = (id: number) => call<{ status: 'ok' | 'gone' }>('/swaps/cancel', { id });
 
