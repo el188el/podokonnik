@@ -9,6 +9,8 @@ export interface PassReward {
   boost?: number;  // стимуляторы роста
   item?: string;   // id товара магазина (декор, горшок)
   form?: string;   // редкая форма — черенок в запас
+  hue?: { sp: string; hue: string }; // черенок сезонного цвета цветков — только из пропуска
+  title?: string;  // звание сезона в профиле
 }
 
 export type EventTheme = 'autumn' | 'winter' | 'spring' | 'summer';
@@ -33,15 +35,17 @@ export const PASS_LEVELS = 30;
 const TIERS = Array.from({ length: PASS_LEVELS }, (_, i) => i).reduce<number[]>((acc, i) => [...acc, (acc[i - 1] ?? 0) + 10 + 3 * i], []);
 
 /**
- * Награды сезона: на бесплатной ветке — декор сезона на 5, 15 и 25 уровнях,
- * на платной — дизайн горшка на 2-м, декор на 10, 20 и 28-м и редкая форма на 30-м.
- * Между ними — листики, подкормки, горшки и стимуляторы роста.
+ * Награды сезона. Бесплатная ветка: декор сезона на 5, 15 и 25 уровнях, между ними —
+ * листики, подкормки, горшки и стимуляторы. Платная — только эксклюзив, которого больше
+ * нигде не получить: два горшка, обои, два сезонных цвета цветков, декор, звание
+ * и редкая форма на 30-м уровне. На остальных уровнях платной ветки наград нет.
  */
-function pass(x: { free: string[]; prem: string[]; pot: string; form: string }): Pick<GameEvent, 'tiers' | 'free' | 'premium'> {
+export const PREM_AT = { pot: 1, hue1: 4, pot2: 8, wp: 12, hue2: 16, decor: 20, title: 24, form: 29 } as const;
+interface PassSpec { free: string[]; prem: string; pot: string; pot2: string; wp: string; hues: [string, string][]; title: string; form: string }
+function pass(x: PassSpec): Pick<GameEvent, 'tiers' | 'free' | 'premium'> {
   const free: PassReward[] = [];
   const premium: PassReward[] = [];
   const freeAt = [4, 14, 24];
-  const premAt = [9, 19, 27];
   for (let i = 0; i < PASS_LEVELS; i++) {
     const fi = freeAt.indexOf(i);
     if (fi >= 0 && x.free[fi]) free.push({ item: x.free[fi] });
@@ -51,17 +55,23 @@ function pass(x: { free: string[]; prem: string[]; pot: string; form: string }):
     else if (i % 5 === 3) free.push({ boost: 1 });
     else free.push({ leaves: 15 + 5 * i });
 
-    const pi = premAt.indexOf(i);
-    if (i === 1) premium.push({ item: x.pot });
-    else if (pi >= 0 && x.prem[pi]) premium.push({ item: x.prem[pi] });
-    else if (i === PASS_LEVELS - 1) premium.push({ form: x.form });
-    else if (i % 4 === 1) premium.push({ feed: 3 });
-    else if (i % 4 === 2) premium.push({ pots: 3 });
-    else if (i % 4 === 3) premium.push({ boost: 2 });
-    else premium.push({ leaves: 40 + 10 * i });
+    premium.push(
+      i === PREM_AT.pot ? { item: x.pot }
+      : i === PREM_AT.hue1 ? { hue: { sp: x.hues[0][0], hue: x.hues[0][1] } }
+      : i === PREM_AT.pot2 ? { item: x.pot2 }
+      : i === PREM_AT.wp ? { item: x.wp }
+      : i === PREM_AT.hue2 ? { hue: { sp: x.hues[1][0], hue: x.hues[1][1] } }
+      : i === PREM_AT.decor ? { item: x.prem }
+      : i === PREM_AT.title ? { title: x.title }
+      : i === PREM_AT.form ? { form: x.form }
+      : {},
+    );
   }
   return { tiers: TIERS, free, premium };
 }
+
+/** Пустая ячейка платной ветки — без награды. */
+export const isEmptyReward = (r: PassReward | undefined) => !r || Object.keys(r).length === 0;
 
 /** Сезоны идут круглый год, один за другим. */
 export const EVENTS: GameEvent[] = [
@@ -69,43 +79,43 @@ export const EVENTS: GameEvent[] = [
     id: 'cozy', title: 'Зимний уют', token: '🧣', tokenName: 'шарфиков', theme: 'winter',
     start: [1, 15], end: [2, 29],
     desc: 'Морозы за окном, батареи греют, а растениям не хватает света и влаги. Береги подоконник — и вяжи шарфики.',
-    ...pass({ free: ['mittens'], prem: ['cocoa'], pot: 'pot_cozy', form: 'frost' }),
+    ...pass({ free: ['mittens'], prem: 'cocoa', pot: 'pot_cozy', pot2: 'pot_mitten', wp: 'wp_knit', hues: [['violet', 'snowflake'], ['cyclamen', 'mulled']], title: 'Хранитель уюта', form: 'frost' }),
   },
   {
     id: 'spring', title: 'Весеннее пробуждение', token: '🌷', tokenName: 'тюльпанов', theme: 'spring',
     start: [3, 1], end: [4, 15],
     desc: 'Солнца становится больше, растения просыпаются. Самое время пересаживать и дарить черенки!',
-    ...pass({ free: ['tulips', 'birdhouse'], prem: ['watering_can'], pot: 'pot_pastel', form: 'lemon' }),
+    ...pass({ free: ['tulips', 'birdhouse'], prem: 'watering_can', pot: 'pot_pastel', pot2: 'pot_tulip', wp: 'wp_bloom', hues: [['violet', 'tulip'], ['begonia', 'sakura']], title: 'Вестник весны', form: 'lemon' }),
   },
   {
     id: 'dacha', title: 'Майские на даче', token: '🍓', tokenName: 'ягодок', theme: 'spring',
     start: [4, 16], end: [5, 31],
     desc: 'Рассада на каждом подоконнике, впереди дача и шашлыки. Расти, черенкуй и делись с соседями.',
-    ...pass({ free: ['seedlings'], prem: ['strawberry'], pot: 'pot_berry', form: 'berry' }),
+    ...pass({ free: ['seedlings'], prem: 'strawberry', pot: 'pot_berry', pot2: 'pot_garden', wp: 'wp_veranda', hues: [['geranium', 'wildberry'], ['cactus', 'mint']], title: 'Дачник со стажем', form: 'berry' }),
   },
   {
     id: 'summer', title: 'Лето на подоконнике', token: '☀️', tokenName: 'солнышек', theme: 'summer',
     start: [6, 1], end: [7, 31],
     desc: 'Жара и длинные дни: поливать чаще, притенять нежных. Лови солнышки!',
-    ...pass({ free: ['lemonade'], prem: ['fan'], pot: 'pot_sun', form: 'sunny' }),
+    ...pass({ free: ['lemonade'], prem: 'watermelon', pot: 'pot_sun', pot2: 'pot_sea', wp: 'wp_sea', hues: [['hibiscus', 'lagoon'], ['kalanchoe', 'sunset']], title: 'Летний садовод', form: 'sunny' }),
   },
   {
     id: 'apples', title: 'Яблочный спас', token: '🍎', tokenName: 'яблочек', theme: 'summer',
     start: [8, 1], end: [9, 30],
     desc: 'Конец лета: варенье, яблоки и последние подкормки сезона. Готовь подоконник к осени.',
-    ...pass({ free: ['apples'], prem: ['jam'], pot: 'pot_apple', form: 'applebloom' }),
+    ...pass({ free: ['apples'], prem: 'jam', pot: 'pot_apple', pot2: 'pot_honey', wp: 'wp_orchard', hues: [['rose', 'appleblossom'], ['azalea', 'honey']], title: 'Яблочный мастер', form: 'applebloom' }),
   },
   {
     id: 'autumn', title: 'Золотая осень', token: '🍂', tokenName: 'кленовых листьев', theme: 'autumn',
     start: [10, 1], end: [11, 30],
     desc: 'За окном листопад, а на подоконнике — уют. Собирай кленовые листья за заботу о растениях и открывай осенние награды.',
-    ...pass({ free: ['plaid', 'pumpkin'], prem: ['lantern'], pot: 'pot_autumn', form: 'sunset' }),
+    ...pass({ free: ['plaid', 'pumpkin'], prem: 'lantern', pot: 'pot_autumn', pot2: 'pot_maple', wp: 'wp_leaffall', hues: [['violet', 'maple'], ['rose', 'amber']], title: 'Золотая осень', form: 'sunset' }),
   },
   {
     id: 'newyear', title: 'Новогодний подоконник', token: '❄️', tokenName: 'снежинок', theme: 'winter',
     start: [12, 1], end: [1, 14],
     desc: 'Снег, гирлянды и мандарины. Декабрист готовится цвести, а ты собираешь снежинки за заботу и подарки друзьям.',
-    ...pass({ free: ['garland', 'tangerines'], prem: ['tree'], pot: 'pot_snow', form: 'snowwhite' }),
+    ...pass({ free: ['garland', 'tangerines'], prem: 'tree', pot: 'pot_snow', pot2: 'pot_gift', wp: 'wp_frost', hues: [['cyclamen', 'tangerine'], ['azalea', 'frost']], title: 'Дед Мороз подоконника', form: 'snowwhite' }),
   },
 ];
 

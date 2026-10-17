@@ -331,6 +331,8 @@ body:has(.skin) { background: var(--bg, #f5f2ec); }
 :root .skin .bp-rw { position: relative; border: 0; border-radius: 16px; background: var(--paper); box-shadow: var(--sh1); min-height: 66px; padding: 8px 6px 7px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; font: inherit; color: var(--ink); }
 :root .skin .bp-rw.prem { background: linear-gradient(160deg, #fffaf0, #fff0cc); }
 :root[data-theme='dark'] .skin .bp-rw.prem { background: linear-gradient(160deg, #2e2719, #3a2f17); }
+:root .skin .bp-rw.prem.none { background: none; box-shadow: none; border: 0; }
+:root .skin .bp-rw.prem.none::after { content: ''; width: 5px; height: 5px; border-radius: 50%; background: var(--line); }
 :root .skin .bp-rw:disabled { opacity: 1; }
 :root .skin .bp-rw.locked > .rw-art, :root .skin .bp-rw.locked > .rw-t { opacity: 0.55; }
 :root .skin .bp-rw.got > .rw-art, :root .skin .bp-rw.got > .rw-t { opacity: 0.45; }
@@ -497,3 +499,11 @@ body:has(.skin) { background: var(--bg, #f5f2ec); }
 :root .skin .bag-cut { display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 6px 4px; border: 0; border-radius: 16px; background: var(--soft); font: inherit; color: inherit; cursor: pointer; }
 :root .skin .bag-cut svg { width: 44px; height: 62px; }
 :root .skin .bag-cut small { font-size: 11px; text-align: center; line-height: 1.2; }
+
+/* звания сезонов */
+:root .skin .titles { display: grid; gap: 6px; margin-top: 10px; }
+:root .skin .titles > div { display: flex; flex-wrap: wrap; gap: 6px; }
+:root .skin .title-chip { display: inline-flex; align-items: center; gap: 4px; padding: 4px 10px; border-radius: 99px; border: 1.5px solid var(--line); background: var(--paper); font: inherit; font-size: 13px; color: var(--ink); cursor: pointer; }
+:root .skin .title-chip.on { border-color: #e8a325; background: #fff4d6; }
+:root[data-theme='dark'] .skin .title-chip.on { background: #3a2f17; }
+:root .skin .title-chip .emo { width: 14px; height: 14px; }

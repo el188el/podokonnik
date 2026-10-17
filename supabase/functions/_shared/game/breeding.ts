@@ -8,6 +8,7 @@ export interface Hue {
   name: string;
   color: string;
   rare?: boolean;
+  event?: boolean; // сезонный цвет — только из платного пропуска, скрещиванием не вывести
 }
 
 /** Палитры цветов. Первый цвет — исходный цвет вида. */
@@ -86,6 +87,33 @@ export const PALETTES: Record<string, Hue[]> = {
   ],
 };
 
+/** Сезонные цвета из платного пропуска: дописываются в палитры видов. */
+const EVENT_HUES: Record<string, Hue[]> = {
+  violet: [
+    { id: 'snowflake', name: '«Снежинка»', color: '#e3ecff', event: true },
+    { id: 'tulip', name: '«Тюльпанная»', color: '#ff6f91', event: true },
+    { id: 'maple', name: '«Кленовая»', color: '#d9622b', event: true },
+  ],
+  cyclamen: [
+    { id: 'mulled', name: '«Глинтвейн»', color: '#7a1f3d', event: true },
+    { id: 'tangerine', name: '«Мандарин»', color: '#ff9a2e', event: true },
+  ],
+  begonia: [{ id: 'sakura', name: '«Сакура»', color: '#f8c8dc', event: true }],
+  geranium: [{ id: 'wildberry', name: '«Земляничная»', color: '#e8304f', event: true }],
+  cactus: [{ id: 'mint', name: '«Мятный»', color: '#9fe0c0', event: true }],
+  hibiscus: [{ id: 'lagoon', name: '«Лагуна»', color: '#4fc3d9', event: true }],
+  kalanchoe: [{ id: 'sunset', name: '«Закат»', color: '#ff8a3d', event: true }],
+  rose: [
+    { id: 'appleblossom', name: '«Яблоневый цвет»', color: '#f7c6c0', event: true },
+    { id: 'amber', name: '«Янтарная»', color: '#e89a2c', event: true },
+  ],
+  azalea: [
+    { id: 'honey', name: '«Медовая»', color: '#f2b84b', event: true },
+    { id: 'frost', name: '«Морозная»', color: '#e6efff', event: true },
+  ],
+};
+for (const [sp, list] of Object.entries(EVENT_HUES)) PALETTES[sp].push(...list);
+
 export const canBreed = (spId: string) => !!PALETTES[spId];
 export const hueOf = (spId: string, id?: string): Hue | undefined => (id ? PALETTES[spId]?.find((h) => h.id === id) : PALETTES[spId]?.[0]);
 export const BREED_COOLDOWN = 24 * 3600e3;
@@ -97,8 +125,8 @@ export const BREED_COOLDOWN = 24 * 3600e3;
 export function crossHue(spId: string, a: string, b: string, rnd: () => number, known: string[] = []): string {
   const pal = PALETTES[spId];
   if (!pal) return a;
-  const common = pal.filter((h) => !h.rare);
-  const rare = pal.filter((h) => h.rare);
+  const common = pal.filter((h) => !h.rare && !h.event);
+  const rare = pal.filter((h) => h.rare && !h.event);
   const roll = rnd();
   const rareChance = known.some((k) => rare.some((r) => r.id === k)) ? 0.04 : 0.07;
   if (rare.length && roll < rareChance) return rare[Math.floor(rnd() * rare.length)].id;

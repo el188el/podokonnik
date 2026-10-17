@@ -278,6 +278,8 @@ export interface GameState {
   round?: { key: string; checked: string[]; done: boolean }; // обход подоконника
   hues?: Record<string, string[]>;      // собранные цвета по видам
   forms?: string[];     // собранные редкие формы
+  titles?: string[];    // звания сезонов из платного пропуска
+  title?: string;       // выбранное звание — показывается в профиле
   bloomed?: string[];   // виды, которые цвели у игрока
   shelves?: string[];   // забранные награды полок альбома
   calendar?: { month: string; done: string[] }; // отмеченные дела календаря ухода
@@ -305,6 +307,7 @@ export interface EventProgress {
   free: number[];     // забранные уровни бесплатной ветки
   prem: number[];     // забранные уровни платной ветки
   premium: boolean;   // куплен сезонный пропуск
+  layout?: number;    // версия раскладки наград (2 — платная ветка только с эксклюзивом)
 }
 
 /** Двойник настоящего комнатного растения игрока. */

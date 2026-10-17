@@ -447,6 +447,14 @@ const ART: Record<string, { w: number; h: number; draw: (o: DrawOpts) => ReactNo
       <g key={i}><circle cx={x as number} cy={y as number} r="4.6" fill={c as string} /><path d={`M${x} ${(y as number) - 4} v-2`} stroke={C.dark} strokeWidth="1" /></g>
     ))}
   </>) },
+  watermelon: { w: 40, h: 26, draw: () => (<>
+    {shadow(20, 24, 16)}
+    <ellipse cx="20" cy="22" rx="18" ry="3.5" fill="#f4f1ea" />
+    <path d="M5 21 A15 15 0 0 1 35 21 Z" fill="#4f9a3e" />
+    <path d="M7.5 21 A12.5 12.5 0 0 1 32.5 21 Z" fill="#eef3c8" />
+    <path d="M9 21 A11 11 0 0 1 31 21 Z" fill="#e8445a" />
+    {[[14, 17], [20, 14], [26, 17], [17, 19], [23, 19]].map(([x, y], i) => <ellipse key={i} cx={x} cy={y} rx="0.9" ry="1.4" fill="#3b2a22" />)}
+  </>) },
   jam: { w: 26, h: 34, draw: () => (<>
     {shadow(13, 32, 10)}
     <rect x="4" y="10" width="18" height="22" rx="4" fill="#c4622d" />

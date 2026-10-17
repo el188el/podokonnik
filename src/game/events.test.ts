@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { activeEvent, eventEndsAt, eventSeason, tierOf, EVENTS } from './events';
+import { activeEvent, eventEndsAt, eventSeason, isEmptyReward, tierOf, EVENTS } from './events';
+import { hueOf } from './breeding';
 import { FORM_BY_ID, PRODUCTS } from './products';
 import { ITEM_BY_ID } from './shop';
 
@@ -49,10 +50,28 @@ describe('ивенты', () => {
 });
 
 describe('стимуляторы в пропуске и за звёзды', () => {
-  it('есть в обеих ветках каждого сезона', () => {
+  it('есть в бесплатной ветке каждого сезона', () => {
+    for (const e of EVENTS) expect(e.free.filter((r) => r.boost).length).toBeGreaterThanOrEqual(4);
+  });
+
+  it('в платной ветке — только эксклюзив, которого больше нигде нет', () => {
+    const freeItems = new Set(EVENTS.flatMap((e) => e.free.map((r) => r.item).filter(Boolean)));
+    const seen = new Set<string>();
     for (const e of EVENTS) {
-      expect(e.free.filter((r) => r.boost).length).toBeGreaterThanOrEqual(4);
-      expect(e.premium.filter((r) => r.boost).length).toBeGreaterThanOrEqual(5);
+      const prem = e.premium.filter((r) => !isEmptyReward(r));
+      expect(prem.length).toBe(8);
+      for (const r of prem) {
+        expect(r.leaves ?? r.feed ?? r.pots ?? r.boost).toBeUndefined();
+        if (r.item) {
+          expect(ITEM_BY_ID[r.item]?.eventOnly).toBe(true);
+          expect(freeItems.has(r.item)).toBe(false);
+        }
+        if (r.hue) expect(hueOf(r.hue.sp, r.hue.hue)?.event).toBe(true);
+        if (r.form) expect(FORM_BY_ID[r.form]?.event).toBe(e.id);
+        const key = JSON.stringify(r);
+        expect(seen.has(key)).toBe(false);
+        seen.add(key);
+      }
     }
   });
 

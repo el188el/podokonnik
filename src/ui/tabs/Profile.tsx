@@ -4,7 +4,7 @@ import { rankOf, xpToNext } from '../../game/progression';
 import { ITEM_BY_ID, DECOR_IDS } from '../../game/shop';
 import { fmt } from '../../game/sim';
 import { ageDays } from '../../game/age';
-import { isPlus, logoutTelegram, redeemPromo, sendSupport, toast, now, openSheet, setName, setSetting, startOver, toggleDecor, useStore } from '../../game/store';
+import { isPlus, logoutTelegram, redeemPromo, sendSupport, toast, now, openSheet, setName, setSetting, setTitle, startOver, toggleDecor, useStore } from '../../game/store';
 import { platform } from '../../platform';
 import { CONFIG } from '../../config';
 import { linkedAccount, online, sendSettings } from '../../net/api';
@@ -40,6 +40,12 @@ export function Profile() {
         <input id="nm" className="inp" maxLength={24} value={name} placeholder="Имя для подарков" onChange={(e) => setN(e.target.value)} onBlur={() => setName(name)} />
         <p className="lvl" onClick={() => openSheet({ kind: 'levels' })}>{rich(rankOf(g.level).icon)} {rich(rankOf(g.level).title)} · <Emo e="⭐" /> Уровень {g.level}{isPlus(g) && <span className="plus-badge"> · <Emo e="🌟" /> Садовник+</span>}</p>
         <Bar value={g.xp / xpToNext(g.level)} label={`${g.xp}/${xpToNext(g.level)} опыта`} />
+        {(g.titles ?? []).length > 0 && (
+          <div className="titles">
+            <small className="muted">Звания сезонов — нажми, чтобы выбрать:</small>
+            <div>{(g.titles ?? []).map((x) => <button key={x} className={'title-chip' + (g.title === x ? ' on' : '')} onClick={() => setTitle(x)}><Emo e="🏅" /> {rich(x)}</button>)}</div>
+          </div>
+        )}
       </section>
       {online() && <Account />}
 

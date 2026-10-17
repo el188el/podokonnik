@@ -1,6 +1,8 @@
 import { clone } from '../../game/constants';
 import { useEffect, useRef, useState } from 'react';
-import { activeEvent, eventEndsAt, EVENT_TOKENS, tierOf, type PassReward } from '../../game/events';
+import { activeEvent, eventEndsAt, EVENT_TOKENS, isEmptyReward, tierOf, type PassReward } from '../../game/events';
+import { hueOf } from '../../game/breeding';
+import { sp } from '../../game/species';
 import { FORM_BY_ID, PRODUCT_BY_ID } from '../../game/products';
 import { ITEM_BY_ID, potIdOf } from '../../game/shop';
 import { approx } from '../../game/sim';
@@ -25,6 +27,8 @@ function Reward({ r }: { r: PassReward }) {
     return <><span className="rw-art">{art}</span><span className="rw-t">{rich(it?.name ?? '')}</span></>;
   }
   if (r.form) return <><span className="rw-art"><Icon name="sparkles" size={26} tone="#8b5cc7" /></span><span className="rw-t">{rich(FORM_BY_ID[r.form]?.name ?? '')}</span></>;
+  if (r.hue) return <><span className="rw-art"><Icon name="flower" size={26} tone={hueOf(r.hue.sp, r.hue.hue)?.color ?? '#e0574f'} /></span><span className="rw-t">{rich(`${sp(r.hue.sp).name} ${hueOf(r.hue.sp, r.hue.hue)?.name ?? ''}`)}</span></>;
+  if (r.title) return <><span className="rw-art"><Icon name="trophy" size={26} tone="#e8a325" /></span><span className="rw-t">Звание «{rich(r.title)}»</span></>;
   return null;
 }
 
@@ -46,7 +50,7 @@ export function EventSheet() {
   const pass = PRODUCT_BY_ID.pass;
   const ready = e.tiers.flatMap((need, i) => (st.tokens < need ? [] : [
     ...(st.free.includes(i) ? [] : [[i, false] as const]),
-    ...(st.premium && !st.prem.includes(i) ? [[i, true] as const] : []),
+    ...(st.premium && !st.prem.includes(i) && !isEmptyReward(e.premium[i]) ? [[i, true] as const] : []),
   ]));
   const ways: [string, number][] = [
     ['💧 Полив', EVENT_TOKENS.water], ['🌱 Посадка', EVENT_TOKENS.plant], ['✂️ Черенок', EVENT_TOKENS.cut], ['📋 Задание', EVENT_TOKENS.quest],
@@ -86,7 +90,7 @@ export function EventSheet() {
           <span className="bp-buy-ic"><Icon name="crown" size={24} /></span>
           <div>
             <b>Сезонный пропуск</b>
-            <small>Вторая дорожка наград: эксклюзивный горшок и декор сезона, {e.premium.reduce((n, r) => n + (r.leaves ?? 0), 0)} <Emo e="🍃" /> и редкая форма в конце. Награды за пройденные уровни — сразу.</small>
+            <small>Только эксклюзив сезона, которого больше нигде не получить: {e.premium.filter((r) => !isEmptyReward(r)).length} наград — горшки, обои, цвета цветков, декор, звание и редкая форма. За пройденные уровни — сразу.</small>
           </div>
           <Btn small kind="gold" disabled={busy} onClick={async () => { setBusy(true); await buyStars('pass'); setBusy(false); }}><StarsPrice n={pass.stars} /></Btn>
         </div>
@@ -105,10 +109,12 @@ export function EventSheet() {
                 {gotF ? <i className="bp-mark"><Icon name="check" size={12} /></i> : reached ? <i className="bp-get">Забрать</i> : null}
               </button>
               <span className="bp-node"><b>{i + 1}</b><small>{need}</small></span>
-              <button className={'bp-rw prem' + state(gotP, st.premium)} disabled={!reached || gotP || !st.premium} onClick={() => claimTier(i, true)}>
-                <Reward r={e.premium[i]} />
-                {gotP ? <i className="bp-mark"><Icon name="check" size={12} /></i> : !st.premium ? <i className="bp-mark lock"><Icon name="lock" size={11} /></i> : reached ? <i className="bp-get">Забрать</i> : null}
-              </button>
+              {isEmptyReward(e.premium[i]) ? <span className="bp-rw prem none" aria-hidden /> : (
+                <button className={'bp-rw prem' + state(gotP, st.premium)} disabled={!reached || gotP || !st.premium} onClick={() => claimTier(i, true)}>
+                  <Reward r={e.premium[i]} />
+                  {gotP ? <i className="bp-mark"><Icon name="check" size={12} /></i> : !st.premium ? <i className="bp-mark lock"><Icon name="lock" size={11} /></i> : reached ? <i className="bp-get">Забрать</i> : null}
+                </button>
+              )}
             </div>
           );
         })}

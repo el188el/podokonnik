@@ -28,7 +28,7 @@ import { XP, levelPerks, levelReward, unlocksAt, xpToNext, SILL_UNLOCK } from '.
 import { QUEST_BONUS, WEEKLY_CHEST, dayKey, bumpQuest, bumpWeekly, rollDay, rollWeek, streakReward, weeklyVisit } from './quests';
 import { ITEM_BY_ID, ITEMS, placeOf, potIdOf, sellPrice } from './shop';
 import { advance, badLight, bestZone, canCut, ctxFor, hasDecorOn, pour, WATER_REWARD_MS, WET_FULL, fmt, needSize, POT_SIZE_ITEM, POT_SIZE_NAME, potSizeOf, tight, hasLamp, neighborsOf, stageMarks, type SimEvent } from './sim';
-import { activeEvent, EVENT_TOKENS, eventSeason, tierOf, type GameEvent, type PassReward } from './events';
+import { activeEvent, EVENT_TOKENS, eventSeason, isEmptyReward, PREM_AT, tierOf, type GameEvent, type PassReward } from './events';
 import { leavesMul, liveCutting, livePrice, setLive } from './liveops';
 import { FORM_BY_ID, FORMS, PRODUCT_BY_ID, RARE_DROP, TIER_NAME, formsOf, pickForm, tierOfForm } from './products';
 import { replayFriendWaters, type FriendWater } from './social';
@@ -1616,7 +1616,19 @@ export function setShowoffDone(plantId: string) {
 export function eventProgress(g: GameState, e: GameEvent, t: number): EventProgress {
   const key = eventSeason(e, t);
   g.events = g.events ?? {};
-  return (g.events[key] ??= { tokens: 0, free: [], prem: [], premium: false });
+  const st = (g.events[key] ??= { tokens: 0, free: [], prem: [], premium: false, layout: 2 });
+  if (!st.layout) {
+    // раньше в платной ветке были листики и подкормки: забранными оставляем только
+    // те уровни, где награда не поменялась (горшок, декор сезона, форма)
+    const was = new Set(st.prem);
+    st.prem = [
+      ...(was.has(PREM_AT.pot) ? [PREM_AT.pot] : []),
+      ...([9, 19, 27].some((i) => was.has(i)) ? [PREM_AT.decor] : []),
+      ...(was.has(PREM_AT.form) ? [PREM_AT.form] : []),
+    ];
+    st.layout = 2;
+  }
+  return st;
 }
 
 /** Начислить валюту текущего ивента за действие. */
@@ -1668,10 +1680,26 @@ function giveReward(g: GameState, r: PassReward, t: number) {
     const f = FORM_BY_ID[r.form];
     if (f) g.cuttings.push({ id: makeCode(8), sp: f.sp, form: f.id, at: t });
   }
+  if (r.hue) {
+    g.cuttings.push({ id: makeCode(8), sp: r.hue.sp, hue: r.hue.hue, at: t });
+    const got = g.hues?.[r.hue.sp] ?? [];
+    if (!got.includes(r.hue.hue)) g.hues = { ...(g.hues ?? {}), [r.hue.sp]: [...got, r.hue.hue] };
+    discover(g, r.hue.sp);
+  }
+  if (r.title && !(g.titles ?? []).includes(r.title)) {
+    g.titles = [...(g.titles ?? []), r.title];
+    g.title = r.title;
+  }
 }
 
 export const rewardText = (r: PassReward) =>
-  r.leaves ? `+${r.leaves} 🍃` : r.pots ? `🪴 ×${r.pots}` : r.boost ? `⚡ ×${r.boost}` : r.feed ? `🧪 ×${r.feed}` : r.item ? `${ITEM_BY_ID[r.item]?.icon ?? '🎁'} ${ITEM_BY_ID[r.item]?.name ?? ''}` : r.form ? `✨ ${FORM_BY_ID[r.form]?.name}` : '';
+  r.leaves ? `+${r.leaves} 🍃` : r.pots ? `🪴 ×${r.pots}` : r.boost ? `⚡ ×${r.boost}` : r.feed ? `🧪 ×${r.feed}` : r.item ? `${ITEM_BY_ID[r.item]?.icon ?? '🎁'} ${ITEM_BY_ID[r.item]?.name ?? ''}`
+    : r.form ? `✨ ${FORM_BY_ID[r.form]?.name}` : r.hue ? `🌸 ${sp(r.hue.sp).name} ${hueOf(r.hue.sp, r.hue.hue)?.name ?? ''}` : r.title ? `🏅 Звание «${r.title}»` : '';
+
+/** Выбрать звание сезона для профиля. */
+export function setTitle(x: string) {
+  mut((g) => { if ((g.titles ?? []).includes(x)) g.title = x; });
+}
 
 export function claimTier(i: number, premium: boolean) {
   mut((g, t) => {
@@ -1681,6 +1709,8 @@ export function claimTier(i: number, premium: boolean) {
     if (st.tokens < e.tiers[i]) return;
     const list = premium ? st.prem : st.free;
     if (list.includes(i) || (premium && !st.premium)) return;
+    const r0 = (premium ? e.premium : e.free)[i];
+    if (isEmptyReward(r0)) return;
     list.push(i);
     track('event_claim', { event: e.id, tier: i + 1, premium });
     const r = (premium ? e.premium : e.free)[i];

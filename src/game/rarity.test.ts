@@ -21,3 +21,19 @@ describe('редкости', () => {
     expect(n / 4000).toBeLessThan(0.33); // albo 3 : thai 1 → 25%
   });
 });
+
+describe('палитры', () => {
+  it('у каждого вида цвета без повторов', async () => {
+    const { PALETTES } = await import('./breeding');
+    for (const [sp, pal] of Object.entries(PALETTES)) expect(new Set(pal.map((h) => h.id)).size, sp).toBe(pal.length);
+  });
+  it('сезонные цвета не выводятся скрещиванием', async () => {
+    const { PALETTES, crossHue } = await import('./breeding');
+    let seed = 7;
+    const rnd = () => ((seed = (seed * 16807) % 2147483647) / 2147483647);
+    for (let k = 0; k < 2000; k++) {
+      const h = crossHue('violet', 'purple', 'pink', rnd, []);
+      expect(PALETTES.violet.find((x) => x.id === h)?.event).toBeFalsy();
+    }
+  });
+});

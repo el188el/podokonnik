@@ -57,7 +57,7 @@ export const EMOJI: Record<string, Glyph> = {
   '🐈': [Cat, W], '🐈‍⬛': [Cat, '#3b3f3d'], '😺': [Cat, W], '🐾': [PawPrint, W], '🐦': [Bird, B], '🦉': [Bird, W], '🐑': [Rabbit, K], '🐷': [PiggyBank, '#e86fa0'], '🦕': [Bone, K],
   '🐝': [Bug, Y], '🐛': [Bug, G], '🦟': [Bug, '#7a5a4a'], '🕷': [Bug, '#4a4a4a'], '🕸': [Bug, K], '🦋': [Bug, P],
   '☕': [Coffee, W], '🫖': [Coffee, P], '🍳': [EggFried, Y], '🥣': [Soup, W], '🥫': [Package, R], '🧂': [Hexagon, K], '🍯': [Hexagon, Y, true], '🧊': [Square, '#5aa8d8'],
-  '🍎': [Apple, R], '🍏': [Apple, G], '🍓': [Cherry, R], '🍋': [Citrus, '#e8c325'], '🍊': [Citrus, O], '🥒': [Carrot, G], '🍪': [Cookie, W], '🎃': [Circle, O, true],
+  '🍎': [Apple, R], '🍏': [Apple, G], '🍓': [Cherry, R], '🍋': [Citrus, '#e8c325'], '🍉': [Citrus, '#e8445a'], '🍊': [Citrus, O], '🥒': [Carrot, G], '🍪': [Cookie, W], '🎃': [Circle, O, true],
   '🏺': [Amphora, W], '☂': [Cloud, C], '🪢': [Lasso, W], '🗡': [Sword, K], '🪆': [PersonStanding, R],
   '🟫': [Square, '#8b5a2b', true], '🟥': [Square, R, true], '🟩': [Square, G, true], '🟦': [Square, B, true], '🟨': [Square, Y, true],
   '🔴': [Circle, R, true], '🟡': [Circle, Y, true], '🟤': [Circle, W, true],
