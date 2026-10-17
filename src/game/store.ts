@@ -820,6 +820,11 @@ export function tick() {
   const g: GameState = clone(st.game);
   const ev = advance(g, t);
   handleEvents(g, ev, false);
+  const helped = [...new Set(ev.filter((e) => e.kind === 'neighbor').map((e) => (e as { plant: string }).plant))];
+  if (helped.length && document.visibilityState === 'visible') {
+    const names = helped.map((id) => g.plants.find((p) => p.id === id)).filter(Boolean).map((p) => p!.nick || sp(p!.sp).name);
+    toast(`👵 Соседка полила: ${names.slice(0, 3).join(', ')}${names.length > 3 ? ` и ещё ${names.length - 3}` : ''}`);
+  }
   checkAges(g, t);
   rollWeekly(g, t);
   if (rollOrders(g, t) && (g.orders?.list.length ?? 0) > 0 && document.visibilityState === 'visible') toast('📋 Соседи оставили записку на доске объявлений');

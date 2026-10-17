@@ -113,6 +113,18 @@ describe('жажда и здоровье', () => {
     expect(p.health).toBe(100);
     expect(p.moisture).toBeGreaterThan(0);
   });
+
+  it('соседка поливает, как только растение хочет пить, и наливает воду в стаканы', () => {
+    const { g, p } = potted('tradescantia');
+    g.neighbor = { until: T0 + 7 * D, cooldownUntil: T0 + 14 * D };
+    const c = newPlant({ sp: 'chlorophytum', sill: 'room', slot: 5, zone: 'glass', stage: 0 } as never, T0);
+    g.plants.push(c);
+    for (let h = 1; h <= 72; h++) {
+      advance(g, T0 + h * H);
+      expect(p.moisture).toBeGreaterThanOrEqual(0.45);
+    }
+    expect(c.rootStart).toBeDefined();
+  });
 });
 
 describe('черенки и пересадка', () => {

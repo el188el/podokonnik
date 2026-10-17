@@ -244,6 +244,11 @@ export function stageProgress(p: Plant, t: number): number {
 
 // ─────────── шаг симуляции ───────────
 function stepPlant(p: Plant, dtH: number, t: number, ctx: Ctx, ev: SimEvent[]) {
+  // соседка наливает воду и в стаканы с черенками
+  if (p.stage === 0 && !p.rootStart && ctx.neighbor) {
+    p.rootStart = t;
+    ev.push({ kind: 'neighbor', plant: p.id });
+  }
   if (p.stage === 0) {
     const r = rootsAt(p);
     if (r && t >= r) {
@@ -264,7 +269,8 @@ function stepPlant(p: Plant, dtH: number, t: number, ctx: Ctx, ev: SimEvent[]) {
   const s = sp(p.sp);
   const winter = isWinter(t);
 
-  if (ctx.neighbor && p.moisture < 0.35) {
+  // соседка поливает, как только растение захочет пить (как подсвечивается у игрока)
+  if (ctx.neighbor && p.moisture < 0.5) {
     p.moisture = 1;
     ev.push({ kind: 'neighbor', plant: p.id });
   }
