@@ -19,6 +19,7 @@ import { Bar, Btn } from '../kit/kit';
 import { shareShowoff, shareThanks } from '../share';
 import { sharePlantStory } from '../story';
 import { genName, isHeirloom } from '../../game/lineage';
+import { leftShort, plantEffects } from '../../game/effects';
 import { coldLimit, FUSSY_TEXT, rhWord, tempWord } from '../../game/climate';
 import { diagnose, recoverHours, type Fix } from '../../game/diagnose';
 import type { Plant } from '../../game/types';
@@ -132,6 +133,24 @@ export function PlantCard({ id }: { id: string }) {
         return <p className="mood-line">{rich(m.icon)} <i>«{rich(chatter(p, t, ctx, weatherAt(g, t), (p.id.charCodeAt(0) + Math.floor(t / 600e3)) % 17 / 17))}»</i></p>;
       })()}
 
+      {/* ── что сейчас действует ── */}
+      {potted && (() => {
+        const list = plantEffects(p, t, g, ctx.fan).filter((e) => e.id !== 'problem');
+        if (!list.length) return null;
+        return (
+          <div className="effects">
+            <small className="effects-h">Сейчас действует</small>
+            {list.map((e) => (
+              <div key={e.id} className={'effect' + (e.bad ? ' bad' : '')}>
+                <span className="ef-ic"><Emo e={e.icon} size={18} /></span>
+                <span className="ef-t"><b>{rich(e.name)}</b><small>{rich(e.text)}</small></span>
+                {e.left !== undefined && <span className="ef-left">ещё {leftShort(e.left)}</span>}
+              </div>
+            ))}
+          </div>
+        );
+      })()}
+
       {/* ── что требует внимания ── */}
       {p.problem && (() => {
         const info = PROBLEMS[p.problem.kind];
@@ -231,14 +250,6 @@ export function PlantCard({ id }: { id: string }) {
               <Emo e="🌡" /> Воздух: {rich(tempWord(ctx.temp ?? 22))}, {rich(rhWord(ctx.rh ?? 45))}{rich((ctx.temp ?? 22) < coldLimit(p.sp) ? ' · ему холодно' : '')}{rich(ctx.draft ? ' · сквозняк' : '')}{rich(fussyOf(p, ctx) ? ` · ${FUSSY_TEXT[fussyOf(p, ctx)!]}` : '')} ›
             </button>
             {s.fussy && <p className="small"><Emo e="⚠️" /> Капризное: {rich(s.fussy.note)}</p>}
-            {(feedOn || boostOn || p.drain || ctx.newbie) && (
-              <p className="small">
-                {rich(ctx.newbie && p.stage < 4 && '🌟 бонус новичка ×3 · ')}
-                {rich(feedOn && `🧪 подкормка ${fmt(p.feedUntil! - t)} · `)}
-                {rich(boostOn && `⚡ стимулятор ${fmt(p.boostUntil! - t)} · `)}
-                {rich(p.drain && '🪨 с дренажом')}
-              </p>
-            )}
             {(() => {
               const near = neighborsOf(g, p);
               const notes: string[] = [];

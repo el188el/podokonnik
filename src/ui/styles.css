@@ -1506,3 +1506,11 @@ button:focus:not(:focus-visible) { outline: none; }
 .promo-row { display: flex; gap: 8px; }
 .promo-row input { flex: 1; min-width: 0; text-transform: uppercase; }
 .support-box textarea { width: 100%; min-height: 90px; box-sizing: border-box; resize: vertical; font: inherit; padding: 10px; border-radius: 12px; border: 1px solid var(--line, #ccc); background: transparent; color: inherit; }
+
+/* значки действующих эффектов на горшке */
+.slot .art { position: relative; }
+.fx-badges { position: absolute; right: 10px; bottom: 6px; display: flex; flex-direction: column-reverse; gap: 2px; z-index: 2; pointer-events: none; }
+.fx-badges .fxb { display: grid; place-items: center; width: 17px; height: 17px; border-radius: 50%; background: #fffdf8; border: 1.4px solid #3b2a22; box-shadow: 0 1px 0 #0002; }
+.fx-badges .fxb.bad { background: #ffe3dc; }
+.fx-badges .fxb .emo { width: 11px; height: 11px; }
+:root[data-theme='dark'] .fx-badges .fxb { background: #2b241e; border-color: #120d0a; }

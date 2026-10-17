@@ -14,6 +14,7 @@ import { roundInfo } from '../game/onboarding';
 import { ageMark } from '../game/age';
 import { PROBLEMS } from '../game/problems';
 import { diagnose } from '../game/diagnose';
+import { plantEffects } from '../game/effects';
 import { Emo, rich } from './kit/rich';
 
 const lastEnough: Record<string, number> = {};
@@ -48,6 +49,8 @@ function bubbleFor(p: Plant, t: number, flash?: { text: string; until: number })
   return null;
 }
 
+/** Какие эффекты показывать значком прямо на подоконнике. */
+const BADGES = ['boost', 'feed', 'guard', 'mist', 'wet'];
 const wantsMist = (p: Plant, t: number) => sp(p.sp).mist === 'love' && !(p.mistUntil && t < p.mistUntil) && !p.wetLeaves;
 
 /** Подсветка: выбранный инструмент сейчас пригодится этому растению. */
@@ -242,6 +245,11 @@ export function Slot({ plant: p, sill, slot }: { plant: Plant; sill: string; slo
         transition={{ type: 'spring', damping: 9, stiffness: 160 }}
       >
         <PlantArt sp={p.sp} form={p.form} hue={p.hue} stage={p.stage} seed={p.id} pot={p.pot} size={potSizeOf(p)} shape={p.shape} blooming={p.blooming} className="plant-svg" />
+        {p.stage >= 2 && (() => {
+          // значки действующих эффектов — наклейками на горшке
+          const list = plantEffects(p, t).filter((e) => BADGES.includes(e.id)).slice(0, 3);
+          return list.length > 0 && <div className="fx-badges" aria-hidden>{list.map((e) => <i key={e.id} className={'fxb' + (e.bad ? ' bad' : '')}><Emo e={e.icon} size={11} /></i>)}</div>;
+        })()}
       </motion.div>
       {fresh && fx.kind === 'water' && (
         <div className="fx" key={fx.at}>
