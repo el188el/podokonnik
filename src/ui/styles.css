@@ -1535,3 +1535,6 @@ button:focus:not(:focus-visible) { outline: none; }
 .eta-x { font-style: normal; font-size: 0.85em; font-weight: 800; color: #3b8fd6; }
 .timer-chip .emo { width: 10px; height: 10px; vertical-align: -1px; }
 .timer-chip:has(.eta.skip) { background: #e3f6e8; box-shadow: 0 0 0 2px #7fd09b; }
+.fx-badges .fxb.ask { background: #ffe39a; animation: fxb-ask 1.4s ease-in-out infinite; }
+@keyframes fxb-ask { 50% { transform: scale(1.18); } }
+.tray .cutting.wilting { box-shadow: 0 0 0 2px #e8907a; border-radius: 12px; }

@@ -4,7 +4,8 @@
 import { useState } from 'react';
 import { ITEM_BY_ID, ITEMS, sellPrice } from '../../game/shop';
 import { sp } from '../../game/species';
-import { buyItem, closeSheet, freeCopies, openSheet, perRoom, placedIn, takeItem, toast, toggleDecor, USABLE, useStore } from '../../game/store';
+import { COMPOST_N, compostable, cuttingLeft } from '../../game/cuttings';
+import { buyItem, closeSheet, compostCuttings, now, freeCopies, openSheet, perRoom, placedIn, takeItem, toast, toggleDecor, USABLE, useStore } from '../../game/store';
 import { DecorArt, hasDecorArt } from '../art/DecorArt';
 import { PlantArt } from '../art/PlantArt';
 import { Btn } from '../kit/kit';
@@ -81,13 +82,21 @@ export function InventorySheet() {
           <h3 className="bag-h">Черенки в стаканах · {g.cuttings.length}</h3>
           {g.cuttings.length === 0 ? <p className="muted small">Пусто. Черенок можно взять у взрослого растения инструментом «Черенок».</p> : (
             <div className="bag-cuts">
-              {g.cuttings.map((c) => (
-                <button key={c.id} className="bag-cut" onClick={() => openSheet({ kind: 'send', cutting: c.id })}>
-                  <PlantArt sp={c.sp} form={c.form} hue={c.hue} stage={0} noPot className="mini" />
-                  <small>{rich(sp(c.sp).name)}</small>
-                </button>
-              ))}
+              {g.cuttings.map((c) => {
+                const left = cuttingLeft(c, now());
+                return (
+                  <button key={c.id} className={'bag-cut' + (left < 2 * 86400e3 ? ' wilting' : '')} onClick={() => openSheet({ kind: 'send', cutting: c.id })}>
+                    <PlantArt sp={c.sp} form={c.form} hue={c.hue} stage={0} noPot className="mini" />
+                    <small>{rich(sp(c.sp).name)}</small>
+                    <i className="bag-life">{left < 86400e3 ? `${Math.max(1, Math.ceil(left / 3600e3))} ч` : `${Math.ceil(left / 86400e3)} дн`}</i>
+                  </button>
+                );
+              })}
             </div>
+          )}
+          {g.cuttings.length > 0 && <p className="muted small">Черенок стоит в воде неделю (редкий — две), потом засыхает. Посади, подари, сдай в лавку — или в компост.</p>}
+          {compostable(g.cuttings).length >= COMPOST_N && (
+            <Btn small onClick={compostCuttings}><Emo e="🟫" /> Компост: {COMPOST_N} обычных черенка → подкормка</Btn>
           )}
         </>
       )}

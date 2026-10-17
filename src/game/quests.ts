@@ -1,6 +1,6 @@
 // Ежедневные задания и серия заходов: короткая причина вернуться завтра.
 
-import { badLight, cramped, ctxFor } from './sim';
+import { badLight, cramped, ctxFor, cutLeft, tight } from './sim';
 import { sp } from './species';
 import type { GameState, QuestKind, QuestState, WeeklyKind, WeeklyQuest } from './types';
 
@@ -45,14 +45,13 @@ function candidates(s: GameState, t: number): { kind: QuestKind; target: number;
   const out: { kind: QuestKind; target: number; reward: number }[] = [];
   if (potted.length) out.push({ kind: 'water', target: Math.min(3, potted.length), reward: 10 + 3 * Math.min(3, potted.length) });
   if (potted.some((p) => sp(p.sp).mist === 'love')) out.push({ kind: 'mist', target: 1, reward: 12 });
-  if (potted.some((p) => p.stage === 4)) {
-    out.push({ kind: 'cut', target: 1, reward: 18 });
-    out.push({ kind: 'gift', target: 1, reward: 30 });
-  }
+  // черенок — только если какое-то растение «попросит» сегодня
+  if (potted.some((p) => p.stage === 4 && cutLeft(p, t) < 12 * 3600e3)) out.push({ kind: 'cut', target: 1, reward: 18 });
+  if (s.cuttings.length || potted.some((p) => p.stage === 4)) out.push({ kind: 'gift', target: 1, reward: 30 });
   if (s.cuttings.length || s.plants.some((p) => p.stage <= 1)) out.push({ kind: 'plant', target: 1, reward: 15 });
   if (potted.some((p) => badLight(p, t, ctxFor(s, p, t)))) out.push({ kind: 'fixLight', target: 1, reward: 15 });
   if (potted.some((p) => cramped(p, t))) out.push({ kind: 'repot', target: 1, reward: 20 });
-  if (potted.length && s.leaves >= 15) out.push({ kind: 'feed', target: 1, reward: 12 });
+  if (potted.some((p) => p.stage < 4 && !tight(p)) && s.leaves >= 15) out.push({ kind: 'feed', target: 1, reward: 12 });
   if (s.leaves >= 20) out.push({ kind: 'buy', target: 1, reward: 10 });
   out.push({ kind: 'visitHerbarium', target: 1, reward: 8 });
   return out;
@@ -151,7 +150,7 @@ function weeklyPool(s: GameState): Omit<WeeklyQuest, 'id' | 'progress' | 'claime
     { kind: 'water', target: big ? 30 : 15, reward: big ? 120 : 80 },
     { kind: 'days', target: 5, reward: 100 },
     { kind: 'plant', target: 3, reward: 90 },
-    { kind: 'cut', target: big ? 5 : 3, reward: 90 },
+    { kind: 'cut', target: big ? 3 : 2, reward: 90 },
   ];
   if (s.plants.some((p) => p.stage === 4)) out.push({ kind: 'gift', target: 2, reward: 120 });
   if (potted) out.push({ kind: 'adult', target: big ? 2 : 1, reward: 130 });

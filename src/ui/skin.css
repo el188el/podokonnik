@@ -540,3 +540,10 @@ body:has(.skin) { background: var(--bg, #f5f2ec); }
 :root .skin .coop-card { display: grid; gap: 10px; }
 :root .skin .coop-card-head { display: flex; justify-content: space-between; align-items: center; }
 :root .skin .coop-card .actions { display: flex; flex-wrap: wrap; gap: 6px; }
+:root .skin .bag-cut { position: relative; }
+:root .skin .bag-life { font-style: normal; font-size: 10.5px; color: var(--muted); }
+:root .skin .bag-cut.wilting { background: #fbe9e4; }
+:root .skin .bag-cut.wilting .bag-life { color: #b5523b; font-weight: 600; }
+:root[data-theme='dark'] .skin .bag-cut.wilting { background: #3d2620; }
+:root .skin .cut-life { color: var(--muted); }
+:root .skin .cut-life.soon { color: #b5523b; font-weight: 600; }

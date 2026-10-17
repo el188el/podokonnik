@@ -13,6 +13,7 @@ import { chatter } from '../../game/mood';
 import { ctxFor } from '../../game/sim';
 import { claimFirstChest, moveItem, toggleDecor, petCat, placeOpen, say, setArrange, switchItem, SWITCHABLE, toast } from '../../game/store';
 import { ITEMS, ITEM_BY_ID, placeOf } from '../../game/shop';
+import { cuttingLeft } from '../../game/cuttings';
 import { climateOf, tempWord } from '../../game/climate';
 import { darkWall, roomVars } from '../../game/room';
 import { zoneOfSlot } from '../../game/layout';
@@ -208,7 +209,7 @@ function OwnSill() {
           <button className="tray-pots" onClick={() => openSheet({ kind: 'pots' })}><Emo e="🪴" /><small>{g.owned.pot ?? 0}</small></button>
           <div className="tray-list">
             {g.cuttings.map((c) => (
-              <button key={c.id} className="cutting" onClick={() => openSheet({ kind: 'send', cutting: c.id })} aria-label={sp(c.sp).name}>
+              <button key={c.id} className={'cutting' + (cuttingLeft(c, now()) < 2 * 86400e3 ? ' wilting' : '')} onClick={() => openSheet({ kind: 'send', cutting: c.id })} aria-label={sp(c.sp).name}>
                 <PlantArt sp={c.sp} form={c.form} hue={c.hue} stage={0} noPot className="mini" />
               </button>
             ))}

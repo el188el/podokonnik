@@ -1,9 +1,10 @@
 import { useState } from 'react';
 import { LIGHT_NAME, NEIGHBOR_FREE_DAYS, NOTES, WINDOWS } from '../../game/constants';
-import { fmt, plural } from '../../game/sim';
+import { approx, fmt, plural } from '../../game/sim';
+import { cuttingLeft, cuttingPrice } from '../../game/cuttings';
 import { DIFFICULTY_LABEL, SPECIES, STARTERS, sp } from '../../game/species';
 import {
-  chooseWindow, closeSheet, giftCutting, now, openSheet, placeCutting, plantCutting, setTab, startNeighbor, stopNeighbor, useStore,
+  chooseWindow, closeSheet, giftCutting, now, openSheet, placeCutting, plantCutting, sellCutting, setTab, startNeighbor, stopNeighbor, useStore,
 } from '../../game/store';
 import type { WindowSide } from '../../game/types';
 import { formsOf, TIER_NAME, tierOfForm } from '../../game/products';
@@ -192,9 +193,11 @@ function CuttingSheet({ id }: { id: string }) {
           <h2>{rich(c!.seed ? 'Семечко' : 'Черенок')} {rich(s.gen)}</h2>
           {c!.hue && <p className="small"><span className="hue-dot" style={{ background: hueOf(c!.sp, c!.hue)?.color }} /> цветы: {rich(hueOf(c!.sp, c!.hue)?.name)}{rich(hueOf(c!.sp, c!.hue)?.rare ? ' 🌈 редкость' : '')}</p>}
           <p className="muted small">Поставь в воду у себя или подари другу — он посадит его на свой подоконник.</p>
+          <p className={'small cut-life' + (cuttingLeft(c!, now()) < 2 * 86400e3 ? ' soon' : '')}><Emo e="⏳" /> В стакане простоит ещё {rich(approx(Math.max(0, cuttingLeft(c!, now()))))}</p>
         </div>
       </div>
       <Btn kind="primary" onClick={() => { plantCutting(c!.id); closeSheet(); }}><Emo e="🫙" /> Поставить в воду у себя</Btn>
+      <Btn onClick={() => { if (sellCutting(c!.id)) closeSheet(); }}><Emo e="🌷" /> Сдать в цветочную лавку · +{cuttingPrice(c!)} <Emo e="🍃" /></Btn>
       <h3><Emo e="🎁" /> Подарить другу</h3>
       <label className="lbl" htmlFor="from">От кого</label>
       <input id="from" className="inp" maxLength={24} placeholder="Твоё имя" value={name} onChange={(e) => setName(e.target.value)} />

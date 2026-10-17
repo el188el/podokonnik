@@ -38,6 +38,7 @@ import { BREED_COOLDOWN, canBreed, crossHue, hueOf } from './breeding';
 import { FIRST_CHEST, FIRST_STEPS, FIRST_YOUNG_H, ROUND_REWARD, STARTER, dailyToday, firstChest, roundInfo, starterDone, starterLeft } from './onboarding';
 import { childLine } from './lineage';
 import { climateOf } from './climate';
+import { COMPOST_N, compostable, cuttingLeft, cuttingLife, cuttingPrice } from './cuttings';
 import { loadCloud, loadLocal, newPlant, newState, pickNewer, saveCloud, saveLocal, switchLocal, upgrade } from './storage';
 import type { Cutting, EventProgress, GameState, PendingGift, Plant, QuestKind, Twin, WeeklyKind, Zone } from './types';
 
@@ -861,6 +862,7 @@ export function tick() {
   const g: GameState = clone(st.game);
   const ev = advance(g, t);
   handleEvents(g, ev, false);
+  witherCuttings(g, t);
   const helped = [...new Set(ev.filter((e) => e.kind === 'neighbor').map((e) => (e as { plant: string }).plant))];
   if (helped.length && document.visibilityState === 'visible') {
     const names = helped.map((id) => g.plants.find((p) => p.id === id)).filter(Boolean).map((p) => p!.nick || sp(p!.sp).name);
@@ -2596,6 +2598,52 @@ export function applyItem(plantId: string, id: string) {
   }
   if ((get().game.owned[id] ?? 0) <= 0) set({ tool: 'look', useItem: undefined });
   return !!ok;
+}
+
+// ─────────────────── черенки: лавка, компост, увядание ───────────────────
+/** Сдать черенок в цветочную лавку за листики. */
+export function sellCutting(id: string) {
+  return mut((g) => {
+    const c = g.cuttings.find((x) => x.id === id);
+    if (!c) return 0;
+    const n = cuttingPrice(c);
+    g.cuttings = g.cuttings.filter((x) => x.id !== id);
+    g.leaves += n;
+    g.stats.sold = (g.stats.sold ?? 0) + n;
+    track('cutting_sell', { sp: c.sp });
+    haptic('success');
+    toast(`🌷 Лавка купила черенок ${sp(c.sp).gen}: +${n} 🍃`);
+    return n;
+  });
+}
+
+/** Три обычных черенка — в компост, получится подкормка. */
+export function compostCuttings() {
+  mut((g) => {
+    const list = compostable(g.cuttings).slice(0, COMPOST_N);
+    if (list.length < COMPOST_N) { toast(`Для компоста нужно ${COMPOST_N} обычных черенка`); return; }
+    const ids = new Set(list.map((c) => c.id));
+    g.cuttings = g.cuttings.filter((c) => !ids.has(c.id));
+    g.owned.feed = (g.owned.feed ?? 0) + 1;
+    track('compost', {});
+    rewardPopup('Компост готов!', [RW.feed(1)], `${list.map((c) => sp(c.sp).name).join(', ')} → подкормка`);
+    haptic('success');
+  });
+}
+
+/** Черенки, которые слишком долго стояли в воде, засыхают. */
+function witherCuttings(g: GameState, t: number) {
+  if (!g.cutV) {
+    // при первом запуске новых правил старым черенкам — ещё двое суток
+    for (const c of g.cuttings) if (cuttingLeft(c, t) < 2 * D) c.at = t + 2 * D - cuttingLife(c);
+    g.cutV = 1;
+  }
+  const dead = g.cuttings.filter((c) => cuttingLeft(c, t) <= 0);
+  if (!dead.length) return;
+  g.cuttings = g.cuttings.filter((c) => cuttingLeft(c, t) > 0);
+  const names = dead.map((c) => sp(c.sp).name).join(', ');
+  toast(`🥀 Засох${dead.length > 1 ? 'ли' : ''} в стакане: ${names}. Черенки лучше сажать или дарить`);
+  mail(g, '🥀', `Засох${dead.length > 1 ? 'ли' : ''} в стакане: ${names}`);
 }
 
 // ─────────────────── стимулятор роста ───────────────────

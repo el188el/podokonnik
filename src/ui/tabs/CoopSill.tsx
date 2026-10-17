@@ -35,7 +35,7 @@ export async function shareCoop(c: CoopView) {
   if (r === 'copied') toast('Ссылка скопирована — отправь её 📋');
 }
 
-const BADGES = ['boost', 'feed', 'guard', 'mist', 'wet'];
+const BADGES = ['cut', 'boost', 'feed', 'guard', 'mist', 'wet'];
 
 /** Кому сейчас пригодится инструмент — подсвечиваем, как на своём подоконнике. */
 function wants(tool: string, item: string | undefined, p: Plant, t: number, g: ReturnType<typeof useStore.getState>['game']) {
@@ -154,7 +154,7 @@ export function CoopSill({ coop }: { coop: CoopView }) {
                 <PlantArt sp={p.sp} form={p.form} hue={p.hue} stage={p.stage} seed={p.id} pot={p.pot} size={potSizeOf(p)} shape={p.shape} blooming={p.blooming} className="plant-svg" />
                 {p.stage >= 2 && (() => {
                   const list = plantEffects(p, t).filter((e) => BADGES.includes(e.id)).slice(0, 3);
-                  return list.length > 0 && <div className="fx-badges" aria-hidden>{list.map((e) => <i key={e.id} className={'fxb' + (e.bad ? ' bad' : '')}><Emo e={e.icon} size={11} /></i>)}</div>;
+                  return list.length > 0 && <div className="fx-badges" aria-hidden>{list.map((e) => <i key={e.id} className={'fxb' + (e.bad ? ' bad' : '') + (e.id === 'cut' ? ' ask' : '')}><Emo e={e.icon} size={11} /></i>)}</div>;
                 })()}
               </div>
               <div className="label">

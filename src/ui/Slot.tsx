@@ -51,7 +51,7 @@ function bubbleFor(p: Plant, t: number, flash?: { text: string; until: number })
 }
 
 /** Какие эффекты показывать значком прямо на подоконнике. */
-const BADGES = ['boost', 'feed', 'guard', 'mist', 'wet'];
+const BADGES = ['cut', 'boost', 'feed', 'guard', 'mist', 'wet'];
 const wantsMist = (p: Plant, t: number) => sp(p.sp).mist === 'love' && !(p.mistUntil && t < p.mistUntil) && !p.wetLeaves;
 
 /** Подсветка: выбранный инструмент сейчас пригодится этому растению. */
@@ -251,7 +251,7 @@ export function Slot({ plant: p, sill, slot }: { plant: Plant; sill: string; slo
         {p.stage >= 2 && (() => {
           // значки действующих эффектов — наклейками на горшке
           const list = plantEffects(p, t).filter((e) => BADGES.includes(e.id)).slice(0, 3);
-          return list.length > 0 && <div className="fx-badges" aria-hidden>{list.map((e) => <i key={e.id} className={'fxb' + (e.bad ? ' bad' : '')}><Emo e={e.icon} size={11} /></i>)}</div>;
+          return list.length > 0 && <div className="fx-badges" aria-hidden>{list.map((e) => <i key={e.id} className={'fxb' + (e.bad ? ' bad' : '') + (e.id === 'cut' ? ' ask' : '')}><Emo e={e.icon} size={11} /></i>)}</div>;
         })()}
       </motion.div>
       {fresh && fx.kind === 'water' && (

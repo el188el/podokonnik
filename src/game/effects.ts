@@ -2,7 +2,7 @@
 // Показываем значками на подоконнике и списком в карточке — со временем до конца.
 
 import { PROBLEMS } from './problems';
-import { newbieLeft, wetLeavesH } from './sim';
+import { canCut, CUT_REST_H, newbieLeft, restingAfterCut, wetLeavesH } from './sim';
 import { H } from './constants';
 import type { GameState, Plant } from './types';
 
@@ -21,6 +21,8 @@ export function plantEffects(p: Plant, t: number, g?: Pick<GameState, 'createdAt
   if (until(p.feedUntil)) out.push({ id: 'feed', icon: '🧪', name: 'Подкормлено', text: 'сытое: следующую подкормку — позже, перекорм вреден', left: until(p.feedUntil) });
   if (until(p.mistUntil)) out.push({ id: 'mist', icon: '💦', name: 'Опрыскано', text: 'влажный воздух: растёт в 1,5 раза быстрее', left: until(p.mistUntil) });
   if (until(p.guardUntil)) out.push({ id: 'guard', icon: '🛡', name: 'Защита после лечения', text: 'вредители и болезни не пристают', left: until(p.guardUntil) });
+  if (canCut(p, t)) out.push({ id: 'cut', icon: '✂️', name: 'Просит взять детку', text: 'можно взять черенок — инструментом «Черенок»' });
+  if (restingAfterCut(p, t)) out.push({ id: 'rest', icon: '😴', name: 'Отдыхает после черенка', text: 'не цветёт и растёт медленнее', left: p.lastCut! + CUT_REST_H * H - t });
   if (p.drain) out.push({ id: 'drain', icon: '🪨', name: 'Дренаж', text: 'лишняя вода уходит вчетверо быстрее' });
   if (g && p.stage >= 2 && p.stage < 4 && newbieLeft(g, t) > 0) out.push({ id: 'newbie', icon: '🌟', name: 'Бонус новичка', text: 'растёт втрое быстрее', left: newbieLeft(g, t) });
   if (p.wetLeaves) out.push({ id: 'wet', icon: '💧', name: 'Мокрые листья', text: 'этому виду вредна вода на листьях', left: Math.max(0, p.wetLeaves + wetLeavesH(fan) * H - t), bad: true });

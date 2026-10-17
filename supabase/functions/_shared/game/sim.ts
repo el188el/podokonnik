@@ -122,11 +122,16 @@ export function cramped(p: Plant, t: number) {
   return p.stage === 4 && potSizeOf(p) === 3 && !!p.adultAt && t - p.adultAt >= sp(p.sp).repotDays * D;
 }
 
+/** Черенок забирает у растения силы: перерыв между черенками длиннее, а сутки-полторы после — отдых. */
+export const CUT_SLOW = 2.5;
+export const CUT_REST_H = 36;
 export function cutCooldown(p: Plant, t: number) {
   const s = sp(p.sp);
   const k = potSizeOf(p) >= 4 ? 0.75 : cramped(p, t) ? 1.5 : 1;
-  return s.cutHours * H * k;
+  return s.cutHours * H * k * CUT_SLOW;
 }
+/** Отдыхает после черенка: растёт медленнее и не цветёт. */
+export const restingAfterCut = (p: Plant, t: number) => !!p.lastCut && t - p.lastCut < CUT_REST_H * H;
 
 export function cutLeft(p: Plant, t: number) {
   if (!p.lastCut) return 0;
@@ -183,6 +188,7 @@ export function growthFactors(p: Plant, t: number, ctx: Ctx, steady = false): Gr
   add('temp', temp < 16 ? 'Прохладно' : 'Жарко', climateGrowth(temp, 50, false));
   if (s.mist === 'love') add('rh', rh < 35 ? 'Сухой воздух' : 'Влажный воздух', climateGrowth(22, rh, true));
   if (fussyOf(p, ctx)) add('fussy', 'Капризничает', 0.5);
+  if (restingAfterCut(p, t)) add('rest', 'Отдыхает после черенка', 0.7);
   if (ctx.radio) add('radio', 'Радио', 1.05);
   if (ctx.lampGrow) add('lamp', 'Фитолампа', ctx.lampGrow);
   return out;
@@ -230,6 +236,7 @@ export function bloomBlockers(p: Plant, t: number, ctx: Ctx): string[] | null {
   if (p.problem && (p.problem.kind === 'rot' || p.problem.kind === 'leggy' || p.problem.sev > 0.6)) out.push('мешает болезнь');
   if (badLight(p, t, ctx)) out.push('не тот свет');
   if (fussyOf(p, ctx)) out.push('капризничает — сбрасывает бутоны');
+  if (restingAfterCut(p, t)) out.push('отдыхает после черенка');
   if (b.months && !b.months.includes(month(t))) out.push('не сезон');
   if (b.needsRest && p.rest < 7 * 24) out.push('нужен зимний покой');
   return out;
@@ -361,6 +368,7 @@ export function canBloom(p: Plant, t: number, ctx: Ctx) {
   if (p.problem && (p.problem.kind === 'rot' || p.problem.kind === 'leggy' || p.problem.sev > 0.6)) return false;
   if (badLight(p, t, ctx)) return false;
   if (fussyOf(p, ctx)) return false; // капризные сбрасывают бутоны
+  if (restingAfterCut(p, t)) return false; // после черенка набирается сил
   if (b.months && !b.months.includes(month(t))) return false;
   if (b.needsRest && p.rest < 7 * 24) return false;
   return true;
