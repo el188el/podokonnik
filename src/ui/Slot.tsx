@@ -3,7 +3,8 @@ import { motion } from 'framer-motion';
 import { useEffect, useLayoutEffect, useRef, useState, type RefObject } from 'react';
 import { createPortal } from 'react-dom';
 import { STAGE_NAME } from '../game/constants';
-import { badLight, canCut, cramped, ctxFor, fmt, isSad, isLightSad, isThirstySad, nextStageAt, rootsAt } from '../game/sim';
+import { badLight, canCut, cramped, ctxFor, fmt, isSad, isLightSad, isThirstySad, nextStageAt, rootsAt, timerSpeed } from '../game/sim';
+import { Eta } from './kit/Eta';
 import { SHOWOFF_MS } from '../game/constants';
 import { sp } from '../game/species';
 import { applyItem, checkRound, feed, itemFits, mist, now, openSheet, plantInPot, say, swap, takeCutting, toast, useStore, water } from '../game/store';
@@ -64,13 +65,13 @@ export function wantsTool(tool: string, p: Plant, t: number): boolean {
   return false;
 }
 
-/** Маленький таймер под горшком: сколько до следующей стадии. Название — в карточке. */
-function timerFor(p: Plant, t: number): string | null {
+/** Маленький таймер под горшком: сколько до следующей стадии и не ускорено ли растение. */
+function timerFor(p: Plant, t: number): { ms: number; speed: number } | null {
   if (p.stage < 2 || p.stage >= 4) return null;
-  const at = nextStageAt(p, t, ctxFor(useStore.getState().game, p, t));
+  const ctx = ctxFor(useStore.getState().game, p, t);
+  const at = nextStageAt(p, t, ctx);
   if (!at) return null;
-  const ms = at - t;
-  return `⏱ ${ms < 3600e3 ? fmt(ms) : ms < 48 * 3600e3 ? `${Math.ceil(ms / 3600e3)} ч` : `${Math.round(ms / 86400e3)} дн`}`;
+  return { ms: at - t, speed: timerSpeed(p, t, ctx) };
 }
 
 export function etaFor(p: Plant, t: number) {
@@ -279,7 +280,7 @@ export function Slot({ plant: p, sill, slot }: { plant: Plant; sill: string; slo
             {meter && <em className={'meter-pct' + (p.moisture > 1 ? ' over' : p.moisture < 0.25 ? ' low' : '')}>{Math.round(p.moisture * 100)}%</em>}
           </div>
         )}
-        {timerFor(p, t) && <span className="timer-chip">{rich(timerFor(p, t))}</span>}
+        {(() => { const tm = timerFor(p, t); return tm && <span className="timer-chip"><Emo e="⏱" size={10} /> <Eta ms={tm.ms} speed={tm.speed} compact /></span>; })()}
       </div>
     </div>
   );

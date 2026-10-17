@@ -11,7 +11,7 @@ export const SLOTS = 8;
 export const HANG_SLOTS = [6, 7, 8];
 export const MIST_MS = 12 * H;
 export const FEED_MS = 24 * H;
-/** Стимулятор роста: сутки вдвое быстрее, не чаще раза в неделю на растение и 3 в день на всех. */
+/** Стимулятор роста: сразу −24 ч до следующей стадии, не чаще раза в неделю на растение и 3 в день на всех. */
 export const BOOST_MS = 24 * H;
 export const BOOST_COOLDOWN = 7 * 24 * H;
 export const BOOST_PER_DAY = 3;

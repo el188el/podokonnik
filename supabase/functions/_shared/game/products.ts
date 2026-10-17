@@ -93,7 +93,7 @@ export const PRODUCTS: Product[] = [
     id: 'starter', kind: 'starter', stars: 49, once: true, leaves: 300, form: 'albo', item: 'pot_khokhloma', title: 'Стартовый пакет',
     desc: 'Один раз и с большой скидкой: редкий черенок «Монстера Альбо», горшок «Хохлома» и 300 листиков.',
   },
-  { id: 'boost_s', kind: 'boost', stars: 25, count: 5, title: '5 стимуляторов', desc: 'Сутки роста вдвое быстрее для пяти растений.' },
+  { id: 'boost_s', kind: 'boost', stars: 25, count: 5, title: '5 стимуляторов', desc: 'Минус сутки до следующей стадии — для пяти растений.' },
   { id: 'boost_m', kind: 'boost', stars: 59, count: 15, title: '15 стимуляторов', desc: 'Выгоднее на 20% — хватит на весь подоконник на неделю.' },
   { id: 'boost_l', kind: 'boost', stars: 99, count: 30, title: '30 стимуляторов', desc: 'Выгоднее на 35% — для большой оранжереи.' },
   { id: 'place_9', kind: 'place', stars: 25, slot: 9, once: true, title: 'Место у стекла', desc: 'Четвёртое место у стекла на всех подоконниках.' },

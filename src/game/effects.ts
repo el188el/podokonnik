@@ -18,8 +18,7 @@ export interface Effect {
 export function plantEffects(p: Plant, t: number, g?: Pick<GameState, 'createdAt' | 'level'>, fan?: boolean): Effect[] {
   const out: Effect[] = [];
   const until = (x?: number) => (x && t < x ? x - t : 0);
-  if (until(p.boostUntil)) out.push({ id: 'boost', icon: '⚡', name: 'Стимулятор', text: 'растёт вдвое быстрее', left: until(p.boostUntil) });
-  if (until(p.feedUntil)) out.push({ id: 'feed', icon: '🧪', name: 'Подкормка', text: 'растёт в 1,5 раза быстрее', left: until(p.feedUntil) });
+  if (until(p.feedUntil)) out.push({ id: 'feed', icon: '🧪', name: 'Подкормлено', text: 'сытое: следующую подкормку — позже, перекорм вреден', left: until(p.feedUntil) });
   if (until(p.mistUntil)) out.push({ id: 'mist', icon: '💦', name: 'Опрыскано', text: 'влажный воздух: растёт в 1,5 раза быстрее', left: until(p.mistUntil) });
   if (until(p.guardUntil)) out.push({ id: 'guard', icon: '🛡', name: 'Защита после лечения', text: 'вредители и болезни не пристают', left: until(p.guardUntil) });
   if (p.drain) out.push({ id: 'drain', icon: '🪨', name: 'Дренаж', text: 'лишняя вода уходит вчетверо быстрее' });

@@ -152,7 +152,7 @@ h3 { margin: 18px 0 8px; font-size: 16px; }
 .btn:disabled { opacity: 0.55; box-shadow: none; }
 .bar { position: relative; height: 16px; background: var(--soft); border-radius: 9px; overflow: hidden; margin: 5px 0; }
 .bar .fill { height: 100%; background: var(--green2); border-radius: 9px; transition: width 0.5s; }
-.bar span { position: absolute; inset: 0; font-size: 11px; line-height: 16px; text-align: center; font-weight: 600; }
+.bar > span { position: absolute; inset: 0; font-size: 11px; line-height: 16px; text-align: center; font-weight: 600; }
 .inp { width: 100%; font: inherit; font-size: 16px; padding: 11px 13px; border: 2px solid var(--line); border-radius: 14px; outline: none; background: #fff; color: var(--ink); }
 .inp:focus { border-color: var(--green); }
 .lbl { display: block; font-size: 13px; color: var(--muted); margin: 10px 0 5px; }
@@ -1527,3 +1527,11 @@ button:focus:not(:focus-visible) { outline: none; }
 /* общий подоконник: растение нажимается целиком (на своём — только по силуэту) */
 .coop .slot { pointer-events: auto; }
 .coop .label span { display: block; font-size: 10px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 96px; margin: 0 auto; }
+
+/* таймер роста: «отщёлкивает» сэкономленное время и показывает ускорение */
+.eta { display: inline-flex; align-items: center; gap: 3px; font-variant-numeric: tabular-nums; transition: color 0.3s; }
+.eta.skip { color: #2f8a55; animation: eta-pop 0.35s ease-in-out infinite alternate; }
+@keyframes eta-pop { from { transform: scale(1); } to { transform: scale(1.12); } }
+.eta-x { font-style: normal; font-size: 0.85em; font-weight: 800; color: #3b8fd6; }
+.timer-chip .emo { width: 10px; height: 10px; vertical-align: -1px; }
+.timer-chip:has(.eta.skip) { background: #e3f6e8; box-shadow: 0 0 0 2px #7fd09b; }

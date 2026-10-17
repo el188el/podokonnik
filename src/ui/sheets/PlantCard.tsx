@@ -3,7 +3,8 @@ import { useState } from 'react';
 import { BOOST_COOLDOWN, LIGHT_NAME, SHOWOFF_MS, STAGE_NAME, ZONE_NAME } from '../../game/constants';
 import { FORM_BY_ID } from '../../game/products';
 import { BREED_COOLDOWN, canBreed, hueOf } from '../../game/breeding';
-import { canCut, cramped, ctxFor, cutLeft, fmt, fussyOf, isSad, lightLevel, need, neighborsOf, nextStageAt, stageProgress } from '../../game/sim';
+import { BOOST_GROW_H, canCut, cramped, ctxFor, cutLeft, FEED_GROW_H, fmt, fussyOf, isSad, lightLevel, need, neighborsOf, nextStageAt, stageProgress, timerSpeed } from '../../game/sim';
+import { Eta } from '../kit/Eta';
 import { DIFFICULTY_LABEL, sp } from '../../game/species';
 import {
   adsLeft, addDrain, buyItem, toggleVent, boostBlock, boostPlant, breedPartners, drainTray, freshSoil, treat, feed, mist, pollinate, watchAd, move, now, openSheet, wipeLeaves, plantInPot, removePlant, renamePlant, takeCutting, useStore, water,
@@ -70,7 +71,6 @@ export function PlantCard({ id }: { id: string }) {
   const potted = p.stage >= 2;
   const mistOn = p.mistUntil && t < p.mistUntil;
   const feedOn = p.feedUntil && t < p.feedUntil;
-  const boostOn = p.boostUntil && t < p.boostUntil;
   const showoff = !!p.from && t - (p.claimedAt ?? p.createdAt) >= SHOWOFF_MS;
   const days = ageDays(p, t);
   const mark = ageMark(p, t);
@@ -78,8 +78,8 @@ export function PlantCard({ id }: { id: string }) {
 
   const sad = isSad(p);
   const why = potted ? boostBlock(g, p, t) : null;
-  const boostSub = why === 'cooldown' ? `через ${fmt(p.boostAt! + BOOST_COOLDOWN - t)}` : why === 'daily' ? 'на сегодня всё' : why === 'level' ? `с ${ITEM_BY_ID.boost.level} ур.` : why === 'adult' ? 'взрослое' : (g.owned.boost ?? 0) > 0 ? `есть ${g.owned.boost}` : `${ITEM_BY_ID.boost.price} 🍃`;
-  const feedSub = feedOn ? fmt(p.feedUntil! - t) : (g.owned.feed ?? 0) > 0 ? `есть ${g.owned.feed}` : '15 🍃';
+  const boostSub = why === 'cooldown' ? `через ${fmt(p.boostAt! + BOOST_COOLDOWN - t)}` : why === 'daily' ? 'на сегодня всё' : why === 'level' ? `с ${ITEM_BY_ID.boost.level} ур.` : why === 'adult' ? 'взрослое' : why === 'tight' ? 'тесно' : (g.owned.boost ?? 0) > 0 ? `есть ${g.owned.boost}` : `${ITEM_BY_ID.boost.price} 🍃`;
+  const feedSub = p.stage >= 4 ? 'не нужно' : tight(p) ? 'тесно' : feedOn ? `через ${fmt(p.feedUntil! - t)}` : (g.owned.feed ?? 0) > 0 ? `есть ${g.owned.feed}` : '15 🍃';
   const size = potSizeOf(p);
   const potHot = potted && (tight(p) || cramped(p, t));
   const cutReady = p.stage === 4 && canCut(p, t);
@@ -118,7 +118,7 @@ export function PlantCard({ id }: { id: string }) {
             {p.from && <> · <Emo e="🎁" /> от {rich(p.from.name)}</>}
           </p>
           <p className="stage-line"><b>{rich(STAGE_NAME[p.stage])}</b>{rich(p.blooming && ' · цветёт 🌸')}</p>
-          {p.stage < 4 && <Bar value={stageProgress(p, t)} label={p.stage === 1 ? 'пора сажать' : tight(p) ? 'тесно — не растёт' : next ? `ещё ${fmt(next - t)}` : '…'} />}
+          {p.stage < 4 && <Bar value={stageProgress(p, t)} label={p.stage === 1 ? 'пора сажать' : tight(p) ? 'тесно — не растёт' : next ? <>ещё <Eta ms={next - t} speed={timerSpeed(p, t, ctx)} /></> : '…'} />}
           {potted && (
             <div className="stat-chips">
               <span className={p.moisture > 1 ? 'bad' : p.moisture < 0.25 ? 'bad' : ''}><Icon name="water" size={15} tone={TONE.water} /> {Math.round(p.moisture * 100)}%</span>
@@ -202,9 +202,9 @@ export function PlantCard({ id }: { id: string }) {
         <div className="care-grid">
           <button className={'care' + (p.moisture < 0.5 ? ' hot' : '')} onClick={() => doWater()}><span><Icon name="water" size={24} tone={TONE.water} /></span><b>Полить</b></button>
           <button className={'care' + (s.mist === 'love' && !mistOn ? ' hot' : '')} onClick={() => doMist()}><span><Icon name="mist" size={24} tone={TONE.mist} /></span><b>Опрыскать</b><small>{rich(mistOn ? fmt(p.mistUntil! - t) : s.mist === 'love' ? 'любит' : s.mist === 'no' ? 'не любит' : 'можно')}</small></button>
-          <button className="care" disabled={!!feedOn} onClick={() => { if (feed(p.id)) setNote({ text: '🧪 Подкормлено! Сутки растёт в 1,5 раза быстрее.' }); }}><span><Icon name="feed" size={24} tone={TONE.feed} /></span><b>Подкормка</b><small>{rich(feedSub)}</small></button>
+          <button className="care" disabled={!!feedOn || p.stage >= 4} onClick={() => { if (feed(p.id)) setNote({ text: `🧪 Подкормлено: до следующей стадии на ${FEED_GROW_H} ч меньше. Следующая подкормка — через сутки.` }); }}><span><Icon name="feed" size={24} tone={TONE.feed} /></span><b>Подкормка</b><small>{rich(feedSub)}</small></button>
           {p.stage < 4 ? (
-            <button className="care" disabled={!!why && why !== 'sick'} onClick={() => { if (boostPlant(p.id)) setNote({ text: '⚡ Сутки растёт вдвое быстрее. Следующий раз — через неделю.' }); }}><span><Icon name="boost" size={24} tone={TONE.boost} /></span><b>Стимулятор</b><small>{rich(boostOn ? fmt(p.boostUntil! - t) : boostSub)}</small></button>
+            <button className="care" disabled={!!why && why !== 'sick'} onClick={() => { if (boostPlant(p.id)) setNote({ text: `⚡ До следующей стадии на ${BOOST_GROW_H} ч меньше. Следующий раз — через неделю.` }); }}><span><Icon name="boost" size={24} tone={TONE.boost} /></span><b>Стимулятор</b><small>{rich(boostSub)}</small></button>
           ) : (
             <button className={'care' + (cutReady ? ' ready' : '')} disabled={!cutReady} onClick={() => { const c = takeCutting(p.id); if (c) openSheet({ kind: 'send', cutting: c }); }}><span><Icon name="cut" size={24} tone={TONE.cut} /></span><b>Черенок</b><small>{rich(cutReady ? 'можно!' : sad || tight(p) ? 'грустит' : fmt(cutLeft(p, t)))}</small></button>
           )}

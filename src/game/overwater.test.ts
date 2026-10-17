@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { H, MAX_GROWTH_MULT } from './constants';
 import { CURES } from './problems';
-import { advance, ctxFor, growthRate } from './sim';
+import { advance, BOOST_GROW_H, ctxFor, FEED_GROW_H, growNow, growthRate, nextStageAt } from './sim';
 import { newPlant, newState } from './storage';
 
 const T0 = new Date(2026, 5, 1, 12).getTime();
@@ -37,11 +37,22 @@ describe('перелив', () => {
 });
 
 describe('стимулятор роста', () => {
-  it('вдвое ускоряет рост', () => {
-    const { g, p } = world({ moisture: 1, sp: 'tradescantia' });
-    const base = growthRate(p, T0, ctxFor(g, p, T0));
-    p.boostUntil = T0 + 24 * H;
-    expect(growthRate(p, T0, ctxFor(g, p, T0))).toBeCloseTo(base * 2, 5);
+  it('сразу продвигает рост на сутки, и таймер потом не прыгает назад', () => {
+    const { g, p } = world({ moisture: 1, sp: 'citrus' });
+    p.growth = 1;
+    const before = nextStageAt(p, T0, ctxFor(g, p, T0))!;
+    expect(growNow(p, BOOST_GROW_H)).toBe(BOOST_GROW_H);
+    const after = nextStageAt(p, T0, ctxFor(g, p, T0))!;
+    const rate = growthRate(p, T0, ctxFor(g, p, T0));
+    expect(before - after).toBeCloseTo((BOOST_GROW_H / rate) * H, -3);
+    // ускорение не меняет скорость: через час таймер меньше ровно на час
+    expect(nextStageAt(p, T0 + H, ctxFor(g, p, T0 + H))! - (T0 + H)).toBeLessThanOrEqual(after - T0);
+  });
+
+  it('в тесном горшке не помогает', () => {
+    const { p } = world({ moisture: 1, sp: 'tradescantia' });
+    p.stage = 3; p.potSize = 1;
+    expect(growNow(p, FEED_GROW_H)).toBe(0);
   });
 
   it('все ускорения вместе — не больше лимита', () => {

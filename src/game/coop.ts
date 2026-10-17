@@ -5,8 +5,8 @@
 import { GLASS_ROW, DEEP_ROW, zoneOfSlot } from './layout';
 import { hueOf } from './breeding';
 import { FORM_BY_ID, RARE_DROP, formsOf, pickForm } from './products';
-import { advance, canCut, needSize, potSizeOf, pour, tight, WET_FULL } from './sim';
-import { BOOST_COOLDOWN, BOOST_MS, FEED_MS } from './constants';
+import { advance, BOOST_GROW_H, canCut, FEED_GROW_H, growNow, needSize, potSizeOf, pour, tight, WET_FULL } from './sim';
+import { BOOST_COOLDOWN, FEED_MS } from './constants';
 import { CURES, GUARD_MS, PROBLEMS } from './problems';
 import { sp } from './species';
 import type { GameState, Plant, WindowSide } from './types';
@@ -181,14 +181,15 @@ export function coopAct(c: CoopState, a: CoopAction, who: string, t: number, id 
       if (p.stage < 2) return { ok: false, reason: 'not_ready' };
       const it = a.item;
       if (it === 'feed') {
-        if ((p.feedUntil && t < p.feedUntil) || p.stage >= 4) return { ok: false, reason: 'no_need' };
+        if ((p.feedUntil && t < p.feedUntil) || p.stage >= 4 || tight(p)) return { ok: false, reason: 'no_need' };
         p.feedUntil = t + FEED_MS;
+        growNow(p, FEED_GROW_H);
         log(c, who, `подкормил(а) ${sp(p.sp).acc}`, t);
       } else if (it === 'boost') {
-        if (p.stage >= 4 || p.problem || p.health < 60 || (p.boostAt && t - p.boostAt < BOOST_COOLDOWN)) return { ok: false, reason: 'no_need' };
+        if (p.stage >= 4 || p.problem || p.health < 60 || tight(p) || (p.boostAt && t - p.boostAt < BOOST_COOLDOWN)) return { ok: false, reason: 'no_need' };
         p.boostAt = t;
-        p.boostUntil = t + BOOST_MS;
-        log(c, who, `дал(а) стимулятор: ${sp(p.sp).name.toLowerCase()} растёт вдвое быстрее ⚡`, t);
+        growNow(p, BOOST_GROW_H);
+        log(c, who, `дал(а) стимулятор: ${sp(p.sp).name.toLowerCase()} подрос(ла) на сутки вперёд ⚡`, t);
       } else if (it === 'drain') {
         if (p.drain) return { ok: false, reason: 'no_need' };
         p.drain = true;

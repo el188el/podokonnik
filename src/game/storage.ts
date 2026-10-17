@@ -88,6 +88,13 @@ export function upgrade(s: GameState, t: number): GameState {
   for (const p of out.plants) if ((p.slot === 9 || p.slot === 10) && !(out.places ?? []).includes(p.slot)) out.places = [...(out.places ?? []), p.slot];
   if (!out.bloomed) out.bloomed = [...new Set(out.plants.filter((p) => p.bloomedOnce).map((p) => p.sp))];
   if (out.tutorial < 99 && out.stats.planted > 0) out.tutorial = 99; // опытным игрокам обучение не показываем
+  // подкормка и стимулятор теперь сразу продвигают рост: недоиспользованный остаток засчитываем сразу
+  for (const p of out.plants) {
+    if (p.boostUntil && p.boostUntil > t) p.growth += (p.boostUntil - t) / H;
+    if (p.feedUntil && p.feedUntil > t && !out.growV) p.growth += (0.5 * (p.feedUntil - t)) / H;
+    delete p.boostUntil;
+  }
+  out.growV = 2;
   return out;
 }
 

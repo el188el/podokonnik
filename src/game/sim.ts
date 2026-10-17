@@ -165,7 +165,8 @@ export const fussyOf = (p: Plant, ctx: Ctx) => fussyIssue(sp(p.sp), ctx.temp ?? 
 
 /** Что ускоряет и что тормозит рост прямо сейчас (множители). Из них складывается скорость роста. */
 export interface GrowthFactor { id: string; label: string; mul: number }
-export function growthFactors(p: Plant, t: number, ctx: Ctx): GrowthFactor[] {
+/** steady — без временных ускорений (опрыскивание): по нему считаем таймер, а ускорение видно, как таймер бежит быстрее. */
+export function growthFactors(p: Plant, t: number, ctx: Ctx, steady = false): GrowthFactor[] {
   const out: GrowthFactor[] = [];
   const add = (id: string, label: string, mul: number) => { if (Math.abs(mul - 1) > 0.001) out.push({ id, label, mul }); };
   const s = sp(p.sp);
@@ -173,9 +174,7 @@ export function growthFactors(p: Plant, t: number, ctx: Ctx): GrowthFactor[] {
   const bad = badLight(p, t, ctx);
   if (bad) add('light', bad === 'dark' ? 'Мало света' : 'Слишком яркое солнце', 0.5);
   else if (ctx.sunny && s.light[1] === 4) add('sun', 'Солнечный день', 1.15);
-  if (p.mistUntil && t < p.mistUntil) add('mist', 'Опрыскано', 1.5);
-  if (p.feedUntil && t < p.feedUntil) add('feed', 'Подкормка', 1.5);
-  if (p.boostUntil && t < p.boostUntil) add('boost', 'Стимулятор', 2);
+  if (!steady && p.mistUntil && t < p.mistUntil) add('mist', 'Опрыскано', 1.5);
   if (isWinter(t)) add('winter', 'Зима: короткий день', 0.75);
   if (p.health < 30) add('weak', 'Слабое здоровье', 0.4);
   if (p.problem) add('problem', 'Болезнь или вредители', problemEffect(p).slow);
@@ -188,10 +187,23 @@ export function growthFactors(p: Plant, t: number, ctx: Ctx): GrowthFactor[] {
   return out;
 }
 
-export function growthRate(p: Plant, t: number, ctx: Ctx) {
+/** Подкормка и стимулятор сразу продвигают рост — на столько часов роста. */
+export const FEED_GROW_H = 12;
+export const BOOST_GROW_H = 24;
+/** Сразу добавить часы роста, будто растение их уже прожило. Возвращает, сколько добавилось. */
+export function growNow(p: Plant, hours: number): number {
+  if (p.stage < 2 || p.stage >= 4 || tight(p)) return 0;
+  const before = p.growth;
+  p.growth += hours;
+  // из маленького горшка S растение не перерастает сразу во взрослое
+  if (potSizeOf(p) <= 1) p.growth = Math.min(p.growth, stageMarks(p.sp)[1] - 0.01);
+  return p.growth - before;
+}
+
+export function growthRate(p: Plant, t: number, ctx: Ctx, steady = false) {
   if (p.stage < 2) return 0;
   if (tight(p)) return 0; // в тесном горшке не растёт
-  let r = growthFactors(p, t, ctx).reduce((r, f) => r * f.mul, 1);
+  let r = growthFactors(p, t, ctx, steady).reduce((r, f) => r * f.mul, 1);
   r = Math.min(r, MAX_GROWTH_MULT);
   if (ctx.live && ctx.live > 1) r *= ctx.live; // ивент «быстрый рост» — поверх обычных ускорений
   if (ctx.newbie) r *= NEWBIE_MULT; // бонус новичка — поверх всех ускорений
@@ -228,8 +240,15 @@ export function nextStageAt(p: Plant, t: number, ctx: Ctx): number | null {
   if (p.stage === 1 || p.stage === 4) return null;
   const [a, b] = stageMarks(p.sp);
   const left = (p.stage === 2 ? a : b) - p.growth;
-  const r = growthRate(p, t, ctx);
-  return r > 0 ? t + (left / r) * H : null;
+  // по обычной скорости: когда растение временно ускорено, таймер просто идёт быстрее, а не прыгает потом назад
+  const r = growthRate(p, t, ctx, true);
+  return r > 0 ? t + (Math.max(0, left) / r) * H : null;
+}
+
+/** Во сколько раз таймер сейчас идёт быстрее обычного (опрыскивание). */
+export function timerSpeed(p: Plant, t: number, ctx: Ctx) {
+  const base = growthRate(p, t, ctx, true);
+  return base > 0 ? growthRate(p, t, ctx) / base : 1;
 }
 
 export function stageProgress(p: Plant, t: number): number {

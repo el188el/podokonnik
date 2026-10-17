@@ -22,12 +22,12 @@ import { addMastery, type MasteryKind } from './mastery';
 import { CARE_TASK_REWARD } from './calendar';
 import { BOX_PRICE, rollBox, type BoxPrize } from './box';
 import { SHELVES, shelfDone } from './album';
-import { BOOST_COOLDOWN, BOOST_MS, BOOST_PER_DAY, D, FEED_MS, H, HANG_SLOTS, MAX_CUTTINGS, MIST_MS, NEIGHBOR_COOLDOWN, NEIGHBOR_FREE_DAYS, STAGE_NAME } from './constants';
+import { BOOST_COOLDOWN, BOOST_PER_DAY, D, FEED_MS, H, HANG_SLOTS, MAX_CUTTINGS, MIST_MS, NEIGHBOR_COOLDOWN, NEIGHBOR_FREE_DAYS, STAGE_NAME } from './constants';
 import { giftLink, makeCode } from './gifts';
 import { XP, levelPerks, levelReward, unlocksAt, xpToNext, SILL_UNLOCK } from './progression';
 import { QUEST_BONUS, WEEKLY_CHEST, dayKey, bumpQuest, bumpWeekly, rollDay, rollWeek, streakReward, weeklyVisit } from './quests';
 import { ITEM_BY_ID, ITEMS, placeOf, potIdOf, sellPrice } from './shop';
-import { advance, badLight, bestZone, canCut, ctxFor, hasDecorOn, pour, WATER_REWARD_MS, WET_FULL, fmt, needSize, POT_SIZE_ITEM, POT_SIZE_NAME, potSizeOf, tight, hasLamp, neighborsOf, stageMarks, type SimEvent } from './sim';
+import { advance, BOOST_GROW_H, FEED_GROW_H, growNow, stageFromGrowth, badLight, bestZone, canCut, ctxFor, hasDecorOn, pour, WATER_REWARD_MS, WET_FULL, fmt, needSize, POT_SIZE_ITEM, POT_SIZE_NAME, potSizeOf, tight, hasLamp, neighborsOf, stageMarks, type SimEvent } from './sim';
 import { activeEvent, EVENT_TOKENS, eventSeason, isEmptyReward, PREM_AT, tierOf, type GameEvent, type PassReward } from './events';
 import { leavesMul, liveCutting, livePrice, setLive } from './liveops';
 import { FORM_BY_ID, FORMS, PRODUCT_BY_ID, RARE_DROP, TIER_NAME, formsOf, pickForm, tierOfForm } from './products';
@@ -1131,8 +1131,10 @@ export function feed(plantId: string): boolean {
   return mut((g, t) => {
     const p = findPlant(g, plantId);
     if (!p || p.stage < 2) return false;
+    if (p.stage >= 4) { toast('Взрослому подкормка не нужна — оно уже выросло 🌿'); return false; }
+    if (tight(p)) { toast('Тесно в горшке — сначала пересади, иначе подкормка не поможет 🪴'); return false; }
     if (p.feedUntil && t < p.feedUntil) {
-      toast(`🧪 Подкормка ещё действует ${fmt(p.feedUntil - t)}. Перекорм обжигает корни — подожди`);
+      toast(`🧪 Снова можно через ${fmt(p.feedUntil - t)}. Перекорм обжигает корни — подожди`);
       say(p.id, 'Я сытое 🙂', 1800);
       return false;
     }
@@ -1140,11 +1142,13 @@ export function feed(plantId: string): boolean {
       if (g.leaves < ITEM_BY_ID.feed.price) { toast('Не хватает листиков на подкормку 🍃'); return false; }
       g.leaves -= ITEM_BY_ID.feed.price;
     } else g.owned.feed -= 1;
-    p.feedUntil = t + FEED_MS;
+    p.feedUntil = t + FEED_MS; // до этого времени — «сытое», перекармливать нельзя
+    const was = p.stage;
+    growNow(p, FEED_GROW_H);
     addXp(g, XP.feed);
     quest(g, 'feed');
     fx(p.id, 'feed');
-    toast('Подкормлено! Сутки растёт в 1,5 раза быстрее 🧪');
+    toast(stageFromGrowth(p.sp, p.growth) > was ? '🧪 Подкормлено — и сразу подросло!' : `🧪 Подкормлено: до следующей стадии на ${FEED_GROW_H} ч меньше`);
     return true;
   });
 }
@@ -2568,7 +2572,7 @@ export const USABLE = ['feed', 'boost', 'soap', 'acaricide', 'traps', 'fungicide
 /** Пригодится ли этому растению предмет из инвентаря (для подсветки). */
 export function itemFits(g: GameState, id: string, p: Plant, t: number): boolean {
   if (p.stage < 2) return false;
-  if (id === 'feed') return !(p.feedUntil && t < p.feedUntil) && p.stage < 4;
+  if (id === 'feed') return !(p.feedUntil && t < p.feedUntil) && p.stage < 4 && !tight(p);
   if (id === 'boost') return !boostBlock(g, p, t);
   if (id === 'drain') return !p.drain;
   if (id === 'soil') return p.moisture > 1 || (!!p.problem && CURES.soil.includes(p.problem.kind));
@@ -2595,13 +2599,14 @@ export function applyItem(plantId: string, id: string) {
 }
 
 // ─────────────────── стимулятор роста ───────────────────
-export type BoostBlock = 'adult' | 'sick' | 'cooldown' | 'daily' | 'level' | null;
+export type BoostBlock = 'adult' | 'sick' | 'cooldown' | 'daily' | 'level' | 'tight' | null;
 
 /** Почему сейчас нельзя дать стимулятор (или null — можно). */
 export function boostBlock(g: GameState, p: Plant, t: number): BoostBlock {
   if (g.level < (ITEM_BY_ID.boost.level ?? 0)) return 'level';
   if (p.stage < 2 || p.stage >= 4) return 'adult';
   if (p.problem || p.health < 60) return 'sick';
+  if (tight(p)) return 'tight';
   if (p.boostAt && t - p.boostAt < BOOST_COOLDOWN) return 'cooldown';
   if (g.boosts?.day === dayKey(t) && g.boosts.n >= BOOST_PER_DAY) return 'daily';
   return null;
@@ -2615,18 +2620,20 @@ export function boostPlant(plantId: string) {
     if (why === 'level') { toast(`Стимулятор откроется на ${ITEM_BY_ID.boost.level} уровне`); return false; }
     if (why === 'adult') { toast(p.stage >= 4 ? 'Взрослому стимулятор не нужен — он уже вырос 🌿' : 'Сначала посади в горшок'); return false; }
     if (why === 'sick') { toast('Сначала вылечи: больному растению стимулятор только навредит'); return false; }
+    if (why === 'tight') { toast('Тесно в горшке — сначала пересади 🪴'); return false; }
     if (why === 'cooldown') { toast(`⚡ Снова можно через ${fmt(p.boostAt! + BOOST_COOLDOWN - t)} — иначе растение истощится`); return false; }
     if (why === 'daily') { toast(`⚡ Сегодня уже ${BOOST_PER_DAY} стимулятора — хватит. Завтра можно снова`); return false; }
     if (!payItem(g, 'boost')) return false;
     const day = dayKey(t);
     g.boosts = { day, n: (g.boosts?.day === day ? g.boosts.n : 0) + 1 };
     p.boostAt = t;
-    p.boostUntil = t + BOOST_MS;
+    const was = p.stage;
+    growNow(p, BOOST_GROW_H);
     addXp(g, 3);
     fx(p.id, 'feed');
     haptic('success');
     say(p.id, 'Расту-у-у! ⚡', 2000);
-    toast('⚡ Стимулятор: сутки растёт вдвое быстрее');
+    toast(stageFromGrowth(p.sp, p.growth) > was ? '⚡ Стимулятор — и сразу подросло!' : `⚡ Стимулятор: до следующей стадии на ${BOOST_GROW_H} ч меньше`);
     track('boost', { sp: p.sp });
     return true;
   });
