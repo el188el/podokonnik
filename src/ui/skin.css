@@ -429,3 +429,4 @@ body:has(.skin) { background: var(--bg, #f5f2ec); }
 :root .skin .gicon :is(.ico, .emo) { max-width: 56px; max-height: 56px; }
 :root .skin .tabbar .tab-pill { inset: 0 -3px; }
 :root .skin .tabbar .tl { letter-spacing: -0.2px; }
+:root .skin .row-item .where { color: var(--green-d); font-weight: 600; margin-top: 2px; }

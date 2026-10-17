@@ -3,7 +3,7 @@
 import { climateOf, coldLimit, rhWord, tempWord, zoneTemp } from '../../game/climate';
 import { ITEM_BY_ID } from '../../game/shop';
 import { sp } from '../../game/species';
-import { buyItem, now, openSheet, switchItem, toggleCurtains, toggleVent, useStore } from '../../game/store';
+import { buyItem, freeCopies, now, openSheet, switchItem, toggleCurtains, toggleDecor, toggleVent, useStore } from '../../game/store';
 import { WINDOWS } from '../../game/constants';
 import { SKY, weatherAt } from '../../game/weather';
 import { tempText } from '../../game/weather';
@@ -72,8 +72,10 @@ export function ClimateSheet() {
             <div><b>{rich(it.icon)} {rich(it.name)}</b><small>{rich(has(id) ? (switchable ? (isOn(id) ? 'Включён' : 'Выключен') : 'Установлен') : it.desc)}</small></div>
             {has(id) ? (
               switchable ? <button className={'switch' + (isOn(id) ? ' on' : '')} onClick={() => switchItem(sill.id, id)} aria-pressed={isOn(id)}><i /></button> : <span className="clim-ok"><Emo e="✓" /></span>
+            ) : freeCopies(g, id) > 0 ? (
+              <Btn small onClick={() => toggleDecor(sill.id, id)}>Поставить</Btn>
             ) : (g.owned[id] ?? 0) > 0 ? (
-              <span className="muted small">на другом окне</span>
+              <Btn small kind="gold" onClick={() => buyItem(id)}>Ещё один · {it.price} <Emo e="🍃" /></Btn>
             ) : locked ? <span className="muted small">с {it.level} ур.</span> : <Btn small kind="gold" onClick={() => buyItem(id)}>{it.price} <Emo e="🍃" /></Btn>}
           </div>
         );

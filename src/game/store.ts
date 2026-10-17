@@ -1274,7 +1274,14 @@ export function buyItem(id: string) {
     if (it.eventOnly) { toast(it.album ? 'Этот предмет — награда за полную полку альбома' : 'Этот предмет — награда сезонного пропуска'); return false; }
     if (it.level && g.level < it.level) { toast(`Откроется на ${it.level} уровне`); return false; }
     if (it.months && !it.months.includes(new Date(t).getMonth() + 1)) { toast('Этот товар бывает только в сезон'); return false; }
-    if (!it.consumable && (g.owned[id] ?? 0) > 0) { toast('Уже есть 🙂'); return false; }
+    const sillNow = g.sills.find((s) => s.id === g.activeSill);
+    // ещё один экземпляр — в эту комнату (в другой уже стоит)
+    const extra = perRoom(id) && (g.owned[id] ?? 0) > 0 && !!sillNow && !sillNow.decor.includes(id) && freeCopies(g, id) <= 0;
+    if (!it.consumable && (g.owned[id] ?? 0) > 0 && !extra) {
+      if (perRoom(id) && freeCopies(g, id) > 0) toast('Есть свободный — поставь его в «Переставить предметы»');
+      else toast('Уже есть 🙂');
+      return false;
+    }
     if (it.needs && !(g.owned[it.needs] ?? 0)) { toast(`Сначала — ${ITEM_BY_ID[it.needs]?.name ?? 'предыдущий товар'}`); return false; }
     const price = livePrice(it.price, t);
     if (g.leaves < price) { toast('Не хватает листиков 🍃'); haptic('warning'); return false; }
@@ -1317,6 +1324,17 @@ export function buySpecies(spId: string) {
   });
 }
 
+// ─────────── предметы по комнатам: сколько куплено и где стоят ───────────
+const ROAMING = ['cat', 'cat2', 'cat3']; // котики ходят за хозяином — их не покупают в каждую комнату
+/** Предмет покупается в каждую комнату отдельно (декор и приборы). */
+export const perRoom = (id: string) => {
+  const it = ITEM_BY_ID[id];
+  return !!it && it.cat === 'decor' && !it.consumable && !it.eventOnly && !it.album && !ROAMING.includes(id);
+};
+export const placedIn = (g: GameState, id: string) => g.sills.filter((s) => s.decor.includes(id));
+/** Сколько экземпляров лежит без дела (куплено, но не стоит ни в одной комнате). */
+export const freeCopies = (g: GameState, id: string) => Math.max(0, (g.owned[id] ?? 0) - placedIn(g, id).length);
+
 export function toggleDecor(sillId: string, id: string) {
   mut((g) => {
     const sill = g.sills.find((s) => s.id === sillId);
@@ -1329,7 +1347,12 @@ export function toggleDecor(sillId: string, id: string) {
     }
     if (sill.decor.includes(id)) sill.decor = sill.decor.filter((x) => x !== id);
     else {
-      for (const other of g.sills) other.decor = other.decor.filter((x) => x !== id);
+      // есть свободный экземпляр — просто ставим; нет — переносим из другой комнаты
+      if (!perRoom(id) || freeCopies(g, id) <= 0) {
+        const from = g.sills.find((o) => o.id !== sill.id && o.decor.includes(id));
+        for (const other of g.sills) other.decor = other.decor.filter((x) => x !== id);
+        if (from && perRoom(id)) toast(`Перенесли из «${from.name}». Чтобы стоял в обеих комнатах — купи ещё один в магазине`);
+      }
       // обои — одни на подоконник
       if (placeOf(id) === 'wallpaper') sill.decor = sill.decor.filter((x) => placeOf(x) !== 'wallpaper');
       sill.decor.push(id);

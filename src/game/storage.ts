@@ -75,6 +75,12 @@ export function upgrade(s: GameState, t: number): GameState {
   out.owned = { ...s.owned };
   if (out.owned.pot === undefined) out.owned.pot = 5; // горшки стали расходником — старым сохранениям запас
   if (out.owned.potM === undefined) out.owned.potM = 3; // появились размеры горшков — подарок на первые пересадки
+  // предметы стали «по одному на комнату»: если старым сохранением один предмет стоит в нескольких
+  // комнатах — засчитываем столько экземпляров, сколько комнат, ничего не отнимаем
+  for (const sill of out.sills ?? []) for (const id of sill.decor ?? []) {
+    const placed = out.sills.filter((x) => x.decor?.includes(id)).length;
+    if ((out.owned[id] ?? 0) > 0 && placed > (out.owned[id] ?? 0)) out.owned[id] = placed;
+  }
   normalizeLayout(out.plants);
   if (out.firstChest === undefined && t - out.createdAt > 2 * 86400e3) out.firstChest = true; // сундучок — только новичкам
   seedMastery(out);

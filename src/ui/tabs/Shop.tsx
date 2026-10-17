@@ -5,7 +5,7 @@ import { DIFFICULTY_LABEL, SPECIES } from '../../game/species';
 import { FORM_BY_ID, PRODUCTS } from '../../game/products';
 import { fmt } from '../../game/sim';
 import { activeEvent } from '../../game/events';
-import { adsLeft, boxReady, buyItem, buySpecies, buyStars, isPlus, now, openBox, openSheet, unlockSill, useStore, watchAd } from '../../game/store';
+import { adsLeft, boxReady, buyItem, buySpecies, buyStars, freeCopies, isPlus, now, openBox, openSheet, perRoom, placedIn, toggleDecor, unlockSill, useStore, watchAd } from '../../game/store';
 import { BOX_PRICE } from '../../game/box';
 import { discountPct, livePrice } from '../../game/liveops';
 import { sharePlusGift } from '../share';
@@ -32,6 +32,7 @@ const CATS: [Cat, IconName, string][] = [
 export function Shop() {
   const g = useStore((s) => s.game);
   useStore((s) => s.live); // перерисовать, когда меняются ивенты (скидка)
+  const sillHere = g.sills.find((s) => s.id === g.activeSill);
   const [cat, setCat] = useState<Cat>('plants');
   const month = new Date(now()).getMonth() + 1;
   const sale = discountPct(now());
@@ -57,6 +58,7 @@ export function Shop() {
         ))}
       </div>
 
+      {cat === 'decor' && g.sills.length > 1 && <p className="muted small room-note">Декор и приборы — для комнаты «{sillHere?.name}». Для другой комнаты переключи подоконник наверху на главном экране.</p>}
       {cat === 'plants' && (
         <>
           <p className="muted small">Черенок попадёт в запас. Поставь его в воду на свободное место или подари другу.</p>
@@ -93,6 +95,7 @@ export function Shop() {
           {ITEMS.filter((i) => i.cat === cat && (!i.eventOnly || (g.owned[i.id] ?? 0) > 0)).map((it, idx, arr) => {
             const grp = it.group && it.group !== arr.slice(0, idx).reverse().find((x) => x.group)?.group ? it.group : null;
             const owned = (g.owned[it.id] ?? 0) > 0 && !it.consumable;
+            const here = sillHere?.decor.includes(it.id);
             const lockLevel = it.level && g.level < it.level;
             const offSeason = it.months && !it.months.includes(month);
             return (
@@ -106,8 +109,13 @@ export function Shop() {
                   <b>{rich(it.name)}</b>
                   <span className="muted small">{rich(it.desc)}</span>
                   {it.consumable && (g.owned[it.id] ?? 0) > 0 && <span className="small">В запасе: {g.owned[it.id]}</span>}
+                  {owned && perRoom(it.id) && <span className="small where">{rich(placedIn(g, it.id).length ? 'Стоит: ' + placedIn(g, it.id).map((x) => x.name).join(', ') : 'Не стоит ни в одной комнате')}{freeCopies(g, it.id) > 0 ? ` · свободно ${freeCopies(g, it.id)}` : ''}</span>}
                 </div>
-                {owned ? (
+                {owned && perRoom(it.id) && !here ? (
+                  freeCopies(g, it.id) > 0
+                    ? <Btn small onClick={() => toggleDecor(g.activeSill, it.id)}>Поставить сюда</Btn>
+                    : <Btn small kind="primary" disabled={g.leaves < livePrice(it.price, now())} onClick={() => buyItem(it.id)}>+1 · <Price n={it.price} /></Btn>
+                ) : owned ? (
                   <span className="owned"><Emo e="✓" /> есть</span>
                 ) : lockLevel ? (
                   <Btn small disabled><Icon name="lock" size={15} /> {it.level} ур.</Btn>
