@@ -2164,6 +2164,7 @@ const COOP_FAIL: Record<string, string> = {
   no_mist: 'Это растение не опрыскивают',
   not_ready: 'Пока рано',
   bad: 'Так нельзя',
+  no_need: 'Сейчас этому растению это не нужно',
 };
 
 /** Действие на общем подоконнике. cuttingId — какой черенок из запаса посадить. */
@@ -2174,6 +2175,17 @@ export async function coopDo(id: number, action: CoopAction, cuttingId?: string)
   }
   if (action.kind === 'pot') {
     if (potsLeft(get().game) <= 0) { openSheet({ kind: 'pots' }); return null; }
+  }
+  if (action.kind === 'use' && (get().game.owned[action.item] ?? 0) <= 0) {
+    toast(`${ITEM_BY_ID[action.item]?.icon ?? ''} ${ITEM_BY_ID[action.item]?.name ?? 'Этого'} нет в инвентаре — загляни в магазин`);
+    return null;
+  }
+  if (action.kind === 'repot') {
+    const p = get().coops?.find((c) => c.id === id)?.state.plants.find((x) => x.id === action.plant);
+    const to = p ? Math.max(potSizeOf(p) + 1, needSize(p.stage)) : 0;
+    const g = get().game;
+    if (to > 4) { toast('Горшок уже самый большой'); return null; }
+    if (to && potsOf(g, to) <= 0 && g.leaves < ITEM_BY_ID[POT_SIZE_ITEM[to]].price) { toast(`Нужен горшок ${POT_SIZE_NAME[to]}: загляни в магазин 🪴`); return null; }
   }
   // сразу показываем результат у себя (те же правила, что на сервере), а сервер потом подтверждает
   const prev = get().coops?.find((c) => c.id === id);
@@ -2212,6 +2224,21 @@ export async function coopDo(id: number, action: CoopAction, cuttingId?: string)
         g.stats.planted += 1;
         addXp(g, XP.plant);
         quest(g, 'plant');
+        haptic('success');
+      } else if (res.effect === 'repotted' && res.size) {
+        // горшок — из своего запаса (или покупаем за листики, как дома)
+        const item = POT_SIZE_ITEM[res.size];
+        if (potsOf(g, res.size) > 0) g.owned[item] -= 1;
+        else g.leaves = Math.max(0, g.leaves - (ITEM_BY_ID[item]?.price ?? 0));
+        g.stats.repots += 1;
+        addXp(g, XP.repot);
+        quest(g, 'repot');
+        haptic('success');
+      } else if (res.effect === 'used' && res.item) {
+        g.owned[res.item] = Math.max(0, (g.owned[res.item] ?? 0) - 1);
+        if (res.item === 'feed') { addXp(g, XP.feed); quest(g, 'feed'); }
+        if ((g.owned[res.item] ?? 0) <= 0 && get().tool === 'use') set({ tool: 'look', useItem: undefined });
+        toast(`${ITEM_BY_ID[res.item]?.icon ?? ''} Готово: ${ITEM_BY_ID[res.item]?.name ?? ''}`);
         haptic('success');
       } else if (res.effect === 'planted' && cuttingId) {
         g.cuttings = g.cuttings.filter((c) => c.id !== cuttingId);

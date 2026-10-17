@@ -38,4 +38,23 @@ describe('совместный подоконник', () => {
     expect(cleanAction({ kind: 'window', side: 'X' })).toBeNull();
     expect(cleanAction({ kind: 'hack' })).toBeNull();
   });
+
+  it('пересадка в горшок побольше, подкормка и лечение из своего инвентаря', () => {
+    const c = newCoop('Наш', 'E', T0);
+    coopAct(c, { kind: 'plant', slot: 0, cutting: { sp: 'tradescantia' } }, 'Аня', T0, 'p1');
+    coopAct(c, { kind: 'water', plant: 'p1' }, 'Аня', T0);
+    coopAct(c, { kind: 'pot', plant: 'p1' }, 'Аня', T0 + 3 * MIN);
+    const p = c.plants[0];
+    p.stage = 3; p.potSize = 1;
+    expect(coopAct(c, { kind: 'repot', plant: 'p1' }, 'Миша', T0 + 4 * MIN)).toMatchObject({ ok: true, effect: 'repotted', size: 2 });
+    expect(c.plants[0].potSize).toBe(2);
+    expect(coopAct(c, { kind: 'use', plant: 'p1', item: 'feed' }, 'Аня', T0 + 5 * MIN)).toMatchObject({ ok: true, item: 'feed' });
+    expect(coopAct(c, { kind: 'use', plant: 'p1', item: 'feed' }, 'Аня', T0 + 6 * MIN)).toEqual({ ok: false, reason: 'no_need' });
+    c.plants[0].problem = { kind: 'mite', at: T0, sev: 0.5 };
+    expect(coopAct(c, { kind: 'use', plant: 'p1', item: 'traps' }, 'Аня', T0 + 7 * MIN)).toEqual({ ok: false, reason: 'no_need' });
+    expect(coopAct(c, { kind: 'use', plant: 'p1', item: 'acaricide' }, 'Аня', T0 + 8 * MIN)).toMatchObject({ ok: true });
+    expect(c.plants[0].problem).toBeUndefined();
+    expect(cleanAction({ kind: 'use', plant: 'p1', item: 'gold' })).toBeNull();
+    expect(cleanAction({ kind: 'repot', plant: 'p1' })).toEqual({ kind: 'repot', plant: 'p1' });
+  });
 });

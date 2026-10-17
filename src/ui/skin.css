@@ -535,3 +535,8 @@ body:has(.skin) { background: var(--bg, #f5f2ec); }
 :root .skin .rw-list.many .rw-chip { border-radius: 14px; font-size: 12.5px; line-height: 1.2; text-align: left; padding: 5px 8px 5px 5px; }
 :root .skin .reward-pop:has(.rw-list.many) .rw-hero { width: 130px; height: 130px; }
 :root .skin .reward-pop:has(.rw-list.many) .rw-hero-art { transform: scale(0.8); }
+
+/* общий подоконник: карточка */
+:root .skin .coop-card { display: grid; gap: 10px; }
+:root .skin .coop-card-head { display: flex; justify-content: space-between; align-items: center; }
+:root .skin .coop-card .actions { display: flex; flex-wrap: wrap; gap: 6px; }

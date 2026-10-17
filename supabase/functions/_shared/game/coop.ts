@@ -6,7 +6,9 @@
 import { GLASS_ROW, DEEP_ROW, zoneOfSlot } from './layout.ts';
 import { hueOf } from './breeding.ts';
 import { FORM_BY_ID, RARE_DROP, formsOf, pickForm } from './products.ts';
-import { advance, canCut, pour, WET_FULL } from './sim.ts';
+import { advance, canCut, needSize, potSizeOf, pour, tight, WET_FULL } from './sim.ts';
+import { BOOST_COOLDOWN, BOOST_MS, FEED_MS } from './constants.ts';
+import { CURES, GUARD_MS, PROBLEMS } from './problems.ts';
 import { sp } from './species.ts';
 import type { GameState, Plant, WindowSide } from './types.ts';
 
@@ -45,18 +47,24 @@ export type CoopAction =
   | { kind: 'pot'; plant: string }
   | { kind: 'cut'; plant: string }
   | { kind: 'remove'; plant: string }
+  | { kind: 'repot'; plant: string }
+  | { kind: 'use'; plant: string; item: CoopItem }
   | { kind: 'window'; side: WindowSide };
 
+/** Что из своего инвентаря можно применить к растению на общем подоконнике. */
+export const COOP_ITEMS = ['feed', 'boost', 'soap', 'acaricide', 'traps', 'fungicide', 'soil', 'drain'] as const;
+export type CoopItem = (typeof COOP_ITEMS)[number];
+
 export type CoopResult =
-  | { ok: true; effect: 'watered' | 'rooting' | 'misted' | 'moved' | 'planted' | 'potted' | 'cut' | 'removed' | 'window'; cutting?: CoopCutting }
-  | { ok: false; reason: 'gone' | 'enough' | 'busy' | 'no_mist' | 'not_ready' | 'bad' };
+  | { ok: true; effect: 'watered' | 'rooting' | 'misted' | 'moved' | 'planted' | 'potted' | 'cut' | 'removed' | 'window' | 'repotted' | 'used'; cutting?: CoopCutting; size?: number; item?: CoopItem }
+  | { ok: false; reason: 'gone' | 'enough' | 'busy' | 'no_mist' | 'not_ready' | 'bad' | 'no_need' };
 
 export function newCoop(name: string, window: WindowSide, t: number): CoopState {
   return { v: 1, name: name.trim().slice(0, 24) || 'Наш подоконник', window, plants: [], simAt: t, log: [] };
 }
 
 /** Мир игры вокруг общего подоконника — чтобы считать рост той же симуляцией. */
-function world(c: CoopState): GameState {
+export function coopWorld(c: CoopState): GameState {
   return {
     plants: c.plants,
     sills: [{ id: COOP_SILL, name: c.name, window: c.window, decor: [] }],
@@ -68,7 +76,7 @@ function world(c: CoopState): GameState {
 
 /** Досчитать рост до момента t. */
 export function coopAdvance(c: CoopState, t: number) {
-  const w = world(c);
+  const w = coopWorld(c);
   const ev = advance(w, t);
   c.simAt = w.simAt;
   for (const e of ev) {
@@ -159,6 +167,49 @@ export function coopAct(c: CoopState, a: CoopAction, who: string, t: number, id 
       log(c, who, `взял(а) черенок ${sp(p.sp).gen}${form && FORM_BY_ID[form] ? ` — «${FORM_BY_ID[form].name}»!` : ''}`, t);
       return { ok: true, effect: 'cut', cutting: { sp: p.sp, ...(form ? { form } : {}), ...(p.hue ? { hue: p.hue } : {}) } };
     }
+    case 'repot': {
+      if (p.stage < 2) return { ok: false, reason: 'not_ready' };
+      const cur = potSizeOf(p);
+      const to = Math.max(cur + 1, needSize(p.stage));
+      if (to > 4) return { ok: false, reason: 'no_need' };
+      p.potSize = to;
+      p.bigPot = to >= 4;
+      p.repottedAt = t;
+      log(c, who, `пересадил(а) ${sp(p.sp).acc} в горшок побольше`, t);
+      return { ok: true, effect: 'repotted', size: to };
+    }
+    case 'use': {
+      if (p.stage < 2) return { ok: false, reason: 'not_ready' };
+      const it = a.item;
+      if (it === 'feed') {
+        if ((p.feedUntil && t < p.feedUntil) || p.stage >= 4) return { ok: false, reason: 'no_need' };
+        p.feedUntil = t + FEED_MS;
+        log(c, who, `подкормил(а) ${sp(p.sp).acc}`, t);
+      } else if (it === 'boost') {
+        if (p.stage >= 4 || p.problem || p.health < 60 || (p.boostAt && t - p.boostAt < BOOST_COOLDOWN)) return { ok: false, reason: 'no_need' };
+        p.boostAt = t;
+        p.boostUntil = t + BOOST_MS;
+        log(c, who, `дал(а) стимулятор: ${sp(p.sp).name.toLowerCase()} растёт вдвое быстрее ⚡`, t);
+      } else if (it === 'drain') {
+        if (p.drain) return { ok: false, reason: 'no_need' };
+        p.drain = true;
+        log(c, who, `насыпал(а) дренаж ${sp(p.sp).gen}`, t);
+      } else if (it === 'soil' && !(p.problem && CURES.soil.includes(p.problem.kind))) {
+        if (p.moisture <= 1) return { ok: false, reason: 'no_need' };
+        p.moisture = 0.6;
+        p.wetFor = 0;
+        log(c, who, `пересадил(а) ${sp(p.sp).acc} в сухой грунт`, t);
+      } else {
+        if (!p.problem || !CURES[it]?.includes(p.problem.kind)) return { ok: false, reason: 'no_need' };
+        const pr = PROBLEMS[p.problem.kind];
+        if (p.problem.kind === 'rot' && p.moisture > 1) p.moisture = 1;
+        if (it === 'soil') { p.moisture = 0.6; p.wetFor = 0; }
+        p.problem = undefined;
+        p.guardUntil = t + GUARD_MS;
+        log(c, who, `вылечил(а) ${sp(p.sp).acc}: ${pr.name.toLowerCase()} 💊`, t);
+      }
+      return { ok: true, effect: 'used', item: it };
+    }
     case 'remove': {
       c.plants = c.plants.filter((x) => x.id !== p.id);
       log(c, who, `убрал(а) ${name.toLowerCase()} с подоконника`, t);
@@ -175,7 +226,8 @@ export function cleanAction(v: unknown): CoopAction | null {
   const slot = Number(o.slot);
   switch (o.kind) {
     case 'water': return plant ? { kind: 'water', plant, insist: o.insist === true } : null;
-    case 'mist': case 'pot': case 'cut': case 'remove': return plant ? { kind: o.kind, plant } : null;
+    case 'mist': case 'pot': case 'cut': case 'remove': case 'repot': return plant ? { kind: o.kind, plant } : null;
+    case 'use': return plant && (COOP_ITEMS as readonly string[]).includes(String(o.item)) ? { kind: 'use', plant, item: o.item as CoopItem } : null;
     case 'move': return plant && Number.isInteger(slot) ? { kind: 'move', plant, slot } : null;
     case 'window': return ['N', 'E', 'S', 'W'].includes(String(o.side)) ? { kind: 'window', side: o.side as WindowSide } : null;
     case 'plant': {
@@ -191,4 +243,6 @@ export function cleanAction(v: unknown): CoopAction | null {
 }
 
 /** Сколько растений на общем подоконнике хотят пить. */
-export const coopThirsty = (c: CoopState) => c.plants.filter((p) => p.stage >= 2 && p.moisture < 0.25).length;
+export const coopThirsty = (c: CoopState) => c.plants.filter((p) => p.stage >= 2 && p.moisture < 0.5).length;
+/** Растению тесно — пора пересадить. */
+export const coopTight = (p: Plant) => tight(p);

@@ -2,15 +2,20 @@
 
 import { clone } from '../../game/constants';
 import { potSizeOf } from '../../game/sim';
-import { motion } from 'framer-motion';
+import { AnimatePresence, motion } from 'framer-motion';
 import { useEffect, useMemo, useState } from 'react';
 import { CONFIG, tgAppLink } from '../../config';
 import { WINDOWS } from '../../game/constants';
 import { DEEP_ROW, GLASS_ROW, zoneOfSlot } from '../../game/layout';
-import { COOP_SILL, coopAdvance, type CoopAction } from '../../game/coop';
-import { approx, canCut, fmt, isSad, need, rootsAt, type Ctx } from '../../game/sim';
+import { coopAdvance, coopTight, coopWorld, COOP_ITEMS, type CoopAction, type CoopItem } from '../../game/coop';
+import { approx, canCut, ctxFor, fmt, isSad, need, rootsAt, tight } from '../../game/sim';
 import { sp } from '../../game/species';
-import { coopDo, coopInviteCode, leaveCoop, loadCoops, now, setTool, toast, useStore, type Tool } from '../../game/store';
+import { coopDo, coopInviteCode, itemFits, leaveCoop, loadCoops, now, openSheet, setTool, toast, useStore } from '../../game/store';
+import { ITEM_BY_ID } from '../../game/shop';
+import { PROBLEMS } from '../../game/problems';
+import { leftShort, plantEffects } from '../../game/effects';
+import { Processes } from '../sheets/Processes';
+import { Icon, TONE, type IconName } from '../kit/icons';
 import type { Plant } from '../../game/types';
 import type { CoopView } from '../../net/api';
 import { playerId } from '../../net/api';
@@ -30,12 +35,17 @@ export async function shareCoop(c: CoopView) {
   if (r === 'copied') toast('Ссылка скопирована — отправь её 📋');
 }
 
-const TOOLS: [Tool, string, string][] = [
-  ['water', '💧', 'Полить'],
-  ['mist', '💦', 'Опрыскать'],
-  ['cut', '✂️', 'Черенок'],
-  ['look', '🔍', 'Осмотр'],
-];
+const BADGES = ['boost', 'feed', 'guard', 'mist', 'wet'];
+
+/** Кому сейчас пригодится инструмент — подсвечиваем, как на своём подоконнике. */
+function wants(tool: string, item: string | undefined, p: Plant, t: number, g: ReturnType<typeof useStore.getState>['game']) {
+  if (p.stage < 2) return false;
+  if (tool === 'water') return p.moisture < 0.5;
+  if (tool === 'mist') return sp(p.sp).mist === 'love' && !(p.mistUntil && t < p.mistUntil);
+  if (tool === 'cut') return canCut(p, t);
+  if (tool === 'use' && item) return itemFits(g, item, p, t);
+  return false;
+}
 
 export function CoopSill({ coop }: { coop: CoopView }) {
   const g = useStore((s) => s.game);
@@ -61,7 +71,9 @@ export function CoopSill({ coop }: { coop: CoopView }) {
     return () => { clearInterval(i); document.removeEventListener('visibilitychange', tick); };
   }, []);
 
-  const ctx: Ctx = { sill: { id: COOP_SILL, name: st.name, window: st.window, decor: [] }, lamp: false, neighbor: false };
+  const world = useMemo(() => coopWorld(st), [st]);
+  const useItem = useStore((s) => s.useItem);
+  const [care, setCare] = useState(false);
   const me = playerId();
   const others = coop.members.filter((m) => m.id !== me);
   const at = (slot: number) => st.plants.find((p) => p.slot === slot);
@@ -72,6 +84,10 @@ export function CoopSill({ coop }: { coop: CoopView }) {
     if (p.stage === 1) return act({ kind: 'pot', plant: p.id });
     if (tool === 'look' || (p.stage === 0 && p.rootStart)) return setSel(p.id === sel ? null : p.id);
     if (tool === 'mist') return act({ kind: 'mist', plant: p.id });
+    if (tool === 'use') {
+      if (useItem && (COOP_ITEMS as readonly string[]).includes(useItem)) return act({ kind: 'use', plant: p.id, item: useItem as CoopItem });
+      return setSel(p.id);
+    }
     if (tool === 'cut') return canCut(p, t) ? act({ kind: 'cut', plant: p.id }) : toast(p.stage < 4 ? 'Растение ещё маленькое ✂️' : 'Черенок пока не готов');
     const again = lastEnough?.id === p.id && Date.now() - lastEnough.at < 2500;
     const r = await act({ kind: 'water', plant: p.id, insist: again });
@@ -83,8 +99,10 @@ export function CoopSill({ coop }: { coop: CoopView }) {
     if (p.stage === 0) return 'Налей воды 💧';
     if (p.stage === 1) return 'Посади меня 🪴';
     if (p.moisture > 1) return 'Перелили 😵';
-    if (p.moisture < 0.25) return 'Хочу пить';
-    if (canCut(p, t)) return '✂️ Черенок готов';
+    if (p.moisture < 0.5) return 'Хочу пить 💧';
+    if (coopTight(p)) return 'Тесно в горшке 🪴';
+    if (p.problem) return `${PROBLEMS[p.problem.kind].icon} ${PROBLEMS[p.problem.kind].short}`;
+    if (canCut(p, t) && tool === 'cut') return '✂️';
     return null;
   };
 
@@ -129,16 +147,20 @@ export function CoopSill({ coop }: { coop: CoopView }) {
           }
           const b = bubble(p);
           return (
-            <div className={'slot' + (isSad(p) ? ' sad' : '') + (sel === p.id ? ' picked' : '')} role="button" onClick={() => tap(p)}>
+            <div className={'slot' + (isSad(p) ? ' sad' : '') + (sel === p.id ? ' picked' : '') + (wants(tool, useItem, p, t, g) ? ' want want-' + tool : '')} role="button" onClick={() => tap(p)}>
               {b && <div className="bubble">{rich(b)}</div>}
+              {wants(tool, useItem, p, t, g) && <i className="want-ring" aria-hidden />}
               <div className="art">
                 <PlantArt sp={p.sp} form={p.form} hue={p.hue} stage={p.stage} seed={p.id} pot={p.pot} size={potSizeOf(p)} shape={p.shape} blooming={p.blooming} className="plant-svg" />
+                {p.stage >= 2 && (() => {
+                  const list = plantEffects(p, t).filter((e) => BADGES.includes(e.id)).slice(0, 3);
+                  return list.length > 0 && <div className="fx-badges" aria-hidden>{list.map((e) => <i key={e.id} className={'fxb' + (e.bad ? ' bad' : '')}><Emo e={e.icon} size={11} /></i>)}</div>;
+                })()}
               </div>
               <div className="label">
                 {p.stage >= 2 && (
-                  <i className="meter"><i style={{ width: `${Math.min(100, p.moisture * 100)}%`, background: p.moisture > 1 ? '#d9822b' : p.moisture < 0.25 ? '#e0574f' : '#4aa3df' }} /></i>
+                  <i className="meter"><i style={{ width: `${Math.min(100, p.moisture * 100)}%`, background: p.moisture > 1 ? '#d9822b' : p.moisture < 0.5 ? '#e0574f' : '#4aa3df' }} /></i>
                 )}
-                <b>{rich(sp(p.sp).name)}</b>
                 <span>{rich(p.waterBy ? `💧 ${p.waterBy.name === g.name ? 'ты' : p.waterBy.name}, ${ago(t - p.waterBy.at)}` : p.from?.name ? `🌱 ${p.from.name === g.name ? 'ты' : p.from.name}` : '')}</span>
               </div>
             </div>
@@ -165,32 +187,76 @@ export function CoopSill({ coop }: { coop: CoopView }) {
         </div>
       )}
 
-      {selected && (
-        <div className="panel coop-card">
-          <b>{rich(sp(selected.sp).name)}</b>
-          <p className="small"><Emo e="💡" /> {rich(need(selected, t, ctx))}</p>
-          <div className="actions">
-            {selected.stage >= 2 && <Btn small onClick={() => act({ kind: 'water', plant: selected.id, insist: true })}><Emo e="💧" /> Полить</Btn>}
-            <Btn small onClick={() => {
-              const other = selected.zone === 'glass' ? DEEP_ROW : GLASS_ROW;
-              const free = other.find((s) => !at(s)) ?? other[0];
-              act({ kind: 'move', plant: selected.id, slot: free });
-            }}>{rich(selected.zone === 'glass' ? '↓ В глубину' : '↑ К стеклу')}</Btn>
-            {canCut(selected, t) && <Btn small kind="gold" onClick={() => act({ kind: 'cut', plant: selected.id })}><Emo e="✂️" /> Черенок</Btn>}
-            <Btn small kind="warn" onClick={() => { if (confirm('Убрать растение с общего подоконника?')) { act({ kind: 'remove', plant: selected.id }); setSel(null); } }}>Убрать</Btn>
+      {selected && (() => {
+        const ctx = ctxFor(world, selected, t);
+        const effects = plantEffects(selected, t).filter((e) => e.id !== 'problem');
+        return (
+          <div className="panel coop-card">
+            <div className="coop-card-head">
+              <b>{rich(sp(selected.sp).name)}</b>
+              <button className="linkish small" onClick={() => setSel(null)}>Закрыть</button>
+            </div>
+            <p className="small"><Emo e="💡" /> {rich(need(selected, t, ctx))}</p>
+            {effects.length > 0 && (
+              <div className="effects">
+                {effects.map((e) => (
+                  <div key={e.id} className={'effect' + (e.bad ? ' bad' : '')}>
+                    <span className="ef-ic"><Emo e={e.icon} size={18} /></span>
+                    <span className="ef-t"><b>{rich(e.name)}</b><small>{rich(e.text)}</small></span>
+                    {e.left !== undefined && <span className="ef-left">ещё {leftShort(e.left)}</span>}
+                  </div>
+                ))}
+              </div>
+            )}
+            <div className="actions">
+              {selected.stage >= 2 && <Btn small onClick={() => act({ kind: 'water', plant: selected.id, insist: true })}><Icon name="water" size={16} tone={TONE.water} /> Полить</Btn>}
+              {selected.stage >= 2 && sp(selected.sp).mist !== 'no' && <Btn small onClick={() => act({ kind: 'mist', plant: selected.id })}><Icon name="mist" size={16} tone={TONE.mist} /> Опрыскать</Btn>}
+              {selected.stage >= 2 && tight(selected) && <Btn small kind="gold" onClick={() => act({ kind: 'repot', plant: selected.id })}><Icon name="repot" size={16} /> Пересадить</Btn>}
+              <Btn small onClick={() => {
+                const other = selected.zone === 'glass' ? DEEP_ROW : GLASS_ROW;
+                const free = other.find((s) => !at(s)) ?? other[0];
+                act({ kind: 'move', plant: selected.id, slot: free });
+              }}>{rich(selected.zone === 'glass' ? '↓ В глубину' : '↑ К стеклу')}</Btn>
+              {canCut(selected, t) && <Btn small kind="gold" onClick={() => act({ kind: 'cut', plant: selected.id })}><Icon name="cut" size={16} /> Черенок</Btn>}
+              {selected.stage >= 2 && <Btn small onClick={() => openSheet({ kind: 'inventory' })}><Icon name="bag" size={16} tone="#c98a4b" /> Инвентарь</Btn>}
+              <Btn small kind="warn" onClick={() => { if (confirm('Убрать растение с общего подоконника?')) { act({ kind: 'remove', plant: selected.id }); setSel(null); } }}>Убрать</Btn>
+            </div>
+            {selected.stage >= 2 && (
+              <details className="more" open>
+                <summary>Что с растением происходит</summary>
+                <Processes g={world} p={selected} t={t} ctx={ctx} />
+              </details>
+            )}
           </div>
-        </div>
-      )}
+        );
+      })()}
 
       {st.plants.some((p) => p.stage >= 2) && (
         <div className="toolbar">
+          <AnimatePresence>
+            {care && (
+              <motion.div className="care-menu" initial={{ opacity: 0, y: 10, scale: 0.96 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: 10, scale: 0.96 }}>
+                <button className={tool === 'water' ? 'on' : ''} onClick={() => { setCare(false); setTool('water'); }}><Icon name="water" size={26} tone={TONE.water} /><span>Полить</span></button>
+                <button className={tool === 'mist' ? 'on' : ''} onClick={() => { setCare(false); setTool('mist'); }}><Icon name="mist" size={26} tone={TONE.mist} /><span>Опрыскать</span></button>
+              </motion.div>
+            )}
+          </AnimatePresence>
           <div className="tools">
-            {TOOLS.map(([k, icon, label]) => (
-              <button key={k} className={'tool' + (tool === k ? ' on' : '')} onClick={() => setTool(k)} aria-pressed={tool === k}>
-                <span>{rich(icon)}</span>
-                <small>{rich(label)}</small>
-              </button>
-            ))}
+            {([['look', 'look', 'Осмотр'], ['water', tool === 'mist' ? 'mist' : 'water', tool === 'mist' ? 'Опрыскать' : tool === 'water' ? 'Полить' : 'Уход'], ['use', 'bag', 'Инвентарь'], ['cut', 'cut', 'Черенок']] as [string, IconName, string][]).map(([k, icon, label]) => {
+              const on = k === 'water' ? tool === 'water' || tool === 'mist' : tool === k;
+              const inHand = k === 'use' && tool === 'use' && useItem ? ITEM_BY_ID[useItem] : null;
+              return (
+                <button key={k} className={'tool' + (on ? ' on' : '')} aria-pressed={on} onClick={() => {
+                  if (k === 'water') { setCare(!care); return; }
+                  setCare(false);
+                  if (k === 'use') { if (tool === 'use') setTool('look'); else openSheet({ kind: 'inventory' }); return; }
+                  setTool(tool === k && k !== 'look' ? 'look' : (k as 'look' | 'cut'));
+                }}>
+                  <span>{inHand ? <Emo e={inHand.icon} size={24} /> : <Icon name={icon} size={24} tone={k === 'use' ? '#c98a4b' : TONE[icon as keyof typeof TONE]} />}</span>
+                  <small>{inHand ? rich(inHand.name.split(' ')[0]) : rich(label)}</small>
+                </button>
+              );
+            })}
           </div>
         </div>
       )}

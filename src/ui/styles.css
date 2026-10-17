@@ -1523,3 +1523,7 @@ button:focus:not(:focus-visible) { outline: none; }
 .scene[data-wp='wp_orchard'] { --wp: radial-gradient(circle at 30% 35%, #d9483b 0 4px, transparent 5px) 0 0 / 44px 44px, radial-gradient(circle at 75% 78%, #a8cf6a 0 3px, transparent 4px) 0 0 / 44px 44px, #fbf6ea; }
 .scene[data-wp='wp_leaffall'] { --wp: radial-gradient(ellipse 5px 3px at 25% 30%, #e07a2c 90%, transparent) 0 0 / 38px 38px, radial-gradient(ellipse 4px 3px at 70% 72%, #e8b33a 90%, transparent) 0 0 / 38px 38px, radial-gradient(ellipse 4px 2.5px at 60% 20%, #b8452a 90%, transparent) 0 0 / 38px 38px, #f6ead6; }
 .scene[data-wp='wp_frost'] { --wp: radial-gradient(circle at 50% 50%, #ffffff 0 2px, transparent 3px) 0 0 / 26px 26px, radial-gradient(circle at 20% 80%, #c8dcf3 0 4px, transparent 5px) 0 0 / 52px 52px, #e7f0fa; }
+
+/* общий подоконник: растение нажимается целиком (на своём — только по силуэту) */
+.coop .slot { pointer-events: auto; }
+.coop .label span { display: block; font-size: 10px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 96px; margin: 0 auto; }
