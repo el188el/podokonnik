@@ -2159,13 +2159,16 @@ const putCoop = (c: api.CoopView) => set((s) => ({ coops: [...(s.coops ?? []).fi
 
 let coopPending = 0; // действия, ответ на которые ещё не пришёл: опрос не должен затирать их
 
-export async function loadCoops() {
+export async function loadCoops(retry = 0) {
   if (!api.loggedIn()) return;
   try {
     const { coops } = await api.coopList();
     if (coopPending) return;
     set((s) => ({ coops, coopOn: coops.some((c) => c.id === s.coopOn) ? s.coopOn : null }));
-  } catch { /* нет сети */ }
+  } catch {
+    // нет сети или сервер не ответил: пробуем ещё, чтобы общий подоконник не «пропал» до перезапуска
+    if (retry < 4) setTimeout(() => loadCoops(retry + 1), 3000 * 2 ** retry);
+  }
 }
 
 export const showCoop = (id: number | null) => set({ coopOn: id, sheet: null });

@@ -1,6 +1,7 @@
 // Выбор подоконника: свои комнаты и общие с друзьями.
 
-import { closeSheet, openSheet, setActiveSill, setArrange, setTab, showCoop, TUTORIAL_DONE, useStore } from '../../game/store';
+import { useEffect } from 'react';
+import { closeSheet, loadCoops, openSheet, setActiveSill, setArrange, setTab, showCoop, TUTORIAL_DONE, useStore } from '../../game/store';
 import { WINDOWS } from '../../game/constants';
 import { loggedIn } from '../../net/api';
 import { Btn } from '../kit/kit';
@@ -11,6 +12,8 @@ export function SillsSheet() {
   const coops = useStore((s) => s.coops) ?? [];
   const coopOn = useStore((s) => s.coopOn);
   const canCoop = loggedIn() && g.tutorial >= TUTORIAL_DONE;
+  // список общих подоконников — свежий при каждом открытии (вдруг при запуске не загрузился)
+  useEffect(() => { void loadCoops(); }, []);
   const count = (id: string) => g.plants.filter((p) => p.sill === id).length;
   return (
     <div className="sills-sheet">
