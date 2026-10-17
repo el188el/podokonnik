@@ -22,7 +22,7 @@ export function initNative(): Platform {
     },
     async share({ text, url }) {
       try {
-        await Share.share({ text, url, dialogTitle: 'Подоконник' });
+        await Share.share({ text: `${text}\n${url}`, dialogTitle: 'Подоконник' });
         return 'shared';
       } catch {
         return 'cancel';

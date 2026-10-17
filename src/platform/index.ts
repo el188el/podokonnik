@@ -72,17 +72,17 @@ async function webShare(o: { text: string; url: string; files?: File[] }): Promi
   const nav = navigator as Navigator & { canShare?: (d: ShareData) => boolean };
   try {
     if (o.files?.length && nav.canShare?.({ files: o.files })) {
-      await navigator.share({ files: o.files, text: `${o.text} ${o.url}` });
+      await navigator.share({ files: o.files, text: `${o.text}\n${o.url}` });
       return 'shared';
     }
     if (navigator.share) {
-      await navigator.share({ text: o.text, url: o.url });
+      await navigator.share({ text: `${o.text}\n${o.url}` }); // текст первым, потом ссылка
       return 'shared';
     }
   } catch (e) {
     if ((e as Error).name === 'AbortError') return 'cancel';
   }
-  return (await copyText(`${o.text} ${o.url}`)) ? 'copied' : 'fail';
+  return (await copyText(`${o.text}\n${o.url}`)) ? 'copied' : 'fail';
 }
 
 // ─────────────────── Telegram ───────────────────
@@ -152,7 +152,8 @@ function telegram(tg: TgWebApp): Platform {
       } catch { /* старый клиент */ }
     },
     async share({ text, url }) {
-      tg.openTelegramLink(`https://t.me/share/url?url=${encodeURIComponent(url)}&text=${encodeURIComponent(text)}`);
+      // Telegram ставит параметр url первым — поэтому кладём туда всё сообщение: сначала текст, потом ссылка
+      tg.openTelegramLink(`https://t.me/share/url?url=${encodeURIComponent(`${text}\n${url}`)}`);
       return 'shared';
     },
     story(mediaUrl, text) {
