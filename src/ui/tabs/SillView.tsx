@@ -256,7 +256,7 @@ function Toolbar({ sill }: { sill: string }) {
   const tool = useStore((s) => s.tool);
   const g = useStore((s) => s.game);
   const [care, setCare] = useState(false);
-  const useItem = useStore((s) => s.useItem);
+  const useItem = useStore((s) => s.useItem); // все хуки — до раннего выхода
   const potted = g.plants.filter((p) => p.sill === sill && p.stage >= 2);
   if (!potted.length) return null;
   const cuts = potted.filter((p) => canCut(p, now())).length;
