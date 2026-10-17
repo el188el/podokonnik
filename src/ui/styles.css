@@ -1538,9 +1538,3 @@ button:focus:not(:focus-visible) { outline: none; }
 .fx-badges .fxb.ask { background: #ffe39a; animation: fxb-ask 1.4s ease-in-out infinite; }
 @keyframes fxb-ask { 50% { transform: scale(1.18); } }
 .tray .cutting.wilting { box-shadow: 0 0 0 2px #e8907a; border-radius: 12px; }
-
-/* редкость на горшке: звёздочки цвета уровня */
-.rare-mark { position: absolute; left: 8px; bottom: 6px; z-index: 2; pointer-events: none; padding: 0 5px; border-radius: 99px; font-style: normal; font-size: 10px; line-height: 15px; font-weight: 800; letter-spacing: 1px; border: 1.4px solid #3b2a22; background: #efe2fb; color: #7a4fb5; }
-.rare-mark.t2 { background: #dfeafb; color: #2f5fa8; }
-.rare-mark.t3 { background: linear-gradient(90deg, #ffe7a3, #ffd0e0); color: #8a4a00; animation: rare-glow 2.4s ease-in-out infinite; }
-@keyframes rare-glow { 50% { box-shadow: 0 0 8px 2px #ffd27a; } }
