@@ -225,6 +225,7 @@ export interface Friend {
   lastSeen: number;
   thirsty: number;
   plants: number;
+  rare?: number;    // очки коллекции редкостей
   plus?: boolean;
 }
 

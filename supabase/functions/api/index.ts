@@ -14,6 +14,7 @@ import { PLUS_DAYS, PRODUCT_BY_ID } from '../_shared/game/products.ts';
 import { activeEvent } from '../_shared/game/events.ts';
 import { FORM_BY_ID } from '../_shared/game/products.ts';
 import { hueOf } from '../_shared/game/breeding.ts';
+import { rareScore } from '../_shared/game/rarity.ts';
 import { escHtml, send } from '../_shared/tg.ts';
 import { supportIn } from '../_shared/support.ts';
 import { COOP_MAX_MEMBERS, COOP_MAX_PER_PLAYER, cleanAction, coopAct, coopAdvance, newCoop, type CoopState } from '../_shared/game/coop.ts';
@@ -359,15 +360,16 @@ async function friendsList(playerId: string) {
   const now = Date.now();
   const friends = (players ?? []).map((p) => {
     const save = Array.isArray(p.saves) ? p.saves[0] : p.saves;
-    let thirsty = 0, plants = 0;
+    let thirsty = 0, plants = 0, rare = 0;
     try {
       if (save?.state) {
         const v = publicView(save.state as GameState, now, pending.get(p.id) ?? []);
         thirsty = thirstyCount(v);
         plants = v.plants.length;
+        rare = rareScore(save.state as GameState);
       }
     } catch (e) { console.warn('view', p.id, e); }
-    return { id: p.id, name: p.name || 'Садовник', level: p.level, lastSeen: Date.parse(p.last_seen), thirsty, plants, plus: !!p.plus_until && Date.parse(p.plus_until) > now };
+    return { id: p.id, name: p.name || 'Садовник', level: p.level, lastSeen: Date.parse(p.last_seen), thirsty, plants, rare, plus: !!p.plus_until && Date.parse(p.plus_until) > now };
   });
   friends.sort((a, b) => b.thirsty - a.thirsty || b.lastSeen - a.lastSeen);
   return json({ friends, serverTime: now });

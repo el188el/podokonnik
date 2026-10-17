@@ -6,7 +6,7 @@ import {
   chooseWindow, closeSheet, giftCutting, now, openSheet, placeCutting, plantCutting, setTab, startNeighbor, stopNeighbor, useStore,
 } from '../../game/store';
 import type { WindowSide } from '../../game/types';
-import { formsOf } from '../../game/products';
+import { formsOf, TIER_NAME, tierOfForm } from '../../game/products';
 import { hueOf, PALETTES } from '../../game/breeding';
 import { MASTERY, masteryPoints, masteryStars } from '../../game/mastery';
 import { PlantArt } from '../art/PlantArt';
@@ -272,6 +272,7 @@ function Herb({ id }: { id: string }) {
                 <div key={f.id} className={'form-chip' + ((g.forms ?? []).includes(f.id) ? ' got' : '')}>
                   <PlantArt sp={id} form={f.id} stage={4} seed="herb" blooming className={(g.forms ?? []).includes(f.id) ? '' : 'unknown'} />
                   <span>{rich((g.forms ?? []).includes(f.id) ? '✨ ' + f.name : '✨ ???')}</span>
+                  <i className={'tier t' + tierOfForm(f)}>{TIER_NAME[tierOfForm(f)]}</i>
                 </div>
               ))}
             </div>

@@ -4,7 +4,7 @@
 
 import { GLASS_ROW, DEEP_ROW, zoneOfSlot } from './layout';
 import { hueOf } from './breeding';
-import { FORM_BY_ID, RARE_DROP, formsOf } from './products';
+import { FORM_BY_ID, RARE_DROP, formsOf, pickForm } from './products';
 import { advance, canCut, pour, WET_FULL } from './sim';
 import { sp } from './species';
 import type { GameState, Plant, WindowSide } from './types';
@@ -154,7 +154,7 @@ export function coopAct(c: CoopState, a: CoopAction, who: string, t: number, id 
       p.lastCut = t;
       let form = p.form;
       const options = formsOf(p.sp);
-      if (!form && options.length && rnd() < RARE_DROP) form = options[Math.floor(rnd() * options.length)].id;
+      if (!form && options.length && rnd() < RARE_DROP) form = pickForm(options, rnd)!.id;
       log(c, who, `взял(а) черенок ${sp(p.sp).gen}${form && FORM_BY_ID[form] ? ` — «${FORM_BY_ID[form].name}»!` : ''}`, t);
       return { ok: true, effect: 'cut', cutting: { sp: p.sp, ...(form ? { form } : {}), ...(p.hue ? { hue: p.hue } : {}) } };
     }

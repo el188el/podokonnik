@@ -12,6 +12,7 @@ import { shareVacation } from '../share';
 import { CONFIG } from '../../config';
 import { platform } from '../../platform';
 import { rich } from '../kit/rich';
+import { formsProgress, rareScore } from '../../game/rarity';
 
 function seen(ms: number) {
   const m = Math.floor(ms / 60e3);
@@ -21,6 +22,35 @@ function seen(ms: number) {
   if (h < 24) return `${h} ч назад`;
   const d = Math.floor(h / 24);
   return `${d} ${plural(d, 'день', 'дня', 'дней')} назад`;
+}
+
+/** Кто из друзей собрал больше редкостей: формы и редкие цвета. */
+function RareBoard({ list }: { list: api.Friend[] }) {
+  const g = useStore((s) => s.game);
+  const me = { id: 'me', name: 'Ты', rare: rareScore(g) };
+  const rows = [me, ...list.map((f) => ({ id: f.id, name: f.name, rare: f.rare ?? 0 }))].sort((a, b) => b.rare - a.rare);
+  const place = rows.findIndex((r) => r.id === 'me');
+  const top = rows.slice(0, 5);
+  const show = place < 5 ? top : [...top.slice(0, 4), rows[place]];
+  const { got, total } = formsProgress(g);
+  return (
+    <section className="panel rare-board">
+      <h3 className="ih3"><Icon name="sparkles" size={20} tone="#8b5cc7" />Коллекционеры редкостей</h3>
+      <p className="muted small">Очки за редкие формы (1, 3 и 10 за легендарную) и редкие цвета цветков (по 2). У тебя форм: {got} из {total}.</p>
+      <ol>
+        {show.map((r) => {
+          const i = rows.indexOf(r);
+          return (
+            <li key={r.id} className={r.id === 'me' ? 'me' : ''}>
+              <span className="rb-place">{i < 3 ? rich(['🥇', '🥈', '🥉'][i]) : i + 1}</span>
+              <span className="rb-name">{rich(r.name)}</span>
+              <b className="rb-pts">{r.rare}</b>
+            </li>
+          );
+        })}
+      </ol>
+    </section>
+  );
 }
 
 export function Friends() {
@@ -99,6 +129,7 @@ export function Friends() {
               ))}
             </div>
           </section>
+          {!!list?.length && <RareBoard list={list} />}
         </>
       )}
       </>}

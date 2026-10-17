@@ -1,7 +1,7 @@
 // Ящик-сюрприз: раз в день за листики. Чаще всего — немного листиков или подкормки,
 // иногда горшок или декор, и совсем редко — черенок редкой формы.
 
-import { FORMS } from './products';
+import { FORMS, pickForm } from './products';
 import { ITEMS } from './shop';
 import type { GameState } from './types';
 
@@ -20,7 +20,7 @@ export function rollBox(g: GameState, rnd: () => number): BoxPrize {
   const notOwned = (cat: 'pots' | 'decor') => ITEMS.filter((i) => i.cat === cat && !i.eventOnly && !i.months && i.price > 0 && i.price <= 160 && !(g.owned[i.id] > 0));
   const pickOf = <T,>(list: T[]) => list[Math.floor(rnd() * list.length)];
   if (r < 0.04) {
-    const f = pickOf(FORMS.filter((x) => !x.event));
+    const f = pickForm(FORMS.filter((x) => !x.event), rnd);
     if (f) return { kind: 'form', id: f.id };
   }
   if (r < 0.08) return { kind: 'leaves', n: 150 };

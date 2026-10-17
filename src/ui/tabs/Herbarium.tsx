@@ -2,6 +2,7 @@ import { DIFFICULTY_LABEL, SPECIES } from '../../game/species';
 import { now, openSheet, useStore, visitHerbarium } from '../../game/store';
 import { SHELVES, shelfProgress, shelvesReady } from '../../game/album';
 import { MASTERY, masteryPoints, masteryStars } from '../../game/mastery';
+import { rareScore } from '../../game/rarity';
 import { PlantArt } from '../art/PlantArt';
 import { Emo, rich } from '../kit/rich';
 
@@ -23,7 +24,7 @@ export function Herbarium() {
       </button>
       <button className={'mini-banner album-banner' + (shelvesReady(g).length ? ' ready' : '')} onClick={() => openSheet({ kind: 'album' })}>
         <Emo e="📒" /> Альбом редкостей · {SHELVES.reduce((n, s) => n + shelfProgress(g, s)[0], 0)}/{SHELVES.reduce((n, s) => n + s.items.length, 0)}
-        {rich(shelvesReady(g).length ? ' · награда!' : '')}
+        {rich(` · ✨ ${rareScore(g)} оч.`)}{rich(shelvesReady(g).length ? ' · награда!' : '')}
       </button>
       <button className="mini-banner doctor-banner" onClick={() => openSheet({ kind: 'doctor' })}><Emo e="🩺" /> Что с моим цветком? Желтеют листья, не цветёт — подскажем причину</button>
       {[1, 2, 3, 4].map((d) => (

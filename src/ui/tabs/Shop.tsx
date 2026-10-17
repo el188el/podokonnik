@@ -2,7 +2,7 @@ import { Fragment, useState } from 'react';
 import { SILL_UNLOCK } from '../../game/progression';
 import { ITEMS, potIdOf, type ShopCat } from '../../game/shop';
 import { DIFFICULTY_LABEL, SPECIES } from '../../game/species';
-import { FORM_BY_ID, PRODUCTS } from '../../game/products';
+import { FORM_BY_ID, PRODUCTS, TIER_NAME, tierOfForm } from '../../game/products';
 import { fmt } from '../../game/sim';
 import { activeEvent } from '../../game/events';
 import { adsLeft, boxReady, buyItem, buySpecies, buyStars, freeCopies, isPlus, now, openBox, openSheet, perRoom, placedIn, toggleDecor, unlockSill, useStore, watchAd } from '../../game/store';
@@ -225,7 +225,7 @@ function StarsShop() {
       )}
 
       <h3 className="ih3"><Icon name="sparkles" size={20} tone="#8b5cc7" />Редкие формы</h3>
-      <p className="muted small">Черенок попадёт в запас. Его можно вырастить или подарить — и у друга будет такая же редкость. Иногда редкая форма выпадает и из обычного черенка!</p>
+      <p className="muted small">Черенок попадёт в запас. Его можно вырастить или подарить — и у друга будет такая же редкость. Иногда редкая форма выпадает и из обычного черенка, а легендарные — только так!</p>
       <div className="grid">
         {PRODUCTS.filter((p) => p.kind === 'form').map((p) => {
           const f = FORM_BY_ID[p.form!];
@@ -234,6 +234,7 @@ function StarsShop() {
             <div key={p.id} className="shop-item rare">
               <PlantArt sp={f.sp} form={f.id} stage={4} seed="rare" blooming />
               <b>{rich(f.name)}</b>
+              <i className={'tier t' + tierOfForm(f)}>{TIER_NAME[tierOfForm(f)]}</i>
               <span className="muted small">{rich(has ? '✓ в коллекции' : f.desc)}</span>
               <Btn small kind="gold" disabled={busy === p.id} onClick={() => buy(p.id)}><StarsPrice n={p.stars} /></Btn>
             </div>

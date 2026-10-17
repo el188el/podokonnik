@@ -1,6 +1,8 @@
 import { SPECIES } from './species';
 import { hueOf } from './breeding';
 import { ageDays } from './age';
+import { FORM_BY_ID } from './products';
+import { rareScore } from './rarity';
 import type { GameState } from './types';
 
 export interface Achievement {
@@ -46,6 +48,8 @@ export const ACHIEVEMENTS: Achievement[] = [
   { id: 'cure_1', icon: '💊', title: 'Первая помощь', text: 'Вылечи растение от вредителя или болезни', reward: 20, done: (s) => (s.stats.cured ?? 0) > 0 },
   { id: 'cure_10', icon: '🩺', title: 'Фитодоктор', text: 'Вылечи 10 растений', reward: 100, done: (s) => (s.stats.cured ?? 0) >= 10, progress: (s) => n(s.stats.cured ?? 0, 10) },
   { id: 'doctor_3', icon: '🩺', title: 'Цветочный доктор', text: 'Разберись с 3 симптомами у «доктора»', reward: 20, done: (s) => (s.stats.doctor ?? 0) >= 3, progress: (s) => n(s.stats.doctor ?? 0, 3) },
+  { id: 'rare_10', icon: '💎', title: 'Охотник за редкостями', text: 'Набери 10 очков редкостей', reward: 80, done: (s) => rareScore(s) >= 10, progress: (s) => n(rareScore(s), 10) },
+  { id: 'legend', icon: '🏆', title: 'Легенда', text: 'Найди легендарную форму', reward: 200, done: (s) => (s.forms ?? []).some((f) => FORM_BY_ID[f]?.tier === 3) },
   { id: 'shelf_1', icon: '📒', title: 'Коллекционер', text: 'Собери полку в альбоме редкостей', reward: 50, done: (s) => (s.shelves ?? []).length > 0 },
   { id: 'quests_20', icon: '📋', title: 'Ответственный', text: 'Выполни 20 ежедневных заданий', reward: 60, done: (s) => s.stats.questsDone >= 20, progress: (s) => n(s.stats.questsDone, 20) },
 ];

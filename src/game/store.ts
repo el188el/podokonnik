@@ -30,7 +30,7 @@ import { ITEM_BY_ID, ITEMS, placeOf, potIdOf, sellPrice } from './shop';
 import { advance, badLight, bestZone, canCut, ctxFor, hasDecorOn, pour, WATER_REWARD_MS, WET_FULL, fmt, needSize, POT_SIZE_ITEM, POT_SIZE_NAME, potSizeOf, tight, hasLamp, neighborsOf, stageMarks, type SimEvent } from './sim';
 import { activeEvent, EVENT_TOKENS, eventSeason, tierOf, type GameEvent, type PassReward } from './events';
 import { leavesMul, liveCutting, livePrice, setLive } from './liveops';
-import { FORM_BY_ID, FORMS, PRODUCT_BY_ID, RARE_DROP, formsOf } from './products';
+import { FORM_BY_ID, FORMS, PRODUCT_BY_ID, RARE_DROP, TIER_NAME, formsOf, pickForm, tierOfForm } from './products';
 import { replayFriendWaters, type FriendWater } from './social';
 import { SPECIES, sp } from './species';
 import { DEEP_ROW, EXTRA_PLACES, GLASS_ROW, rowSlots, zoneOfSlot } from './layout';
@@ -1143,8 +1143,9 @@ export function takeCutting(plantId: string) {
     let form = p.form;
     const options = formsOf(p.sp);
     if (!form && options.length && Math.random() < RARE_DROP) {
-      form = options[Math.floor(Math.random() * options.length)].id;
-      toast(`✨ Редкость! Черенок оказался формой «${FORM_BY_ID[form].name}»`);
+      form = pickForm(options, Math.random)!.id;
+      const tier = tierOfForm(FORM_BY_ID[form]);
+      toast(tier === 3 ? `🏆 Легенда! Черенок оказался формой «${FORM_BY_ID[form].name}»` : `✨ ${TIER_NAME[tier]}! Черенок оказался формой «${FORM_BY_ID[form].name}»`);
     }
     const c = { id: makeCode(8), sp: p.sp, at: t, fromPlant: p.id, line: childLine(p, g.name, t), ...(form ? { form } : {}), ...(p.hue ? { hue: p.hue } : {}) };
     g.cuttings.push(c);

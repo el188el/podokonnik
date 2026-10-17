@@ -436,3 +436,20 @@ body:has(.skin) { background: var(--bg, #f5f2ec); }
 :root .skin .sell-btn { align-self: flex-start; margin-top: 4px; padding: 2px 0; border: 0; background: none; font: inherit; font-size: 12px; color: var(--muted, #8a7a6a); text-decoration: underline dotted; text-underline-offset: 3px; cursor: pointer; }
 :root .skin .sell-btn.ask { color: #b5523b; font-weight: 600; text-decoration: none; }
 :root .skin .sell-btn .emo { width: 12px; height: 12px; vertical-align: -1px; }
+
+/* коллекционеры редкостей */
+:root .skin .rare-board ol { list-style: none; margin: 10px 0 0; padding: 0; display: grid; gap: 6px; }
+:root .skin .rare-board li { display: flex; align-items: center; gap: 10px; padding: 9px 12px; border-radius: 14px; background: var(--soft); }
+:root .skin .rare-board li.me { background: #efe6fa; }
+:root[data-theme='dark'] .skin .rare-board li.me { background: #34294a; }
+:root .skin .rare-board .rb-place { width: 24px; text-align: center; color: var(--muted); font-weight: 600; }
+:root .skin .rare-board .rb-place .emo { width: 20px; height: 20px; }
+:root .skin .rare-board .rb-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+:root .skin .rare-board .rb-pts { color: #7a4fb5; }
+:root[data-theme='dark'] .skin .rare-board .rb-pts { color: #c6a6ef; }
+:root .skin .tier { display: inline-block; padding: 1px 7px; border-radius: 99px; font-size: 11px; font-weight: 600; background: #eee6f7; color: #6b45a3; }
+:root .skin .tier.t2 { background: #e3ecfb; color: #2f5fa8; }
+:root .skin .tier.t3 { background: linear-gradient(90deg, #ffe7a3, #ffd0e0); color: #8a4a00; }
+:root[data-theme='dark'] .skin .tier { background: #3a2e4c; color: #d6c2f2; }
+:root[data-theme='dark'] .skin .tier.t2 { background: #23344d; color: #b9d0f5; }
+:root[data-theme='dark'] .skin .tier.t3 { background: #4a3a1a; color: #ffd98a; }
