@@ -1,6 +1,7 @@
 // Правила античита (без базы — чтобы проверять тестами).
 
 import { PRODUCT_BY_ID } from './game/products.ts';
+import { sellPrice } from './game/shop.ts';
 
 export type State = Record<string, unknown>;
 export interface Flag { kind: string; points: number; detail: Record<string, unknown> }
@@ -20,6 +21,14 @@ export function leavesAllowance(ctx: Ctx, levelsGained: number) {
   return 500 + 400 * hours + 150 * Math.max(0, levelsGained) + ctx.inboxLeaves;
 }
 
+/** Листики за проданные предметы: сколько экземпляров пропало × цена продажи. */
+export function soldLeaves(prev: State, next: State) {
+  const a = (prev.owned ?? {}) as Record<string, unknown>, b = (next.owned ?? {}) as Record<string, unknown>;
+  let sum = 0;
+  for (const id of Object.keys(a)) sum += Math.max(0, num(a[id]) - num(b[id])) * sellPrice(id);
+  return sum;
+}
+
 const premiumSeasons = (s: State) => Object.entries((s.events as Record<string, { premium?: boolean }>) ?? {}).filter(([, v]) => v?.premium).map(([k]) => k);
 
 export function analyze(prev: State, next: State, ctx: Ctx): Flag[] {
@@ -28,7 +37,7 @@ export function analyze(prev: State, next: State, ctx: Ctx): Flag[] {
   const dLevel = num(next.level) - num(prev.level);
 
   const dLeaves = num(next.leaves) - num(prev.leaves);
-  const allow = leavesAllowance(ctx, dLevel) + (tester ? 6000 : 0);
+  const allow = leavesAllowance(ctx, dLevel) + soldLeaves(prev, next) + (tester ? 6000 : 0);
   if (dLeaves > allow) {
     out.push({ kind: 'leaves_jump', points: dLeaves > allow * 3 ? 5 : 3, detail: { from: num(prev.leaves), to: num(next.leaves), allow: Math.round(allow), minutes: Math.round(ctx.elapsedMs / 60e3) } });
   }

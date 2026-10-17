@@ -26,7 +26,7 @@ import { BOOST_COOLDOWN, BOOST_MS, BOOST_PER_DAY, D, FEED_MS, H, HANG_SLOTS, MAX
 import { giftLink, makeCode } from './gifts';
 import { XP, levelPerks, levelReward, unlocksAt, xpToNext, SILL_UNLOCK } from './progression';
 import { QUEST_BONUS, WEEKLY_CHEST, dayKey, bumpQuest, bumpWeekly, rollDay, rollWeek, streakReward, weeklyVisit } from './quests';
-import { ITEM_BY_ID, ITEMS, placeOf, potIdOf } from './shop';
+import { ITEM_BY_ID, ITEMS, placeOf, potIdOf, sellPrice } from './shop';
 import { advance, badLight, bestZone, canCut, ctxFor, hasDecorOn, pour, WATER_REWARD_MS, WET_FULL, fmt, needSize, POT_SIZE_ITEM, POT_SIZE_NAME, potSizeOf, tight, hasLamp, neighborsOf, stageMarks, type SimEvent } from './sim';
 import { activeEvent, EVENT_TOKENS, eventSeason, tierOf, type GameEvent, type PassReward } from './events';
 import { leavesMul, liveCutting, livePrice, setLive } from './liveops';
@@ -1302,6 +1302,31 @@ export function buyItem(id: string) {
       }
     }
     toast(`Куплено: ${it.name} ${it.icon}`);
+    return true;
+  });
+}
+
+/** Продать один экземпляр предмета: сначала свободный, иначе — тот, что стоит в этой комнате. */
+export function sellItem(id: string) {
+  return mut((g) => {
+    const it = ITEM_BY_ID[id];
+    const price = sellPrice(id);
+    if (!it || !price || !(g.owned[id] ?? 0)) return false;
+    if (freeCopies(g, id) <= 0) {
+      const from = placedIn(g, id).sort((a) => (a.id === g.activeSill ? -1 : 1))[0];
+      if (from) {
+        from.decor = from.decor.filter((d) => d !== id);
+        if (from.pos) delete from.pos[id];
+        if (from.off) from.off = from.off.filter((d) => d !== id);
+      }
+    }
+    g.owned[id] -= 1;
+    if (g.owned[id] <= 0) delete g.owned[id];
+    g.leaves += price;
+    g.stats.sold = (g.stats.sold ?? 0) + price;
+    track('sell_item', { item: id });
+    haptic('success');
+    toast(`Продано: ${it.name} · +${price} 🍃`);
     return true;
   });
 }

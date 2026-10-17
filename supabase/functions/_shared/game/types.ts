@@ -218,6 +218,7 @@ export interface Stats {
   rescues: number;
   neighbor: number;
   bought: number;
+  sold?: number;          // листиков выручено за проданные предметы
   questsDone: number;
   nightWater: number;
   hybrids?: number;

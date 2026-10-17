@@ -240,4 +240,11 @@ export const ITEM_BY_ID: Record<string, ShopItem> = Object.fromEntries(ITEMS.map
 export const DECOR_IDS = ITEMS.filter((i) => i.cat === 'decor').map((i) => i.id);
 export const potIdOf = (itemId: string) => itemId.replace(/^pot_/, '');
 
+/** За сколько листиков можно продать предмет: 40% цены. Только декор за листики — не котики и не награды. */
+export const SELL_SHARE = 0.4;
+export function sellPrice(id: string) {
+  const it = ITEM_BY_ID[id];
+  if (!it || it.cat !== 'decor' || it.consumable || it.eventOnly || it.album || it.price <= 0 || /^cat\d?$/.test(id)) return 0;
+  return Math.max(1, Math.round(it.price * SELL_SHARE));
+}
 export const placeOf = (id: string): DecorPlace => ITEM_BY_ID[id]?.place ?? 'sill';

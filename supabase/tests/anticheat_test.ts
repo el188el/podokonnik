@@ -31,3 +31,10 @@ Deno.test('античит: пропуск без покупки и с покуп
 Deno.test('античит: тестер не флагается', () => {
   assertEquals(analyze(base, { ...base, leaves: 5100, level: 12, simAt: now, owned: { pot_gold: 1 } }, ctx({ grants: new Set(['tester']), inboxLeaves: 5000 })), []);
 });
+
+Deno.test('античит: продажа предметов покрывает прирост', () => {
+  const had = { ...base, owned: { hangers: 2, lamp_table: 1, heater: 1, humidifier: 1, carpet: 1, lamp: 1 } };
+  // продала всё: 240 + 104 + 88 + 72 + 64 + 60 = 628 листиков сверх обычного запаса
+  assertEquals(analyze(had, { ...had, owned: {}, leaves: 100 + 500 + 628, simAt: now }, ctx({ elapsedMs: 0 })), []);
+  assertEquals(kinds(analyze(had, { ...had, leaves: 100 + 500 + 628, simAt: now }, ctx({ elapsedMs: 0 }))), ['leaves_jump']);
+});

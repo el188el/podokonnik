@@ -16,6 +16,7 @@ import { PlantArt } from '../art/PlantArt';
 import { DecorArt, hasDecorArt } from '../art/DecorArt';
 import { Btn } from '../kit/kit';
 import { Icon, Money, StarsPrice, TONE, type IconName } from '../kit/icons';
+import { SellBtn } from '../kit/SellBtn';
 import { Emo, rich } from '../kit/rich';
 
 type Cat = 'plants' | ShopCat | 'sills' | 'stars';
@@ -110,6 +111,7 @@ export function Shop() {
                   <span className="muted small">{rich(it.desc)}</span>
                   {it.consumable && (g.owned[it.id] ?? 0) > 0 && <span className="small">В запасе: {g.owned[it.id]}</span>}
                   {owned && perRoom(it.id) && <span className="small where">{rich(placedIn(g, it.id).length ? 'Стоит: ' + placedIn(g, it.id).map((x) => x.name).join(', ') : 'Не стоит ни в одной комнате')}{freeCopies(g, it.id) > 0 ? ` · свободно ${freeCopies(g, it.id)}` : ''}</span>}
+                  {owned && <SellBtn id={it.id} />}
                 </div>
                 {owned && perRoom(it.id) && !here ? (
                   freeCopies(g, it.id) > 0
