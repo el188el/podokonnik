@@ -442,8 +442,8 @@ body:has(.skin) { background: var(--bg, #f5f2ec); }
 /* коллекционеры редкостей */
 :root .skin .rare-board ol { list-style: none; margin: 10px 0 0; padding: 0; display: grid; gap: 6px; }
 :root .skin .rare-board li { display: flex; align-items: center; gap: 10px; padding: 9px 12px; border-radius: 14px; background: var(--soft); }
-:root .skin .rare-board li.me { background: #efe6fa; }
-:root[data-theme='dark'] .skin .rare-board li.me { background: #34294a; }
+:root .skin .rare-board li.rb-me { background: #efe6fa; }
+:root[data-theme='dark'] .skin .rare-board li.rb-me { background: #34294a; }
 :root .skin .rare-board .rb-place { width: 24px; text-align: center; color: var(--muted); font-weight: 600; }
 :root .skin .rare-board .rb-place .emo { width: 20px; height: 20px; }
 :root .skin .rare-board .rb-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }

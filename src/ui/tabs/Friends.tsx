@@ -41,7 +41,7 @@ function RareBoard({ list }: { list: api.Friend[] }) {
         {show.map((r) => {
           const i = rows.indexOf(r);
           return (
-            <li key={r.id} className={r.id === 'me' ? 'me' : ''}>
+            <li key={r.id} className={r.id === 'me' ? 'rb-me' : ''}>
               <span className="rb-place">{i < 3 ? rich(['🥇', '🥈', '🥉'][i]) : i + 1}</span>
               <span className="rb-name">{rich(r.name)}</span>
               <b className="rb-pts">{r.rare}</b>
