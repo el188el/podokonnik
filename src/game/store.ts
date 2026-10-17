@@ -54,7 +54,11 @@ export type Popup =
   | { kind: 'contest'; place: number; leaves: number }
   | { kind: 'plusGift'; code: string }
   | { kind: 'box'; prize: BoxPrize }
+  | { kind: 'reward'; title: string; sub?: string; lines: RewardLine[] }
   | { kind: 'migrated' };
+
+/** Строка окна награды: картинка (предмет, растение или значок) и подпись. */
+export interface RewardLine { text: string; icon?: string; item?: string; plant?: { sp: string; form?: string; hue?: string } }
 
 export interface AwayReport {
   ms: number;
@@ -181,6 +185,24 @@ function fx(plantId: string, kind: 'water' | 'mist' | 'grow' | 'feed') {
 
 export const popup = (p: Popup) => set((s) => ({ popups: [...s.popups, p] }));
 export const closePopup = () => set((s) => ({ popups: s.popups.slice(1) }));
+
+/** Окно награды с картинкой — вместо короткого уведомления. */
+export const rewardPopup = (title: string, lines: RewardLine[], sub?: string) => popup({ kind: 'reward', title, sub, lines: lines.filter((l) => l.text) });
+export const RW = {
+  leaves: (n: number): RewardLine => ({ icon: '🍃', text: `+${n} листиков` }),
+  feed: (n: number): RewardLine => ({ icon: '🧪', text: `Подкормка ×${n}` }),
+  boost: (n: number): RewardLine => ({ icon: '⚡', text: `Стимулятор ×${n}` }),
+  pots: (n: number): RewardLine => ({ item: 'pot', text: `Горшки ×${n}` }),
+  item: (id: string): RewardLine => ({ item: id, text: ITEM_BY_ID[id]?.name ?? '' }),
+  form: (id: string): RewardLine => ({ plant: { sp: FORM_BY_ID[id]?.sp ?? 'violet', form: id }, text: `Редкий черенок «${FORM_BY_ID[id]?.name ?? ''}»` }),
+  cutting: (spId: string, hue?: string): RewardLine => ({ plant: { sp: spId, hue }, text: `Черенок: ${sp(spId).name}${hue ? ' ' + (hueOf(spId, hue)?.name ?? '') : ''}` }),
+};
+/** Что лежит в награде пропуска — строками для окна. */
+export const passLines = (r: PassReward): RewardLine[] => [
+  ...(r.leaves ? [RW.leaves(r.leaves)] : []), ...(r.feed ? [RW.feed(r.feed)] : []), ...(r.boost ? [RW.boost(r.boost)] : []), ...(r.pots ? [RW.pots(r.pots)] : []),
+  ...(r.item ? [RW.item(r.item)] : []), ...(r.form ? [RW.form(r.form)] : []), ...(r.hue ? [RW.cutting(r.hue.sp, r.hue.hue)] : []),
+  ...(r.title ? [{ icon: '🏅', text: `Звание «${r.title}»` }] : []),
+];
 export const openSheet = (sheet: Sheet) => set({ sheet });
 export const closeSheet = () => set({ sheet: null });
 export const setTab = (tab: Tab) => { set({ tab, sheet: null }); track('tab_open', { tab }); };
@@ -486,6 +508,17 @@ function friendWaters(g: GameState, items: api.InboxItem[]): FriendWater[] {
     });
 }
 
+/** Записать в «Почту» — чтобы подарок можно было найти и потом. */
+function mail(g: GameState, icon: string, text: string) {
+  g.mail = [{ at: Date.now(), icon, text }, ...(g.mail ?? [])].slice(0, 40);
+}
+/** Подарок пришёл: окно с картинкой и запись в «Почту». */
+function gifted(g: GameState, title: string, lines: RewardLine[], icon = '🎁', sub?: string) {
+  rewardPopup(title, lines, sub);
+  mail(g, icon, `${title}${lines.length ? ': ' + lines.map((l) => l.text).join(', ') : ''}`);
+  haptic('success');
+}
+
 function applyInbox(items: api.InboxItem[]) {
   if (!items.length) return;
   const ids = items.map((i) => i.id);
@@ -497,17 +530,17 @@ function applyInbox(items: api.InboxItem[]) {
       const name = String(it.payload.name ?? 'Друг');
       if (it.kind === 'gift_claimed') {
         g.leaves += 10;
-        toast(`🎁 ${name} забрал(а) твой черенок ${sp(String(it.payload.sp)).gen}! +10 🍃`);
+        gifted(g, `${name} забрал(а) твой черенок`, [RW.cutting(String(it.payload.sp)), RW.leaves(10)], '🎁', 'Спасибо за подарок другу');
       } else if (it.kind === 'chat_water') {
         const n = Number(it.payload.leaves) || 0;
         g.leaves += n;
-        toast(`🪴 Ты полил(а) «${String(it.payload.name ?? 'растение чата')}» в чате: +${n} 🍃`);
+        gifted(g, 'Полив в чате', [RW.leaves(n)], '🪴', `«${String(it.payload.name ?? 'растение чата')}» говорит спасибо`);
       } else if (it.kind === 'referral') {
         g.leaves += 50;
-        toast(`👯 ${name} пришёл(ла) по твоему приглашению! +50 🍃`);
+        gifted(g, `${name} пришёл(ла) по твоему приглашению!`, [RW.leaves(50)], '👯');
       } else if (it.kind === 'welcome') {
         g.leaves += 30;
-        toast('🎉 Тебя пригласил друг — держи +30 🍃 на первые черенки');
+        gifted(g, 'Тебя пригласил друг!', [RW.leaves(30)], '🎉', 'Это на первые черенки');
       } else if (it.kind === 'friend_added') {
         toast(`👋 ${name} теперь твой друг — загляните друг к другу в гости`);
       } else if (it.kind === 'friend_water') {
@@ -518,42 +551,43 @@ function applyInbox(items: api.InboxItem[]) {
           fx(p.id, 'water');
         }
         toast(`💧 ${name} полил(а) твой ${sp(String(it.payload.sp ?? p?.sp)).name.toLowerCase()}`);
+        mail(g, '💧', `${name} полил(а) твой ${sp(String(it.payload.sp ?? p?.sp)).name.toLowerCase()}`);
       } else if (it.kind === 'purchase') {
         const pr = PRODUCT_BY_ID[String(it.payload.product)];
         if (pr?.kind === 'leaves') {
           const n = Number(it.payload.leaves) || pr.leaves || 0;
           g.leaves += n;
-          toast(it.payload.note ? `🎁 ${String(it.payload.note)}: +${n} 🍃` : `🍃 +${n} листиков. Спасибо за поддержку!`);
+          gifted(g, it.payload.note ? String(it.payload.note) : 'Спасибо за поддержку!', [RW.leaves(n)], '🍃');
         } else if (pr?.kind === 'form') {
           const f = FORM_BY_ID[String(it.payload.form)];
           if (f) {
             g.cuttings.push({ id: makeCode(8), sp: f.sp, form: f.id, at: Date.now() });
-            toast(`✨ Черенок «${f.name}» в запасе — поставь в воду или подари!`);
+            gifted(g, 'Редкий черенок!', [RW.form(f.id)], '✨', 'Поставь его в воду или подари');
           }
         } else if (pr?.kind === 'pass') {
           const e = activeEvent(now());
           if (e) {
             eventProgress(g, e, now()).premium = true;
-            toast(it.payload.note ? `🎁 ${String(it.payload.note)}: сезонный пропуск «${e.title}» открыт!` : `${e.token} Сезонный пропуск «${e.title}» открыт — забирай награды!`);
+            gifted(g, it.payload.note ? String(it.payload.note) : 'Пропуск открыт!', [{ icon: '👑', text: `Сезонный пропуск «${e.title}»` }], '👑', 'Забирай награды платной ветки');
           }
         } else if (pr?.kind === 'plus') {
           g.plusUntil = Math.max(g.plusUntil ?? 0, Number(it.payload.plusUntil) || 0);
           g.owned.pot_gold = 1;
-          toast('🌟 «Садовник+» включён! Золотой горшок уже в коллекции');
+          gifted(g, '«Садовник+» включён!', [{ icon: '🌟', text: 'Садовник+' }, RW.item('pot_gold')], '🌟');
         } else if (pr?.kind === 'boost') {
           const n = Number(it.payload.count) || pr.count || 0;
           g.owned.boost = (g.owned.boost ?? 0) + n;
-          toast(`⚡ +${n} стимуляторов роста. Спасибо за поддержку!`);
+          gifted(g, 'Спасибо за поддержку!', [RW.boost(n)], '⚡');
         } else if (pr?.kind === 'place' && pr.slot) {
           if (!(g.places ?? []).includes(pr.slot)) g.places = [...(g.places ?? []), pr.slot];
-          toast('🪴 Новое место открыто на всех подоконниках!');
+          gifted(g, 'Новое место открыто!', [{ icon: '🪴', text: 'Место на всех подоконниках' }], '🪴');
         } else if (pr?.kind === 'starter') {
           g.starterPack = true;
           g.leaves += pr.leaves ?? 0;
           if (pr.item) g.owned[pr.item] = 1;
           const f = pr.form ? FORM_BY_ID[pr.form] : undefined;
           if (f) { g.cuttings.push({ id: makeCode(8), sp: f.sp, form: f.id, at: Date.now() }); discover(g, f.sp); }
-          toast('🎁 Стартовый пакет: редкий черенок, горшок и 300 🍃 — уже у тебя!');
+          gifted(g, 'Стартовый пакет', [...(f ? [RW.form(f.id)] : []), ...(pr.item ? [RW.item(pr.item)] : []), RW.leaves(pr.leaves ?? 0)], '🎁');
         }
         haptic('success');
       } else if (it.kind === 'swap_got' || it.kind === 'swap_return') {
@@ -563,17 +597,20 @@ function applyInbox(items: api.InboxItem[]) {
           const hue = it.payload.hue ? String(it.payload.hue) : undefined;
           g.cuttings.push({ id: makeCode(8), sp: spId, at: Date.now(), ...(form ? { form } : {}), ...(hue ? { hue } : {}) });
           discover(g, spId);
-          toast(it.kind === 'swap_return' ? `Черенок ${sp(spId).gen} вернулся с барахолки` : `🔄 ${String(it.payload.from ?? 'Садовник')}: черенок ${sp(spId).gen} пришёл по обмену!`);
+          if (it.kind === 'swap_return') toast(`Черенок ${sp(spId).gen} вернулся с барахолки`);
+          else gifted(g, 'Черенок по обмену!', [form ? RW.form(form) : RW.cutting(spId, hue)], '🔄', `От: ${String(it.payload.from ?? 'Садовник')}`);
         }
       } else if (it.kind === 'plus_gift') {
         const code = String(it.payload.code ?? '');
         if (code && !(g.plusGifts ?? []).some((x) => x.code === code)) g.plusGifts = [...(g.plusGifts ?? []), { code, at: Date.now() }];
         popup({ kind: 'plusGift', code });
+        mail(g, '🌟', 'Тебе подарили месяц «Садовник+» для друга');
         haptic('success');
       } else if (it.kind === 'contest_win') {
         const leaves = Number(it.payload.leaves) || 0;
         g.leaves += leaves;
         popup({ kind: 'contest', place: Number(it.payload.place) || 1, leaves });
+        mail(g, '🏆', `${Number(it.payload.place) || 1} место в конкурсе: +${leaves} листиков`);
         haptic('success');
       } else if (it.kind === 'coop_join') {
         toast(`💞 ${name} присоединил(ась) к подоконнику «${String(it.payload.sill ?? '')}»`);
@@ -587,7 +624,7 @@ function applyInbox(items: api.InboxItem[]) {
         g.leaves += r;
         eventToken(g, 'friendWater', now());
         weekly(g, 'friendWater');
-        toast(`Спасибо от ${String(it.payload.host ?? 'друга')}: +${r} 🍃`);
+        gifted(g, `Спасибо от ${String(it.payload.host ?? 'друга')}`, [RW.leaves(r)], '💧', 'За полив растений друга');
       }
     }
     g.inboxSeen = [...seen].slice(-100);
@@ -598,17 +635,19 @@ function applyInbox(items: api.InboxItem[]) {
 /** Подарок из панели или по промокоду: листики, пропуск, «Садовник+», черенок, предмет — с подписью. */
 function adminGift(g: GameState, x: Record<string, unknown>) {
   const got: string[] = [];
+  const lines: RewardLine[] = [];
   const leaves = Math.max(0, Math.min(100000, Math.round(Number(x.leaves) || 0)));
-  if (leaves) { g.leaves += leaves; got.push(`+${leaves} 🍃`); }
+  if (leaves) { g.leaves += leaves; got.push(`+${leaves} 🍃`); lines.push(RW.leaves(leaves)); }
   if (x.pass) {
     const e = activeEvent(now());
-    if (e) { eventProgress(g, e, now()).premium = true; got.push(`пропуск «${e.title}»`); }
+    if (e) { eventProgress(g, e, now()).premium = true; got.push(`пропуск «${e.title}»`); lines.push({ icon: '👑', text: `Пропуск «${e.title}»` }); }
   }
   const plusUntil = Number(x.plusUntil) || 0;
   if (plusUntil > Date.now()) {
     g.plusUntil = Math.max(g.plusUntil ?? 0, plusUntil);
     g.owned.pot_gold = 1;
     got.push(`«Садовник+» на ${Number(x.plusDays) || Math.ceil((plusUntil - Date.now()) / D)} дн.`);
+    lines.push({ icon: '🌟', text: got[got.length - 1] });
   }
   const f = x.form ? FORM_BY_ID[String(x.form)] : undefined;
   const spId = !f && x.sp ? String(x.sp) : '';
@@ -616,10 +655,12 @@ function adminGift(g: GameState, x: Record<string, unknown>) {
     g.cuttings.push({ id: makeCode(8), sp: f.sp, form: f.id, at: Date.now() });
     discover(g, f.sp);
     got.push(`черенок «${f.name}»`);
+    lines.push(RW.form(f.id));
   } else if (spId && sp(spId).id === spId) {
     g.cuttings.push({ id: makeCode(8), sp: spId, at: Date.now() });
     discover(g, spId);
     got.push(`черенок ${sp(spId).gen}`);
+    lines.push(RW.cutting(spId));
   }
   const item = x.item ? ITEM_BY_ID[String(x.item)] : undefined;
   if (item) {
@@ -627,10 +668,10 @@ function adminGift(g: GameState, x: Record<string, unknown>) {
     const id = item.gives ?? item.id;
     g.owned[id] = (g.owned[id] ?? 0) + (item.consumable || item.gives ? n * (item.count ?? 1) : 1);
     got.push(`${item.icon} ${item.name}${n > 1 ? ` ×${n}` : ''}`);
+    lines.push({ item: item.id, text: `${item.name}${n > 1 ? ` ×${n}` : ''}` });
   }
   const note = String(x.note ?? '').slice(0, 80) || 'Подарок';
-  toast(`🎁 ${note}${got.length ? ': ' + got.join(', ') : ''}`);
-  haptic('success');
+  gifted(g, note, lines);
 }
 
 /** Ивенты из панели: обновить список и перерисовать (баннер, цены). */
@@ -652,7 +693,7 @@ export function claimLiveCutting() {
     discover(g, f.sp);
     track('live_cutting', { form: f.id });
     haptic('success');
-    toast(`✨ Черенок «${f.name}» в запасе — поставь в воду!`);
+    rewardPopup('Редкий черенок!', [RW.form(f.id)], 'Поставь его в воду или подари');
   });
 }
 
@@ -1268,6 +1309,7 @@ export function claimGift(gift: PendingGift): 'ok' | 'dup' | 'full' {
     g.received.push(gift.code);
     g.pending = g.pending.filter((x) => x.code !== gift.code);
     g.stats.giftsGot += 1;
+    mail(g, '🎁', `${gift.from || 'Друг'} подарил(а) тебе черенок ${sp(gift.sp).gen}`);
     track('gift_claimed', { sp: gift.sp });
     g.activeSill = place.sill;
     discover(g, gift.sp);
@@ -1480,6 +1522,7 @@ export function claimQuest(id: string) {
     addXp(g, XP.quest);
     eventToken(g, 'quest', now());
     haptic('success');
+    rewardPopup('Задание выполнено!', [RW.leaves(q.reward * (isPlus(g) ? 2 : 1) * leavesMul(now()))], 'Задания дня');
   });
 }
 
@@ -1490,7 +1533,7 @@ export function claimQuestBonus() {
     g.leaves += QUEST_BONUS * (isPlus(g) ? 2 : 1) * leavesMul(now());
     g.owned.feed = (g.owned.feed ?? 0) + 1;
     haptic('success');
-    toast(`Все задания дня! +${QUEST_BONUS * (isPlus(g) ? 2 : 1) * leavesMul(now())} 🍃 и подкормка 🧪`);
+    rewardPopup('Все задания дня!', [RW.leaves(QUEST_BONUS * (isPlus(g) ? 2 : 1) * leavesMul(now())), RW.feed(1)], 'Бонус за день');
   });
 }
 
@@ -1503,7 +1546,7 @@ export function claimWeekly(id: string) {
     addXp(g, XP.quest * 3);
     track('weekly_claim', { kind: q.kind });
     haptic('success');
-    toast(`🏆 +${q.reward * (isPlus(g) ? 2 : 1) * leavesMul(now())} 🍃`);
+    rewardPopup('Задание недели!', [RW.leaves(q.reward * (isPlus(g) ? 2 : 1) * leavesMul(now()))], 'Задания недели');
   });
 }
 
@@ -1520,10 +1563,10 @@ export function claimWeeklyChest() {
     if (f && g.cuttings.length < MAX_CUTTINGS) {
       g.cuttings.push({ id: makeCode(8), sp: f.sp, form: f.id, at: t });
       discover(g, f.sp);
-      toast(`🎁 Сундук недели: +${WEEKLY_CHEST} 🍃 и редкий черенок «${f.name}»!`);
+      rewardPopup('Сундук недели', [RW.form(f.id), RW.leaves(WEEKLY_CHEST), RW.pots(3)]);
     } else {
       g.leaves += 100;
-      toast(`🎁 Сундук недели: +${WEEKLY_CHEST + 100} 🍃`);
+      rewardPopup('Сундук недели', [RW.leaves(WEEKLY_CHEST + 100), RW.pots(3)]);
     }
     haptic('success');
   });
@@ -1539,7 +1582,7 @@ export function claimShelf(id: string) {
     g.owned[s.reward.item] = 1;
     track('shelf', { id });
     haptic('success');
-    toast(`${s.icon} Полка «${s.title}» собрана! +${s.reward.leaves} 🍃 и ${ITEM_BY_ID[s.reward.item]?.icon} ${ITEM_BY_ID[s.reward.item]?.name}`);
+    rewardPopup(`Полка «${s.title}» собрана!`, [RW.item(s.reward.item), RW.leaves(s.reward.leaves)], 'Альбом редкостей');
   });
 }
 
@@ -1710,21 +1753,38 @@ export function setTitle(x: string) {
 }
 
 export function claimTier(i: number, premium: boolean) {
+  claimTiers([[i, premium]]);
+}
+
+/** Забрать награды пропуска (одну или сразу несколько) — одним окном. */
+export function claimTiers(list: (readonly [number, boolean])[]) {
   mut((g, t) => {
     const e = activeEvent(t);
     if (!e) return;
     const st = eventProgress(g, e, t);
-    if (st.tokens < e.tiers[i]) return;
-    const list = premium ? st.prem : st.free;
-    if (list.includes(i) || (premium && !st.premium)) return;
-    const r0 = (premium ? e.premium : e.free)[i];
-    if (isEmptyReward(r0)) return;
-    list.push(i);
-    track('event_claim', { event: e.id, tier: i + 1, premium });
-    const r = (premium ? e.premium : e.free)[i];
-    giveReward(g, r, t);
+    const lines: RewardLine[] = [];
+    for (const [i, premium] of list) {
+      if (st.tokens < e.tiers[i]) continue;
+      const got = premium ? st.prem : st.free;
+      if (got.includes(i) || (premium && !st.premium)) continue;
+      const r = (premium ? e.premium : e.free)[i];
+      if (isEmptyReward(r)) continue;
+      got.push(i);
+      track('event_claim', { event: e.id, tier: i + 1, premium });
+      giveReward(g, r, t);
+      lines.push(...passLines(r));
+    }
+    if (!lines.length) return;
     haptic('success');
-    toast(`Награда: ${rewardText(r)}`);
+    // одинаковые простые награды складываем: «+40 листиков» и «+60 листиков» → «+100 листиков»
+    const sum = (re: RegExp) => lines.filter((l) => re.test(l.text)).reduce((n, l) => n + Number(l.text.match(/\d+/)![0]), 0);
+    const simple = [/^\+\d+ листиков$/, /^Подкормка ×\d+$/, /^Стимулятор ×\d+$/, /^Горшки ×\d+$/];
+    const merged = [
+      ...lines.filter((l) => !simple.some((re) => re.test(l.text))),
+      ...(sum(simple[0]) ? [RW.leaves(sum(simple[0]))] : []), ...(sum(simple[1]) ? [RW.feed(sum(simple[1]))] : []),
+      ...(sum(simple[2]) ? [RW.boost(sum(simple[2]))] : []), ...(sum(simple[3]) ? [RW.pots(sum(simple[3]))] : []),
+    ];
+    rewardPopup(list.length > 1 ? 'Награды сезона' : 'Награда сезона', merged, `${e.title} · пропуск`);
   });
 }
 
@@ -1917,7 +1977,7 @@ export function claimStarter(i: number) {
     }
     track('starter_claim', { day: i + 1 });
     haptic('success');
-    toast(`🎁 День ${i + 1}: ${r.title}`);
+    rewardPopup(r.title, [...(r.cutting ? [r.form ? RW.form(r.form) : RW.cutting(r.cutting)] : []), ...(r.item ? [RW.item(r.item)] : []), ...(r.leaves ? [RW.leaves(r.leaves)] : []), ...(r.feed ? [RW.feed(r.feed)] : [])], `Подарок новичку · день ${i + 1}`);
   });
 }
 
@@ -2300,7 +2360,7 @@ export function claimFirstChest() {
     g.owned[FIRST_CHEST.item] = 1;
     track('first_chest');
     haptic('success');
-    toast(`⏳ Подарок первого часа: +${FIRST_CHEST.leaves} 🍃, подкормка ×${FIRST_CHEST.feed} и белый горшок!`);
+    rewardPopup('Подарок первого часа', [RW.item(FIRST_CHEST.item), RW.leaves(FIRST_CHEST.leaves), RW.feed(FIRST_CHEST.feed)]);
   });
 }
 
@@ -2333,7 +2393,7 @@ export function claimInvite(n: number, active: number) {
     giveReward(g, step.reward, t);
     track('invite_reward', { n });
     haptic('success');
-    toast(`${step.icon} «${step.title}»: ${step.text}!`);
+    rewardPopup(step.title, passLines(step.reward), 'Награда за друзей');
   });
 }
 
@@ -2677,8 +2737,7 @@ export function claimFirstStep(i: number) {
     if (st.pots) g.owned.pot = (g.owned.pot ?? 0) + st.pots;
     addXp(g, 10);
     haptic('success');
-    const extra = [st.feed ? `🧪 ×${st.feed}` : '', st.boost ? `⚡ ×${st.boost}` : '', st.pots ? `🪴 ×${st.pots}` : ''].filter(Boolean).join(' ');
-    toast(`${st.icon} «${st.title}» — готово! +${st.leaves} 🍃 ${extra}`.trim());
+    rewardPopup(`«${st.title}» — готово!`, [RW.leaves(st.leaves), ...(st.feed ? [RW.feed(st.feed)] : []), ...(st.boost ? [RW.boost(st.boost)] : []), ...(st.pots ? [RW.pots(st.pots)] : [])], 'Первые шаги');
     track('first_step', { i });
   });
 }
@@ -2699,7 +2758,7 @@ export function claimDaily() {
     if (d.pots) g.owned.pot = (g.owned.pot ?? 0) + d.pots;
     if (d.boost) g.owned.boost = (g.owned.boost ?? 0) + d.boost;
     haptic('success');
-    toast(`🎁 Сундучок: ${d.title}! Завтра — новый`);
+    rewardPopup('Сундучок дня', [...(d.leaves ? [RW.leaves(d.leaves)] : []), ...(d.feed ? [RW.feed(d.feed)] : []), ...(d.pots ? [RW.pots(d.pots)] : []), ...(d.boost ? [RW.boost(d.boost)] : [])], 'Завтра — новый');
     track('daily_chest', {});
   });
 }

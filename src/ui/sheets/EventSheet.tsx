@@ -6,7 +6,7 @@ import { sp } from '../../game/species';
 import { FORM_BY_ID, PRODUCT_BY_ID } from '../../game/products';
 import { ITEM_BY_ID, potIdOf } from '../../game/shop';
 import { approx } from '../../game/sim';
-import { buyStars, catchesLeft, claimTier, closeSheet, eventProgress, now, useStore } from '../../game/store';
+import { buyStars, catchesLeft, claimTier, claimTiers, closeSheet, eventProgress, now, useStore } from '../../game/store';
 import { DecorArt, hasDecorArt } from '../art/DecorArt';
 import { PlantArt } from '../art/PlantArt';
 import { Icon, StarsPrice, TONE } from '../kit/icons';
@@ -82,7 +82,7 @@ export function EventSheet() {
       )}
 
       {ready.length > 1 && (
-        <Btn kind="primary" onClick={() => ready.forEach(([i, p]) => claimTier(i, p))}>Забрать все награды · {ready.length}</Btn>
+        <Btn kind="primary" onClick={() => claimTiers(ready)}>Забрать все награды · {ready.length}</Btn>
       )}
 
       {!st.premium && (

@@ -47,7 +47,7 @@ export const EMOJI: Record<string, Glyph> = {
   '🚪': [DoorOpen, W], '🧱': [BrickWall, '#c4553d'], '🏙': [Building2, S], '🖼': [Image, S],
   '🎨': [Palette, P], '🧶': [Circle, P, true], '🧣': [Shirt, '#c4553d'], '🧤': [Hand, '#c4553d'], '🧽': [Brush, Y], '🧼': [Droplets, T], '🧻': [Scroll, K],
   '📋': [ClipboardList, W], '📒': [Notebook, Y], '📗': [Book, G], '📖': [BookOpen, S], '📚': [Library, W], '📰': [Newspaper, S],
-  '✏': [Pencil, Y], '✉': [Mail, S], '📤': [Upload, S], '📢': [Megaphone, O], '🔔': [Bell, Y], '📲': [Smartphone, S], '📵': [PhoneOff, K],
+  '✏': [Pencil, Y], '✉': [Mail, S], '📬': [Mail, B], '📤': [Upload, S], '📢': [Megaphone, O], '🔔': [Bell, Y], '📲': [Smartphone, S], '📵': [PhoneOff, K],
   '📸': [Camera, S], '📷': [Camera, S], '🎬': [Clapperboard, S], '📺': [Tv, S], '📻': [Radio, W], '📊': [ChartBar, T],
   '🏆': [Trophy, Y], '🥇': [Medal, Y], '🥈': [Medal, '#9aa5a0'], '🥉': [Medal, '#b07a4a'], '🏅': [Award, Y], '👑': [Crown, Y], '💎': [Gem, B], '🔷': [Diamond, B, true],
   '🎯': [Target, R], '📏': [Ruler, W], '🧭': [Compass, S], '📟': [Gauge, S], '⚙': [Settings, S], '🌐': [Globe, S],

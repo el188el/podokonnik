@@ -40,6 +40,12 @@ export function Profile() {
         <input id="nm" className="inp" maxLength={24} value={name} placeholder="Имя для подарков" onChange={(e) => setN(e.target.value)} onBlur={() => setName(name)} />
         <p className="lvl" onClick={() => openSheet({ kind: 'levels' })}>{rich(rankOf(g.level).icon)} {rich(rankOf(g.level).title)} · <Emo e="⭐" /> Уровень {g.level}{isPlus(g) && <span className="plus-badge"> · <Emo e="🌟" /> Садовник+</span>}</p>
         <Bar value={g.xp / xpToNext(g.level)} label={`${g.xp}/${xpToNext(g.level)} опыта`} />
+        {(g.mail ?? []).length > 0 && (
+          <details className="mailbox">
+            <summary><Emo e="📬" /> Почта: подарки и награды · {(g.mail ?? []).length}</summary>
+            <ul>{(g.mail ?? []).map((m, i) => <li key={i}><span>{rich(m.icon)}</span><span>{rich(m.text)}<small className="muted"> · {new Date(m.at).toLocaleDateString('ru-RU', { day: 'numeric', month: 'short' })}</small></span></li>)}</ul>
+          </details>
+        )}
         {(g.titles ?? []).length > 0 && (
           <div className="titles">
             <small className="muted">Звания сезонов — нажми, чтобы выбрать:</small>

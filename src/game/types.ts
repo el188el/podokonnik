@@ -278,6 +278,7 @@ export interface GameState {
   hues?: Record<string, string[]>;      // собранные цвета по видам
   forms?: string[];     // собранные редкие формы
   titles?: string[];    // звания сезонов из платного пропуска
+  mail?: { at: number; icon: string; text: string }[]; // подарки и награды от друзей и игры — последние 40
   title?: string;       // выбранное звание — показывается в профиле
   bloomed?: string[];   // виды, которые цвели у игрока
   shelves?: string[];   // забранные награды полок альбома

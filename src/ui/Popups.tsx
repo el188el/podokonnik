@@ -6,13 +6,14 @@ import { NOTES } from '../game/constants';
 import { STREAK_REWARDS } from '../game/quests';
 import { approx } from '../game/sim';
 import { sp } from '../game/species';
-import { achievementById, claimGift, claimGiftOnline, claimStreak, closePopup, freeSlot, openSheet, popup, toast, useStore } from '../game/store';
+import { achievementById, type RewardLine, claimGift, claimGiftOnline, claimStreak, closePopup, freeSlot, openSheet, popup, toast, useStore } from '../game/store';
 import { PlantArt } from './art/PlantArt';
 import { Btn, Modal } from './kit/kit';
 import { sharePlusGift, shareThanks } from './share';
 import type { BoxPrize } from '../game/box';
 import { FORM_BY_ID } from '../game/products';
-import { ITEM_BY_ID } from '../game/shop';
+import { ITEM_BY_ID, potIdOf } from '../game/shop';
+import { DecorArt, hasDecorArt } from './art/DecorArt';
 import { sharePlantStory } from './story';
 import { AGE_MARKS, daysText } from '../game/age';
 import { Emo, rich } from './kit/rich';
@@ -137,6 +138,7 @@ export function Popups() {
         </div>
       )}
       {p?.kind === 'box' && <BoxReveal prize={p.prize} />}
+      {p?.kind === 'reward' && <RewardReveal title={p.title} sub={p.sub} lines={p.lines} />}
       {p?.kind === 'contest' && (
         <div className="center">
           <motion.div className="gicon" initial={{ scale: 0.3, rotate: -20 }} animate={{ scale: 1, rotate: 0 }}>{rich(['🥇', '🥈', '🥉'][p.place - 1] ?? '🏆')}</motion.div>
@@ -226,6 +228,42 @@ function GiftCard({ gift, full }: { gift: PendingGift & { ok: boolean }; full: b
   );
 }
 
+
+/** Картинка награды: предмет, горшок, растение или значок. */
+function RewardArt({ l, big }: { l: RewardLine; big?: boolean }) {
+  if (l.plant) return <PlantArt sp={l.plant.sp} form={l.plant.form} hue={l.plant.hue} stage={big ? 4 : 2} seed="reward" blooming className="mini" />;
+  if (l.item && (l.item === 'pot' || l.item.startsWith('pot'))) return <PlantArt sp="chlorophytum" stage={2} pot={l.item === 'pot' ? 'terracotta' : potIdOf(l.item)} seed="reward" className="mini" potView />;
+  if (l.item && hasDecorArt(l.item)) return <DecorArt id={l.item} scale={big ? 2 : 1} />;
+  return <Emo e={l.icon ?? ITEM_BY_ID[l.item ?? '']?.icon ?? '🎁'} size={big ? 64 : 26} />;
+}
+
+/** Окно награды: большая картинка с лучами, название и всё, что получено. */
+function RewardReveal({ title, sub, lines }: { title: string; sub?: string; lines: RewardLine[] }) {
+  const main = lines.find((l) => l.plant || l.item) ?? lines[0];
+  return (
+    <div className="center reward-pop">
+      {sub && <p className="muted small">{rich(sub)}</p>}
+      <div className="rw-hero">
+        <i className="rw-rays" aria-hidden />
+        <motion.div className="rw-hero-art" initial={{ scale: 0.3, rotate: -15 }} animate={{ scale: [0.3, 1.15, 1], rotate: [-15, 6, 0] }} transition={{ duration: 0.6 }}>
+          {main && <RewardArt l={main} big />}
+        </motion.div>
+      </div>
+      <h2>{rich(title)}</h2>
+      {lines.length > 0 && (
+        <div className={"rw-list" + (lines.length > 3 ? " many" : "")}>
+          {lines.map((l, i) => (
+            <motion.div key={i} className="rw-chip" initial={{ y: 10, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.35 + i * 0.08 }}>
+              <span className="rw-chip-art"><RewardArt l={l} /></span>
+              <span>{rich(l.text)}</span>
+            </motion.div>
+          ))}
+        </div>
+      )}
+      <Btn kind="primary" onClick={closePopup}>Забрать!</Btn>
+    </div>
+  );
+}
 
 function BoxReveal({ prize }: { prize: BoxPrize }) {
   const f = prize.kind === 'form' ? FORM_BY_ID[prize.id] : undefined;
