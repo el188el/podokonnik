@@ -333,6 +333,8 @@ body:has(.skin) { background: var(--bg, #f5f2ec); }
 :root[data-theme='dark'] .skin .bp-rw.prem { background: linear-gradient(160deg, #2e2719, #3a2f17); }
 :root .skin .bp-rw.prem.none { background: none; box-shadow: none; border: 0; }
 :root .skin .bp-rw.prem.none::after { content: ''; width: 5px; height: 5px; border-radius: 50%; background: var(--line); }
+:root .skin .rw-hue { display: grid; place-items: center; width: 26px; height: 26px; border-radius: 50%; border: 1.6px solid #3b2a22; box-shadow: inset 0 -3px 0 #0002; }
+:root .skin .rw-hue .emo { width: 13px; height: 13px; color: #fff !important; opacity: 0.9; }
 :root .skin .bp-rw:disabled { opacity: 1; }
 :root .skin .bp-rw.locked > .rw-art, :root .skin .bp-rw.locked > .rw-t { opacity: 0.55; }
 :root .skin .bp-rw.got > .rw-art, :root .skin .bp-rw.got > .rw-t { opacity: 0.45; }

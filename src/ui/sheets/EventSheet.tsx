@@ -27,7 +27,7 @@ function Reward({ r }: { r: PassReward }) {
     return <><span className="rw-art">{art}</span><span className="rw-t">{rich(it?.name ?? '')}</span></>;
   }
   if (r.form) return <><span className="rw-art"><Icon name="sparkles" size={26} tone="#8b5cc7" /></span><span className="rw-t">{rich(FORM_BY_ID[r.form]?.name ?? '')}</span></>;
-  if (r.hue) return <><span className="rw-art"><Icon name="flower" size={26} tone={hueOf(r.hue.sp, r.hue.hue)?.color ?? '#e0574f'} /></span><span className="rw-t">{rich(`${sp(r.hue.sp).name} ${hueOf(r.hue.sp, r.hue.hue)?.name ?? ''}`)}</span></>;
+  if (r.hue) return <><span className="rw-art"><i className="rw-hue" style={{ background: hueOf(r.hue.sp, r.hue.hue)?.color }}><Emo e="🌸" size={14} /></i></span><span className="rw-t">{rich(`${sp(r.hue.sp).name} ${hueOf(r.hue.sp, r.hue.hue)?.name ?? ''}`)}</span></>;
   if (r.title) return <><span className="rw-art"><Icon name="trophy" size={26} tone="#e8a325" /></span><span className="rw-t">Звание «{rich(r.title)}»</span></>;
   return null;
 }
