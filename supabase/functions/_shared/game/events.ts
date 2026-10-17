@@ -36,9 +36,9 @@ const TIERS = Array.from({ length: PASS_LEVELS }, (_, i) => i).reduce<number[]>(
 
 /**
  * Награды сезона. Бесплатная ветка: декор сезона на 5, 15 и 25 уровнях, между ними —
- * листики, подкормки, горшки и стимуляторы. Платная — только эксклюзив, которого больше
- * нигде не получить: два горшка, обои, два сезонных цвета цветков, декор, звание
- * и редкая форма на 30-м уровне. На остальных уровнях платной ветки наград нет.
+ * листики, подкормки, горшки и стимуляторы. Платная — на каждом уровне: эксклюзив, которого
+ * больше нигде не получить (два горшка, обои, два сезонных цвета цветков, декор, звание
+ * и редкая форма на 30-м уровне), а между ними — листики, подкормки, горшки и стимуляторы.
  */
 export const PREM_AT = { pot: 1, hue1: 4, pot2: 8, wp: 12, hue2: 16, decor: 20, title: 24, form: 29 } as const;
 interface PassSpec { free: string[]; prem: string; pot: string; pot2: string; wp: string; hues: [string, string][]; title: string; form: string }
@@ -64,7 +64,11 @@ function pass(x: PassSpec): Pick<GameEvent, 'tiers' | 'free' | 'premium'> {
       : i === PREM_AT.decor ? { item: x.prem }
       : i === PREM_AT.title ? { title: x.title }
       : i === PREM_AT.form ? { form: x.form }
-      : {},
+      // между эксклюзивами — щедрые обычные награды
+      : i % 4 === 1 ? { feed: 3 }
+      : i % 4 === 2 ? { pots: 3 }
+      : i % 4 === 3 ? { boost: 2 }
+      : { leaves: 40 + 10 * i },
     );
   }
   return { tiers: TIERS, free, premium };

@@ -54,14 +54,15 @@ describe('стимуляторы в пропуске и за звёзды', () =
     for (const e of EVENTS) expect(e.free.filter((r) => r.boost).length).toBeGreaterThanOrEqual(4);
   });
 
-  it('в платной ветке — только эксклюзив, которого больше нигде нет', () => {
+  it('платная ветка: награда на каждом уровне, а эксклюзив — только в ней', () => {
     const freeItems = new Set(EVENTS.flatMap((e) => e.free.map((r) => r.item).filter(Boolean)));
     const seen = new Set<string>();
     for (const e of EVENTS) {
-      const prem = e.premium.filter((r) => !isEmptyReward(r));
+      expect(e.premium.every((r) => !isEmptyReward(r))).toBe(true);
+      expect(e.premium.filter((r) => r.boost).length).toBeGreaterThanOrEqual(5);
+      const prem = e.premium.filter((r) => r.item || r.hue || r.form || r.title);
       expect(prem.length).toBe(8);
       for (const r of prem) {
-        expect(r.leaves ?? r.feed ?? r.pots ?? r.boost).toBeUndefined();
         if (r.item) {
           expect(ITEM_BY_ID[r.item]?.eventOnly).toBe(true);
           expect(freeItems.has(r.item)).toBe(false);

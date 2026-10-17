@@ -90,7 +90,7 @@ export function EventSheet() {
           <span className="bp-buy-ic"><Icon name="crown" size={24} /></span>
           <div>
             <b>Сезонный пропуск</b>
-            <small>Только эксклюзив сезона, которого больше нигде не получить: {e.premium.filter((r) => !isEmptyReward(r)).length} наград — горшки, обои, цвета цветков, декор, звание и редкая форма. За пройденные уровни — сразу.</small>
+            <small>Награда на каждом уровне: {e.premium.reduce((n, r) => n + (r.leaves ?? 0), 0)} <Emo e="🍃" />, подкормки и стимуляторы, а ещё эксклюзив сезона, которого больше нигде нет: горшки, обои, цвета цветков, декор, звание и редкая форма. За пройденные уровни — сразу.</small>
           </div>
           <Btn small kind="gold" disabled={busy} onClick={async () => { setBusy(true); await buyStars('pass'); setBusy(false); }}><StarsPrice n={pass.stars} /></Btn>
         </div>

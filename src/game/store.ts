@@ -1623,10 +1623,13 @@ export function eventProgress(g: GameState, e: GameEvent, t: number): EventProgr
   g.events = g.events ?? {};
   const st = (g.events[key] ??= { tokens: 0, free: [], prem: [], premium: false, layout: 2 });
   if (!st.layout) {
-    // раньше в платной ветке были листики и подкормки: забранными оставляем только
-    // те уровни, где награда не поменялась (горшок, декор сезона, форма)
+    // раньше эксклюзив был на уровнях 2, 10, 20, 28 и 30; теперь его больше и он на других уровнях.
+    // Забранными оставляем уровни, где награда не поменялась, — новые эксклюзивы можно забрать
     const was = new Set(st.prem);
+    const oldEx = [1, 9, 19, 27, 29];
+    const newEx = Object.values(PREM_AT) as number[];
     st.prem = [
+      ...st.prem.filter((i) => !oldEx.includes(i) && !newEx.includes(i)),
       ...(was.has(PREM_AT.pot) ? [PREM_AT.pot] : []),
       ...([9, 19, 27].some((i) => was.has(i)) ? [PREM_AT.decor] : []),
       ...(was.has(PREM_AT.form) ? [PREM_AT.form] : []),
