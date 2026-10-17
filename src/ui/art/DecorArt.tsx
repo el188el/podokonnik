@@ -578,13 +578,14 @@ const ART: Record<string, { w: number; h: number; draw: (o: DrawOpts) => ReactNo
     </g>
     {o.on && <path d="M30 22 L18 64 H62 L56 26 Z" fill="#c77dff22" />}
   </>) },
-  growlamp: { w: 160, h: 30, draw: (o) => (<>
-    <path d="M30 0 V12 M130 0 V12" stroke="#5d5a66" strokeWidth="1.4" />
-    <rect x="6" y="10" width="148" height="12" rx="6" fill="#3b3742" />
-    <rect x="10" y="20" width="140" height="5" rx="2.5" fill={o.on ? '#d18cff' : '#6c6676'} />
-    {o.on && Array.from({ length: 14 }, (_, i) => <circle key={i} cx={15 + i * 10} cy="22.5" r="1.6" fill={i % 3 === 1 ? '#ff6fa8' : '#f3d4ff'} />)}
-    <rect x="70" y="12" width="20" height="5" rx="2" fill="#57525f" />
-    <circle cx="80" cy="14.5" r="1.4" fill={o.on ? '#9cff9c' : '#999'} />
+  // тонкая планка под верхней рамой: крепится на двух скобах и не загораживает стекло
+  growlamp: { w: 200, h: 16, draw: (o) => (<>
+    <rect x="22" y="0" width="8" height="5" rx="1.5" fill="#57525f" />
+    <rect x="170" y="0" width="8" height="5" rx="1.5" fill="#57525f" />
+    <rect x="4" y="3" width="192" height="8" rx="4" fill="#3b3742" />
+    <rect x="8" y="9.5" width="184" height="4" rx="2" fill={o.on ? '#d18cff' : '#6c6676'} />
+    {o.on && Array.from({ length: 18 }, (_, i) => <circle key={i} cx={13 + i * 10.3} cy="11.5" r="1.4" fill={i % 3 === 1 ? '#ff6fa8' : '#f3d4ff'} />)}
+    <circle cx="100" cy="7" r="1.3" fill={o.on ? '#9cff9c' : '#999'} />
   </>) },
   cat_walk: { w: 70, h: 44, draw: (o) => <CatWalk c={catTint(o.tint)} /> },
   // лежанка-гамак на присосках: крепится к стеклу, котик спит в ней чаще всего

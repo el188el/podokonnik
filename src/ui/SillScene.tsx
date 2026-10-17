@@ -327,7 +327,7 @@ export function SillScene({ decor, tod, winter, sky, theme, win = 'E', cell, han
         <div className="frame" />
         {windowD.includes('cat_bed') && (
           <button className={'cat-bed' + (bed.who ? ' busy' : '')} onClick={() => (bed.who ? window.dispatchEvent(new CustomEvent('cat-bed-tap', { detail: bed.who })) : onItem?.('cat_bed'))} aria-label="Лежанка для котика">
-            <DecorArt id="cat_bed" on={!!bed.who} tint={bed.who ? catColors?.[bed.who] ?? CAT_DEFAULT_COLOR[bed.who] : undefined} scale={1.35} />
+            <DecorArt id="cat_bed" on={!!bed.who} tint={bed.who ? catColors?.[bed.who] ?? CAT_DEFAULT_COLOR[bed.who] : undefined} scale={1.25} />
           </button>
         )}
         {windowD.includes('paper_snow') && <div className="paper-snow">{[0, 1, 2, 3].map((i) => <span key={i}><DecorArt id="snowflake" scale={[1.1, 1.4, 0.8, 1][i]} /></span>)}</div>}

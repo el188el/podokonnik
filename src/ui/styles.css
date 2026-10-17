@@ -1563,3 +1563,8 @@ button:focus:not(:focus-visible) { outline: none; }
 .floor-hint.up { bottom: auto; top: 6px; }
 .scene-fit .scene .slot { touch-action: pan-x pan-y; }
 .scene .row-floor .floor-lock svg { color: #fff7ec !important; stroke: #fff7ec !important; }
+
+/* фитолампа — планка под верхней рамой, гамак с котиком — ниже, на стекле */
+.growlamp { top: 5px; width: 82%; max-width: 360px; }
+.scene .window .cat-bed { top: 34px; left: 6%; z-index: 5; }
+.scene .window .growlamp ~ .cat-bed, .scene .window .cat-bed { top: 34px; }
