@@ -6,7 +6,7 @@ import { climateOf, coldLimit, FUSSY_TEXT, fussyIssue, zoneTemp } from './climat
 import { PROBLEMS, cureFor } from './problems';
 import { badLight, ctxFor } from './sim';
 import { sp } from './species';
-import type { GameState, Plant } from './types';
+import type { GameState, Plant, Sill } from './types';
 
 export type Fix =
   | { kind: 'water' | 'mist' | 'vent' | 'tray' | 'soil' | 'drain' | 'wipe'; label: string }
@@ -22,7 +22,7 @@ export interface Cause {
   fixes: Fix[];
 }
 
-const owns = (g: GameState, sillDecor: string[], id: string) => sillDecor.includes(id) && (g.owned[id] ?? 0) > 0;
+const owns = (g: GameState, sill: Sill, id: string) => sill.decor.includes(id) && (!!sill.shared || (g.owned[id] ?? 0) > 0);
 
 export function diagnose(g: GameState, p: Plant, t: number): Cause[] {
   if (p.stage < 2) return [];
@@ -35,14 +35,14 @@ export function diagnose(g: GameState, p: Plant, t: number): Cause[] {
     out.push({
       icon: '🏜', title: 'Засуха', hurts: p.dryFor > s.drought * 24,
       text: `Земля сухая уже ${Math.round(p.dryFor)} ч — корни сохнут. ${s.name} терпит без воды около ${s.drought} дн.`,
-      fixes: [{ kind: 'water', label: '💧 Полить' }, ...(owns(g, sill.decor, 'meter') ? [] : [{ kind: 'buy' as const, item: 'meter', label: '📟 Влагомер' }])],
+      fixes: [{ kind: 'water', label: '💧 Полить' }, ...(owns(g, sill, 'meter') ? [] : [{ kind: 'buy' as const, item: 'meter', label: '📟 Влагомер' }])],
     });
   }
   if (p.wetLeaves) {
     out.push({
       icon: '💧', title: 'Мокрые листья', hurts: true,
-      text: `${s.name} не любит воду на листьях: появляются пятна, а в сырости — плесень. Протри салфеткой${owns(g, sill.decor, 'fan') ? ' или подожди — вентилятор высушит за полчаса' : ', иначе листья будут сохнуть 3 часа'}.`,
-      fixes: [{ kind: 'wipe', label: '🧻 Протереть' }, ...(owns(g, sill.decor, 'fan') ? [] : [{ kind: 'buy' as const, item: 'fan', label: '🌀 Вентилятор' }])],
+      text: `${s.name} не любит воду на листьях: появляются пятна, а в сырости — плесень. Протри салфеткой${owns(g, sill, 'fan') ? ' или подожди — вентилятор высушит за полчаса' : ', иначе листья будут сохнуть 3 часа'}.`,
+      fixes: [{ kind: 'wipe', label: '🧻 Протереть' }, ...(owns(g, sill, 'fan') ? [] : [{ kind: 'buy' as const, item: 'fan', label: '🌀 Вентилятор' }])],
     });
   }
   if (p.moisture > 1) {
@@ -59,8 +59,8 @@ export function diagnose(g: GameState, p: Plant, t: number): Cause[] {
       icon: dark ? '🌥' : '🔥', title: dark ? 'Мало света' : 'Слишком много солнца', hurts: p.badLightFor > 20 && p.health > 50,
       text: dark ? `Ему нужно больше света. Поставь ${p.zone === 'deep' ? 'к стеклу' : 'на более светлое окно'} или повесь фитолампу.` : 'Прямое солнце обжигает листья. Отодвинь в глубину, задёрни шторы или повесь тюль.',
       fixes: dark
-        ? [...(p.zone === 'deep' ? [{ kind: 'move' as const, to: 'glass' as const, label: '↑ К стеклу' }] : []), ...(p.zone === 'deep' ? (owns(g, sill.decor, 'lamp_table') ? [] : [{ kind: 'buy' as const, item: 'lamp_table', label: '💜 Настольная фитолампа' }]) : owns(g, sill.decor, 'lamp') ? [] : [{ kind: 'buy' as const, item: 'lamp', label: '💜 Фитолампа' }])]
-        : [...(p.zone === 'glass' ? [{ kind: 'move' as const, to: 'deep' as const, label: '↓ В глубину' }] : []), ...(owns(g, sill.decor, 'curtains') ? [] : [{ kind: 'buy' as const, item: 'curtains', label: '🎐 Шторы' }]), ...(owns(g, sill.decor, 'tulle') ? [] : [{ kind: 'buy' as const, item: 'tulle', label: '🪟 Тюль' }])],
+        ? [...(p.zone === 'deep' ? [{ kind: 'move' as const, to: 'glass' as const, label: '↑ К стеклу' }] : []), ...(p.zone === 'deep' ? (owns(g, sill, 'lamp_table') ? [] : [{ kind: 'buy' as const, item: 'lamp_table', label: '💜 Настольная фитолампа' }]) : owns(g, sill, 'lamp') ? [] : [{ kind: 'buy' as const, item: 'lamp', label: '💜 Фитолампа' }])]
+        : [...(p.zone === 'glass' ? [{ kind: 'move' as const, to: 'deep' as const, label: '↓ В глубину' }] : []), ...(owns(g, sill, 'curtains') ? [] : [{ kind: 'buy' as const, item: 'curtains', label: '🎐 Шторы' }]), ...(owns(g, sill, 'tulle') ? [] : [{ kind: 'buy' as const, item: 'tulle', label: '🪟 Тюль' }])],
     });
   }
   const c = climateOf(g, sill, t);
@@ -69,17 +69,17 @@ export function diagnose(g: GameState, p: Plant, t: number): Cause[] {
     out.push({
       icon: '🥶', title: 'Холодно', hurts: true,
       text: `${Math.round(temp)}° ${p.zone === 'glass' ? 'у стекла' : 'в комнате'}, а ${s.name.toLowerCase()} мёрзнет ниже ${coldLimit(p.sp)}°.${sill.vent ? ' Открыта форточка — сквозняк.' : ''}`,
-      fixes: [...(sill.vent ? [{ kind: 'vent' as const, label: '🪟 Закрыть форточку' }] : []), ...(p.zone === 'glass' ? [{ kind: 'move' as const, to: 'deep' as const, label: '↓ От стекла' }] : []), ...(owns(g, sill.decor, 'heater') ? [] : [{ kind: 'buy' as const, item: 'heater', label: '♨️ Обогреватель' }])],
+      fixes: [...(sill.vent ? [{ kind: 'vent' as const, label: '🪟 Закрыть форточку' }] : []), ...(p.zone === 'glass' ? [{ kind: 'move' as const, to: 'deep' as const, label: '↓ От стекла' }] : []), ...(owns(g, sill, 'heater') ? [] : [{ kind: 'buy' as const, item: 'heater', label: '♨️ Обогреватель' }])],
     });
   }
   const fi = fussyIssue(s, temp, c.rh, c.draft && p.zone === 'glass');
   if (fi) {
     const vent = (label: string) => ({ kind: 'vent' as const, label });
     const fixes: Fix[] =
-      fi === 'hot' ? [...(sill.vent ? [] : [vent('🪟 Открыть форточку')]), ...(p.zone === 'deep' && c.heating ? [{ kind: 'move' as const, to: 'glass' as const, label: '↑ К прохладному стеклу' }] : []), ...(owns(g, sill.decor, 'fan') ? [] : [{ kind: 'buy' as const, item: 'fan', label: '🌀 Вентилятор' }])]
-      : fi === 'cold' ? [...(sill.vent ? [vent('🪟 Закрыть форточку')] : []), ...(p.zone === 'glass' ? [{ kind: 'move' as const, to: 'deep' as const, label: '↓ От стекла' }] : []), ...(owns(g, sill.decor, 'heater') ? [] : [{ kind: 'buy' as const, item: 'heater', label: '♨️ Обогреватель' }])]
+      fi === 'hot' ? [...(sill.vent ? [] : [vent('🪟 Открыть форточку')]), ...(p.zone === 'deep' && c.heating ? [{ kind: 'move' as const, to: 'glass' as const, label: '↑ К прохладному стеклу' }] : []), ...(owns(g, sill, 'fan') ? [] : [{ kind: 'buy' as const, item: 'fan', label: '🌀 Вентилятор' }])]
+      : fi === 'cold' ? [...(sill.vent ? [vent('🪟 Закрыть форточку')] : []), ...(p.zone === 'glass' ? [{ kind: 'move' as const, to: 'deep' as const, label: '↓ От стекла' }] : []), ...(owns(g, sill, 'heater') ? [] : [{ kind: 'buy' as const, item: 'heater', label: '♨️ Обогреватель' }])]
       : fi === 'draft' ? [vent('🪟 Закрыть форточку'), { kind: 'move', to: 'deep', label: '↓ От стекла' }]
-      : [{ kind: 'mist', label: '💦 Опрыскать' }, ...(owns(g, sill.decor, 'humidifier') ? [] : [{ kind: 'buy' as const, item: 'humidifier', label: '💨 Увлажнитель' }])];
+      : [{ kind: 'mist', label: '💦 Опрыскать' }, ...(owns(g, sill, 'humidifier') ? [] : [{ kind: 'buy' as const, item: 'humidifier', label: '💨 Увлажнитель' }])];
     out.push({
       icon: fi === 'hot' ? '🥵' : fi === 'cold' ? '🥶' : fi === 'dry' ? '🏜' : '🪟', title: 'Капризничает', hurts: p.health > 60,
       text: `${s.name} — ${FUSSY_TEXT[fi]} (${Math.round(temp)}°, влажность ${c.rh}%). Растёт вдвое медленнее и не цветёт. ${s.fussy!.note}`,
@@ -89,7 +89,7 @@ export function diagnose(g: GameState, p: Plant, t: number): Cause[] {
     out.push({
       icon: '🏜', title: 'Сухой воздух', hurts: false,
       text: `Влажность ${c.rh}% — ${s.name.toLowerCase()} любит влажный воздух: растёт медленнее, легко заводится клещ.`,
-      fixes: [{ kind: 'mist', label: '💦 Опрыскать' }, ...(owns(g, sill.decor, 'humidifier') ? [] : [{ kind: 'buy' as const, item: 'humidifier', label: '💨 Увлажнитель' }])],
+      fixes: [{ kind: 'mist', label: '💦 Опрыскать' }, ...(owns(g, sill, 'humidifier') ? [] : [{ kind: 'buy' as const, item: 'humidifier', label: '💨 Увлажнитель' }])],
     });
   }
   if (p.problem) {

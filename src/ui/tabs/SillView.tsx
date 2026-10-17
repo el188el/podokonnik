@@ -5,6 +5,7 @@ import { activeEvent, eventSeason, tierOf } from '../../game/events';
 import { canCut, isWinter, fmt } from '../../game/sim';
 import { isPlus, now, openSheet, plantAt, setTab, setTool, showGift, USABLE, useGame, useStore, viewGame, waterAll, type Tool } from '../../game/store';
 import { CoopHead } from './CoopSill';
+import { coopDecorOk } from '../../game/coop';
 import type { CoopView } from '../../net/api';
 import { canFulfil } from '../../game/orders';
 import { FallingTokens } from '../FallingTokens';
@@ -94,9 +95,10 @@ function OwnSill({ coop }: { coop?: CoopView }) {
   const sill = g.sills.find((s) => s.id === g.activeSill) ?? g.sills[0];
   const tod = timeOfDay(t);
   const winter = isWinter(t);
-  const decor = coop ? [] : sill.decor.filter((d) => (g.owned[d] ?? 0) > 0);
+  // на общем подоконнике предметы принесли участники — показываем всё, что стоит
+  const decor = coop ? sill.decor : sill.decor.filter((d) => (g.owned[d] ?? 0) > 0);
   // весь купленный декор, который можно поставить или убрать (кашпо и обои — в профиле)
-  const stash = ITEMS.filter((it) => it.cat === 'decor' && !it.consumable && it.place && it.place !== 'spot' && it.place !== 'wallpaper' && (g.owned[it.id] ?? 0) > 0).map((it) => it.id);
+  const stash = ITEMS.filter((it) => it.cat === 'decor' && !it.consumable && it.place && it.place !== 'spot' && it.place !== 'wallpaper' && (g.owned[it.id] ?? 0) > 0 && (!coop || coopDecorOk(it.id))).map((it) => it.id);
   const ev = activeEvent(t);
   const evp = ev ? g.events?.[eventSeason(ev, t)] : undefined;
   const evReady = ev && evp ? ev.tiers.some((n, i) => evp.tokens >= n && (!evp.free.includes(i) || (evp.premium && !evp.prem.includes(i)))) : false;
@@ -144,14 +146,14 @@ function OwnSill({ coop }: { coop?: CoopView }) {
   return (
     <div className="sillview fit" {...swipe}>
       {coop && <CoopHead coop={coop} />}
-      {arrange && !shared && (
+      {arrange && (
         <div className="arrange-bar">
           <span>Перетаскивай предметы и котиков, <Emo e="✕" /> — убрать</span>
           <button className="linkish" onClick={() => openSheet({ kind: 'room' })}><Emo e="🎨" /> Цвета</button>
           <button className="btn small primary" onClick={() => setArrange(false)}>Готово</button>
         </div>
       )}
-      {arrange && !shared && (
+      {arrange && (
         <div className="stash" aria-label="Твой декор">
           {stash.map((id) => {
             const here = sill.decor.includes(id);
@@ -205,13 +207,13 @@ function OwnSill({ coop }: { coop?: CoopView }) {
             pos={sill.pos}
             off={sill.off}
             catColors={g.catColors}
-            onHide={shared ? undefined : (id) => toggleDecor(sill.id, id)}
+            onHide={(id) => toggleDecor(sill.id, id)}
             vent={sill.vent}
             curtains={sill.curtains}
             draft={climateOf(g, sill, t).draft}
-            arrange={arrange && !shared}
-            onItem={shared ? undefined : (id) => itemTap(sill.id, id)}
-            onMove={shared ? undefined : (id, x, row) => moveItem(sill.id, id, x, row)}
+            arrange={arrange}
+            onItem={(id) => itemTap(sill.id, id)}
+            onMove={(id, x, row) => moveItem(sill.id, id, x, row)}
           />
         )}
       </SceneFit>

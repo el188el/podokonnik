@@ -9,8 +9,8 @@ import { advance, BLOOM_FEED_EVERY, BLOOM_FEED_MS, BOOST_GROW_H, canCut, FEED_GR
 import { BOOST_COOLDOWN, FEED_MS, MIST_MS } from './constants';
 import { CURES, GUARD_MS, PROBLEMS } from './problems';
 import { sp } from './species';
-import { POT_SHAPES, POTS } from './shop';
-import type { GameState, Plant, WindowSide } from './types';
+import { ITEM_BY_ID, placeOf, POT_SHAPES, POTS } from './shop';
+import type { DecorPos, GameState, Plant, Sill, WindowSide } from './types';
 
 export const COOP_MAX_MEMBERS = 4;
 export const COOP_MAX_PER_PLAYER = 2;
@@ -33,7 +33,28 @@ export interface CoopState {
   plants: Plant[];
   simAt: number;
   log: CoopLog[];
+  /** Общий декор: участники приносят свои предметы. decorBy — чей предмет (id игрока). */
+  decor?: string[];
+  decorBy?: Record<string, string>;
+  pos?: Record<string, DecorPos>;
+  off?: string[];
+  vent?: boolean;
+  curtains?: boolean;
+  colors?: Sill['colors'];
 }
+
+/** Что можно принести на общий подоконник: декор и приборы (не котики, не подвесные кашпо). */
+export const coopDecorOk = (id: string) => {
+  const it = ITEM_BY_ID[id];
+  return !!it && it.cat === 'decor' && !it.consumable && !!it.place && it.place !== 'spot' && !['cat', 'cat2', 'cat3'].includes(id);
+};
+
+/** Общий подоконник как комната — для симуляции, климата и сцены. */
+export const coopSill = (c: CoopState): Sill => ({
+  id: COOP_SILL, name: c.name, window: c.window, decor: c.decor ?? [], shared: true,
+  ...(c.pos ? { pos: c.pos } : {}), ...(c.off ? { off: c.off } : {}), ...(c.vent ? { vent: true } : {}),
+  ...(c.curtains ? { curtains: true } : {}), ...(c.colors ? { colors: c.colors } : {}),
+});
 
 export interface CoopCutting {
   sp: string;
@@ -55,15 +76,21 @@ export type CoopAction =
   | { kind: 'remove'; plant: string }
   | { kind: 'repot'; plant: string; size?: number }
   | { kind: 'use'; plant: string; item: CoopItem }
-  | { kind: 'window'; side: WindowSide };
+  | { kind: 'window'; side: WindowSide }
+  | { kind: 'decor'; item: string; on: boolean }
+  | { kind: 'switch'; item: string }
+  | { kind: 'place'; item: string; x: number; row?: 'sill' | 'table' }
+  | { kind: 'vent' }
+  | { kind: 'curtains' }
+  | { kind: 'color'; part: 'wall' | 'table' | 'sill'; id: string };
 
 /** Что из своего инвентаря можно применить к растению на общем подоконнике. */
 export const COOP_ITEMS = ['feed', 'bloomfeed', 'kornevin', 'boost', 'soap', 'acaricide', 'traps', 'fungicide', 'soil', 'drain'] as const;
 export type CoopItem = (typeof COOP_ITEMS)[number];
 
 export type CoopResult =
-  | { ok: true; effect: 'watered' | 'rooting' | 'misted' | 'wetted' | 'wiped' | 'drained' | 'moved' | 'planted' | 'potted' | 'cut' | 'removed' | 'window' | 'repotted' | 'used' | 'designed' | 'named'; cutting?: CoopCutting; size?: number; item?: CoopItem; from?: number; splashed?: string[] }
-  | { ok: false; reason: 'gone' | 'enough' | 'busy' | 'no_mist' | 'not_ready' | 'bad' | 'no_need' };
+  | { ok: true; effect: 'watered' | 'rooting' | 'misted' | 'wetted' | 'wiped' | 'drained' | 'moved' | 'planted' | 'potted' | 'cut' | 'removed' | 'window' | 'repotted' | 'used' | 'designed' | 'named' | 'decor' | 'switched' | 'placed' | 'room'; cutting?: CoopCutting; size?: number; item?: CoopItem; from?: number; splashed?: string[] }
+  | { ok: false; reason: 'gone' | 'enough' | 'busy' | 'no_mist' | 'not_ready' | 'bad' | 'no_need' | 'not_yours' };
 
 export function newCoop(name: string, window: WindowSide, t: number): CoopState {
   return { v: 1, name: name.trim().slice(0, 24) || 'Наш подоконник', window, plants: [], simAt: t, log: [] };
@@ -73,7 +100,7 @@ export function newCoop(name: string, window: WindowSide, t: number): CoopState 
 export function coopWorld(c: CoopState): GameState {
   return {
     plants: c.plants,
-    sills: [{ id: COOP_SILL, name: c.name, window: c.window, decor: [] }],
+    sills: [coopSill(c)],
     owned: {},
     simAt: c.simAt,
     settings: { sound: false, haptics: false, quietFrom: 23, quietTo: 9 },
@@ -101,8 +128,10 @@ function log(c: CoopState, who: string, text: string, at: number) {
 const plantAt = (c: CoopState, slot: number) => c.plants.find((p) => p.slot === slot);
 
 /** Применить действие игрока who. id — новый id растения при посадке. */
-export function coopAct(c: CoopState, a: CoopAction, who: string, t: number, id = '', rnd = Math.random): CoopResult {
+export function coopAct(c: CoopState, a: CoopAction, who: string, t: number, id = '', rnd = Math.random, whoId = ''): CoopResult {
   coopAdvance(c, t);
+  const room = coopRoom(c, a, who, whoId, t);
+  if (room) return room;
   if (a.kind === 'window') {
     c.window = a.side;
     log(c, who, 'переставил(а) подоконник к другому окну', t);
@@ -122,6 +151,7 @@ export function coopAct(c: CoopState, a: CoopAction, who: string, t: number, id 
     log(c, who, `поставил(а) черенок ${s.gen} в воду`, t);
     return { ok: true, effect: 'planted' };
   }
+  if (!('plant' in a)) return { ok: false, reason: 'bad' };
   const p = c.plants.find((x) => x.id === a.plant);
   if (!p) return { ok: false, reason: 'gone' };
   const name = sp(p.sp).name;
@@ -279,6 +309,63 @@ export function coopAct(c: CoopState, a: CoopAction, who: string, t: number, id 
   return { ok: false, reason: 'bad' };
 }
 
+/** Действия с комнатой: декор, форточка, шторы, цвета. null — это действие не про комнату. */
+function coopRoom(c: CoopState, a: CoopAction, who: string, whoId: string, t: number): CoopResult | null {
+  const name = (id: string) => ITEM_BY_ID[id]?.name.toLowerCase() ?? id;
+  switch (a.kind) {
+    case 'decor': {
+      const decor = c.decor ?? [];
+      if (a.on) {
+        if (!coopDecorOk(a.item)) return { ok: false, reason: 'bad' };
+        if (decor.includes(a.item)) return { ok: false, reason: 'busy' };
+        // обои — одни на подоконник: чужие снимает только хозяин
+        if (placeOf(a.item) === 'wallpaper' && decor.some((d) => placeOf(d) === 'wallpaper')) return { ok: false, reason: 'busy' };
+        c.decor = [...decor, a.item];
+        c.decorBy = { ...(c.decorBy ?? {}), [a.item]: whoId };
+        log(c, who, `принёс(ла) на подоконник: ${name(a.item)}`, t);
+        return { ok: true, effect: 'decor' };
+      }
+      if (!decor.includes(a.item)) return { ok: false, reason: 'gone' };
+      const owner = c.decorBy?.[a.item];
+      if (owner && owner !== whoId) return { ok: false, reason: 'not_yours' };
+      c.decor = decor.filter((d) => d !== a.item);
+      if (c.decorBy) { const { [a.item]: _, ...rest } = c.decorBy; void _; c.decorBy = rest; }
+      if (c.pos?.[a.item]) { const { [a.item]: _, ...rest } = c.pos; void _; c.pos = rest; }
+      if (c.off) c.off = c.off.filter((d) => d !== a.item);
+      if (a.item === 'curtains') c.curtains = false;
+      log(c, who, `забрал(а) с подоконника: ${name(a.item)}`, t);
+      return { ok: true, effect: 'decor' };
+    }
+    case 'switch': {
+      if (!(c.decor ?? []).includes(a.item)) return { ok: false, reason: 'gone' };
+      const off = new Set(c.off ?? []);
+      if (off.has(a.item)) off.delete(a.item); else off.add(a.item);
+      c.off = [...off];
+      return { ok: true, effect: 'switched' };
+    }
+    case 'place': {
+      if (!(c.decor ?? []).includes(a.item)) return { ok: false, reason: 'gone' };
+      c.pos = { ...(c.pos ?? {}), [a.item]: { x: Math.max(0.02, Math.min(0.98, a.x)), ...(a.row ? { row: a.row } : {}) } };
+      return { ok: true, effect: 'placed' };
+    }
+    case 'vent': {
+      c.vent = !c.vent;
+      log(c, who, c.vent ? 'открыл(а) форточку 🪟' : 'закрыл(а) форточку 🪟', t);
+      return { ok: true, effect: 'room' };
+    }
+    case 'curtains': {
+      if (!(c.decor ?? []).includes('curtains')) return { ok: false, reason: 'bad' };
+      c.curtains = !c.curtains;
+      return { ok: true, effect: 'room' };
+    }
+    case 'color': {
+      c.colors = { ...(c.colors ?? {}), [a.part]: a.id };
+      return { ok: true, effect: 'room' };
+    }
+  }
+  return null;
+}
+
 /** Проверить и почистить действие из запроса (на сервере). */
 export function cleanAction(v: unknown): CoopAction | null {
   const o = (v ?? {}) as Record<string, unknown>;
@@ -294,6 +381,15 @@ export function cleanAction(v: unknown): CoopAction | null {
     case 'use': return plant && (COOP_ITEMS as readonly string[]).includes(String(o.item)) ? { kind: 'use', plant, item: o.item as CoopItem } : null;
     case 'move': return plant && Number.isInteger(slot) ? { kind: 'move', plant, slot } : null;
     case 'window': return ['N', 'E', 'S', 'W'].includes(String(o.side)) ? { kind: 'window', side: o.side as WindowSide } : null;
+    case 'decor': return typeof o.item === 'string' && ITEM_BY_ID[o.item] ? { kind: 'decor', item: o.item, on: o.on === true } : null;
+    case 'switch': return typeof o.item === 'string' && ITEM_BY_ID[o.item] ? { kind: 'switch', item: o.item } : null;
+    case 'place': {
+      const x = Number(o.x);
+      if (typeof o.item !== 'string' || !ITEM_BY_ID[o.item] || !Number.isFinite(x)) return null;
+      return { kind: 'place', item: o.item, x, ...(o.row === 'sill' || o.row === 'table' ? { row: o.row } : {}) };
+    }
+    case 'vent': case 'curtains': return { kind: o.kind };
+    case 'color': return ['wall', 'table', 'sill'].includes(String(o.part)) && typeof o.id === 'string' && /^[a-z0-9_-]{1,24}$/.test(o.id) ? { kind: 'color', part: o.part as 'wall' | 'table' | 'sill', id: o.id } : null;
     case 'plant': {
       const c = (o.cutting ?? {}) as Record<string, unknown>;
       const spId = String(c.sp ?? '');

@@ -1,7 +1,7 @@
 // Цвета комнаты: стены, столик и подоконник — выбрать из палитры.
 
 import { SILLS, TABLES, WALLS, type Swatch } from '../../game/room';
-import { closeSheet, setCatColor, setRoomColor, useStore } from '../../game/store';
+import { closeSheet, setCatColor, setRoomColor, useGame } from '../../game/store';
 import { CAT_DEFAULT_COLOR, CAT_IDS, CAT_NAMES } from '../../game/cat';
 import { CAT_COLORS, DecorArt } from '../art/DecorArt';
 import { Btn } from '../kit/kit';
@@ -25,7 +25,7 @@ function Row({ title, list, value, def, onPick }: { title: string; list: Swatch[
 }
 
 export function RoomSheet() {
-  const g = useStore((s) => s.game);
+  const g = useGame();
   const sill = g.sills.find((s) => s.id === g.activeSill) ?? g.sills[0];
   const c = sill.colors ?? {};
   const cats = CAT_IDS.filter((id) => (g.owned[id] ?? 0) > 0);

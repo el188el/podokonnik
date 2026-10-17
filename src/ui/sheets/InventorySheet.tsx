@@ -5,7 +5,7 @@ import { useState } from 'react';
 import { ITEM_BY_ID, ITEMS, sellPrice } from '../../game/shop';
 import { sp } from '../../game/species';
 import { COMPOST_N, compostable, cuttingLeft } from '../../game/cuttings';
-import { buyItem, closeSheet, compostCuttings, now, freeCopies, openSheet, perRoom, placedIn, takeItem, toast, toggleDecor, USABLE, useStore } from '../../game/store';
+import { buyItem, closeSheet, compostCuttings, now, freeCopies, openSheet, perRoom, placedIn, takeItem, toast, toggleDecor, USABLE, useGame } from '../../game/store';
 import { DecorArt, hasDecorArt } from '../art/DecorArt';
 import { PlantArt } from '../art/PlantArt';
 import { Btn } from '../kit/kit';
@@ -19,7 +19,7 @@ type Tab = 'care' | 'pots' | 'items';
 const POT_SIZES: [string, number, string][] = [['pot', 1, 'S'], ['potM', 2, 'M'], ['potL', 3, 'L'], ['potXL', 4, 'XL']];
 
 export function InventorySheet() {
-  const g = useStore((s) => s.game);
+  const g = useGame();
   const [tab, setTab] = useState<Tab>('care');
   const items = ITEMS.filter((i) => i.cat === 'decor' && !i.consumable && (g.owned[i.id] ?? 0) > 0);
   const sillHere = g.sills.find((s) => s.id === g.activeSill);

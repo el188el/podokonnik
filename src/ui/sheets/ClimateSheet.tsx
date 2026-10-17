@@ -3,7 +3,7 @@
 import { climateOf, coldLimit, FUSSY_TEXT, fussyIssue, rhWord, tempWord, zoneTemp } from '../../game/climate';
 import { ITEM_BY_ID } from '../../game/shop';
 import { sp } from '../../game/species';
-import { buyItem, freeCopies, now, openSheet, switchItem, toggleCurtains, toggleDecor, toggleVent, useStore } from '../../game/store';
+import { buyItem, freeCopies, now, openSheet, switchItem, toggleCurtains, toggleDecor, toggleVent, useGame } from '../../game/store';
 import { WINDOWS } from '../../game/constants';
 import { SKY, weatherAt } from '../../game/weather';
 import { tempText } from '../../game/weather';
@@ -13,7 +13,7 @@ import { Emo, rich } from '../kit/rich';
 const DEVICES = ['heater', 'humidifier', 'fan', 'hygrometer', 'net'];
 
 export function ClimateSheet() {
-  const g = useStore((s) => s.game);
+  const g = useGame();
   const t = now();
   const sill = g.sills.find((s) => s.id === g.activeSill) ?? g.sills[0];
   const c = climateOf(g, sill, t);

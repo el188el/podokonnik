@@ -404,7 +404,7 @@ export function neighborsOf(state: Pick<GameState, 'plants'>, p: Plant): Plant[]
 }
 
 /** Предмет стоит на подоконнике, куплен и не выключен. */
-export const hasDecorOn = (state: GameState, sill: Sill, id: string) => sill.decor.includes(id) && (state.owned[id] ?? 0) > 0 && !sill.off?.includes(id);
+export const hasDecorOn = (state: GameState, sill: Sill, id: string) => sill.decor.includes(id) && (!!sill.shared || (state.owned[id] ?? 0) > 0) && !sill.off?.includes(id);
 
 export function ctxFor(state: GameState, p: Plant, t: number): Ctx {
   const sill = state.sills.find((s) => s.id === p.sill) ?? state.sills[0];

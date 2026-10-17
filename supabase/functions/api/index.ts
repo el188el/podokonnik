@@ -677,7 +677,7 @@ async function coopActRoute(playerId: string, b: Body) {
     if (i > 0) row = (await load()).data;
     if (!row) return json({ result: { ok: false, reason: 'gone' } });
     const state = row.state as CoopState;
-    const result = coopAct(state, action, me.name, Date.now(), randomCode(8));
+    const result = coopAct(state, action, me.name, Date.now(), randomCode(8), Math.random, playerId);
     if (!result.ok) return json({ result, coop: await coopView({ ...row, state } as never, members) });
     const { data: upd } = await db.from('coop_sills')
       .update({ state, version: row.version + 1, updated_at: new Date().toISOString() })

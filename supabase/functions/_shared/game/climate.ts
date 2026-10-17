@@ -27,7 +27,7 @@ export function outsideTemp(g: Pick<GameState, 'weather' | 'settings'>, t: numbe
   return MONTH_T[d.getMonth()] + 4 * Math.sin(((h - 9) / 24) * 2 * Math.PI); // днём теплее, ночью холоднее
 }
 
-const owns = (g: GameState, sill: Sill, id: string) => sill.decor.includes(id) && (g.owned[id] ?? 0) > 0;
+const owns = (g: GameState, sill: Sill, id: string) => sill.decor.includes(id) && (!!sill.shared || (g.owned[id] ?? 0) > 0);
 const on = (g: GameState, sill: Sill, id: string) => owns(g, sill, id) && !sill.off?.includes(id);
 
 export function climateOf(g: GameState, sill: Sill, t: number): Climate {

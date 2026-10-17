@@ -7,7 +7,10 @@ import { useEffect, useState } from 'react';
 import { CONFIG, tgAppLink } from '../../config';
 import { WINDOWS } from '../../game/constants';
 import { approx, fmt } from '../../game/sim';
-import { coopDo, coopInviteCode, leaveCoop, loadCoops, now, toast, useStore } from '../../game/store';
+import { coopDo, coopInviteCode, leaveCoop, loadCoops, now, openSheet, setArrange, toast, useGame, useStore } from '../../game/store';
+import { climateOf } from '../../game/climate';
+import { COOP_SILL } from '../../game/coop';
+import { Icon } from '../kit/icons';
 import type { CoopView } from '../../net/api';
 import { playerId } from '../../net/api';
 import { platform } from '../../platform';
@@ -49,6 +52,10 @@ export function CoopHead({ coop }: { coop: CoopView }) {
   }, [menu]);
   const st = coop.state;
   const me = playerId();
+  const g = useGame();
+  const room = g.sills.find((s) => s.id === COOP_SILL);
+  const clim = room ? climateOf(g, room, now()) : null;
+  const bad = !!clim && (clim.draft || clim.bugs || clim.temp < 16 || clim.temp > 29 || clim.rh < 30);
   const others = coop.members.filter((m) => m.id !== me);
   const t = now();
   const fresh = st.log.filter((l) => t - l.at < 86400e3 && l.who && l.who !== myName).length;
@@ -60,7 +67,10 @@ export function CoopHead({ coop }: { coop: CoopView }) {
           <b><Emo e="💞" /> {rich(st.name)}</b>
           <span className="muted small">{rich(coop.members.map((m) => (m.id === me ? 'ты' : m.name)).join(' · '))}</span>
         </div>
-        <Btn small kind={others.length ? 'soft' : 'gold'} onClick={() => shareCoop(coop)}>{rich(others.length ? '+ Позвать' : 'Пригласить')}</Btn>
+        <button className={'chip coop-invite' + (others.length ? '' : ' gold')} onClick={() => shareCoop(coop)} aria-label="Позвать на общий подоконник"><Emo e="➕" /><Emo e="🤝" /></button>
+        <button className={'chip coop-clim' + (bad ? ' alert' : '')} onClick={() => openSheet({ kind: 'climate' })} aria-label="Климат на общем подоконнике">
+          <Icon name="thermo" size={18} tone={bad ? '#e0574f' : '#5f7f9a'} /><small>{clim ? `${Math.round(clim.temp)}°` : ''}</small>
+        </button>
         {st.log.length > 0 && (
           <button className={'chip coop-news' + (menu === 'log' ? ' on' : '')} onClick={() => toggle('log')} aria-label="Что нового">
             <Emo e="🔔" />{fresh > 0 && <i className="se-dot" />}
@@ -77,6 +87,12 @@ export function CoopHead({ coop }: { coop: CoopView }) {
                 <button key={w} className={'chip' + (st.window === w ? ' on' : '')} onClick={() => coopDo(coop.id, { kind: 'window', side: w })}>{rich(WINDOWS[w].short)}</button>
               ))}
             </div>
+            <div className="lbl">Комната</div>
+            <div className="chips">
+              <button className="chip" onClick={() => { setMenu(null); setArrange(true); }}><Emo e="🛋" /> Декор и перестановка</button>
+              <button className="chip" onClick={() => { setMenu(null); openSheet({ kind: 'room' }); }}><Emo e="🎨" /> Цвета</button>
+            </div>
+            <p className="muted small">Принеси свои предметы — увлажнитель, лампу, шторы. Пока предмет здесь, он помогает растениям всех участников, а забрать его может только тот, кто принёс.</p>
             <p className="muted small">Код приглашения: <b>{rich(coop.code)}</b></p>
             <Btn small kind="warn" onClick={() => { if (confirm('Выйти из общего подоконника? Растения останутся у остальных.')) leaveCoop(coop.id); }}>Выйти</Btn>
           </motion.div>

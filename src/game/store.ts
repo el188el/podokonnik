@@ -9,7 +9,7 @@ import { fetchWeather } from '../net/weather';
 import { compress, deletePhoto, savePhoto } from '../net/photos';
 import { photoReward, pushPhoto } from './twins';
 import type { Place } from './weather';
-import { coopAct as coopActLocal, coopAdvance, COOP_SILL, COOP_SLOTS, type CoopAction, type CoopItem, type CoopResult } from './coop';
+import { coopAct as coopActLocal, coopAdvance, coopDecorOk, coopSill, COOP_SILL, COOP_SLOTS, type CoopAction, type CoopItem, type CoopResult } from './coop';
 import { CONTEST_ENTRY_REWARD, CONTEST_VOTE_REWARD, weekKey } from './contest';
 import { platform } from '../platform';
 import { ACHIEVEMENTS, checkAchievements } from './achievements';
@@ -1417,7 +1417,8 @@ export function sellItem(id: string) {
     if (!it || !price || !(g.owned[id] ?? 0)) return false;
     if (freeCopies(g, id) <= 0) {
       const from = placedIn(g, id).sort((a) => (a.id === g.activeSill ? -1 : 1))[0];
-      if (from) {
+      if (!from) { toast(`${it.icon} Он стоит на общем подоконнике — сначала забери его оттуда`); return false; }
+      {
         from.decor = from.decor.filter((d) => d !== id);
         if (from.pos) delete from.pos[id];
         if (from.off) from.off = from.off.filter((d) => d !== id);
@@ -1459,11 +1460,12 @@ export const perRoom = (id: string) => {
   const it = ITEM_BY_ID[id];
   return !!it && it.cat === 'decor' && !it.consumable && !it.eventOnly && !it.album && !ROAMING.includes(id);
 };
-export const placedIn = (g: GameState, id: string) => g.sills.filter((s) => s.decor.includes(id));
-/** Сколько экземпляров лежит без дела (куплено, но не стоит ни в одной комнате). */
-export const freeCopies = (g: GameState, id: string) => Math.max(0, (g.owned[id] ?? 0) - placedIn(g, id).length);
+export const placedIn = (g: GameState, id: string) => g.sills.filter((s) => !s.shared && s.decor.includes(id));
+/** Сколько экземпляров лежит без дела (куплено, но не стоит ни в одной комнате и не отдано на общий подоконник). */
+export const freeCopies = (g: GameState, id: string) => Math.max(0, (g.owned[id] ?? 0) - placedIn(g, id).length - (g.lent?.[id] ?? 0));
 
 export function toggleDecor(sillId: string, id: string) {
+  if (sillId === COOP_SILL) return coopToggleDecor(id);
   mut((g) => {
     const sill = g.sills.find((s) => s.id === sillId);
     if (!sill || !(g.owned[id] > 0)) return;
@@ -2202,6 +2204,9 @@ export async function joinCoop(code: string) {
 }
 
 export async function leaveCoop(id: number) {
+  // свои предметы забираем с собой
+  const c = get().coops?.find((x) => x.id === id);
+  for (const item of c?.state.decor ?? []) if (c?.state.decorBy?.[item] === api.playerId()) await coopDo(id, { kind: 'decor', item, on: false });
   try {
     await api.coopLeave(id);
     set((s) => ({ coops: (s.coops ?? []).filter((c) => c.id !== id), coopOn: s.coopOn === id ? null : s.coopOn }));
@@ -2216,6 +2221,7 @@ const COOP_FAIL: Record<string, string> = {
   not_ready: 'Пока рано',
   bad: 'Так нельзя',
   no_need: 'Сейчас этому растению это не нужно',
+  not_yours: 'Этот предмет принёс другой участник — забрать его может только он',
 };
 
 /** Действие на общем подоконнике. cuttingId — какой черенок из запаса посадить. */
@@ -2250,7 +2256,7 @@ export async function coopDo(id: number, action: CoopAction, cuttingId?: string,
   if (prev && action.kind !== 'cut') {
     const st = clone(prev.state);
     const me = prev.members.find((m) => m.id === api.playerId())?.name ?? 'Садовник';
-    if (coopActLocal(st, action, me, now(), 'local-' + makeCode(6)).ok) {
+    if (coopActLocal(st, action, me, now(), 'local-' + makeCode(6), Math.random, api.playerId()).ok) {
       putCoop({ ...prev, state: st });
       instant = true;
       haptic('light');
@@ -2314,6 +2320,13 @@ export async function coopDo(id: number, action: CoopAction, cuttingId?: string,
         if ((g.owned[it] ?? 0) <= 0 && get().tool === 'use') set({ tool: 'look', useItem: undefined });
         toast(CURES[it] && before?.problem ? `${ITEM_BY_ID[it]?.icon ?? '💊'} Вылечено: ${PROBLEMS[before.problem.kind].name.toLowerCase()}! Неделю растение под защитой` : USED_TEXT[it] ?? `${ITEM_BY_ID[it]?.icon ?? ''} Готово: ${ITEM_BY_ID[it]?.name ?? ''}`);
         haptic('success');
+      } else if (res.effect === 'decor' && action.kind === 'decor') {
+        // свой предмет на общем подоконнике занят — в свои комнаты его не поставить, пока не заберёшь
+        const n = (g.lent?.[action.item] ?? 0) + (action.on ? 1 : -1);
+        const { [action.item]: _, ...rest } = g.lent ?? {};
+        void _;
+        g.lent = n > 0 ? { ...rest, [action.item]: n } : rest;
+        haptic('success');
       } else if (res.effect === 'planted' && cuttingId) {
         const c = g.cuttings.find((x) => x.id === cuttingId);
         g.cuttings = g.cuttings.filter((x) => x.id !== cuttingId);
@@ -2371,7 +2384,7 @@ export function viewGame(s: Store = get()): GameState {
   const v: GameState = {
     ...s.game,
     plants: [...s.game.plants, ...st.plants.map((p) => ({ ...p, sill: COOP_SILL }))],
-    sills: [...s.game.sills, { id: COOP_SILL, name: st.name, window: st.window, decor: [] }],
+    sills: [...s.game.sills, coopSill(st)],
     activeSill: COOP_SILL,
   };
   viewCache.set(s.game, { c, v });
@@ -2483,6 +2496,31 @@ function coopSwap(co: number, plantId: string, slot: number) {
     const bad = badLight(q, now(), ctxFor(g, q, now()));
     toast(bad === 'hot' ? `${sp(p.sp).name}: тут жарко на солнце 🥵` : bad === 'dark' ? `${sp(p.sp).name}: тут темновато 🌥` : `${sp(p.sp).name}: ${zone === 'glass' ? 'у стекла ☀️' : 'в глубине 🛋'} — тут хорошо`);
   }
+}
+
+/** Принести свой предмет на общий подоконник или забрать его обратно. */
+function coopToggleDecor(id: string) {
+  const co = get().coopOn;
+  const c = get().coops?.find((x) => x.id === co);
+  if (co == null || !c) return;
+  if ((c.state.decor ?? []).includes(id)) {
+    const by = c.state.decorBy?.[id];
+    if (by && by !== api.playerId()) {
+      const who = c.members.find((m) => m.id === by)?.name;
+      toast(`${ITEM_BY_ID[id]?.icon ?? ''} Это принёс(ла) ${who ?? 'другой участник'} — забрать может только хозяин`);
+      return;
+    }
+    void coopDo(co, { kind: 'decor', item: id, on: false });
+    toast(`${ITEM_BY_ID[id]?.icon ?? ''} ${ITEM_BY_ID[id]?.name ?? ''} — снова у тебя в инвентаре`);
+    return;
+  }
+  if (!coopDecorOk(id)) { toast('Это сюда не поставить'); return; }
+  const g = get().game;
+  if ((g.owned[id] ?? 0) <= 0) { toast('Сначала купи это в магазине 🛒'); return; }
+  if (freeCopies(g, id) <= 0) { toast(`${ITEM_BY_ID[id]?.icon ?? ''} Все твои экземпляры уже стоят в комнатах. Убери из своей комнаты или купи ещё один`); return; }
+  if (placeOf(id) === 'wallpaper' && (c.state.decor ?? []).some((d) => placeOf(d) === 'wallpaper')) { toast('Обои уже поклеены — сначала их должен снять тот, кто принёс'); return; }
+  void coopDo(co, { kind: 'decor', item: id, on: true });
+  toast(`${ITEM_BY_ID[id]?.icon ?? ''} ${ITEM_BY_ID[id]?.name ?? ''} — теперь на общем подоконнике`);
 }
 
 function coopPlantCutting(cuttingId: string, slot: number) {
@@ -3146,6 +3184,11 @@ export const SWITCHABLE = Object.keys(SWITCH_TEXT);
 
 /** Включить или выключить предмет (лампа, радио, свеча…). */
 export function switchItem(sillId: string, id: string) {
+  if (sillId === COOP_SILL) {
+    const on = !!viewGame().sills.find((s) => s.id === COOP_SILL)?.off?.includes(id);
+    if (get().coopOn != null && SWITCH_TEXT[id]) { void coopDo(get().coopOn!, { kind: 'switch', item: id }); haptic('select'); toast(SWITCH_TEXT[id][on ? 0 : 1]); }
+    return;
+  }
   mut((g) => {
     const sill = g.sills.find((s) => s.id === sillId);
     if (!sill || !SWITCH_TEXT[id]) return;
@@ -3159,6 +3202,7 @@ export function switchItem(sillId: string, id: string) {
 
 /** Переставить предмет: место в ряду (0…1) и ряд. */
 export function moveItem(sillId: string, id: string, x: number, row?: 'sill' | 'table') {
+  if (sillId === COOP_SILL) { if (get().coopOn != null) void coopDo(get().coopOn!, { kind: 'place', item: id, x, ...(row ? { row } : {}) }); return; }
   mut((g) => {
     const sill = g.sills.find((s) => s.id === sillId);
     if (!sill) return;
@@ -3171,6 +3215,11 @@ export const setArrange = (on: boolean) => set({ arrange: on });
 
 // ─────────────────── климат: форточка и шторы ───────────────────
 export function toggleVent(sillId: string) {
+  if (sillId === COOP_SILL) {
+    const was = !!viewGame().sills.find((s) => s.id === COOP_SILL)?.vent;
+    if (get().coopOn != null) { void coopDo(get().coopOn!, { kind: 'vent' }); haptic('select'); toast(was ? '🪟 Форточка закрыта' : '🪟 Форточка открыта'); }
+    return;
+  }
   mut((g, t) => {
     const sill = g.sills.find((s) => s.id === sillId);
     if (!sill) return;
@@ -3182,6 +3231,11 @@ export function toggleVent(sillId: string) {
 }
 
 export function toggleCurtains(sillId: string) {
+  if (sillId === COOP_SILL) {
+    const was = !!viewGame().sills.find((s) => s.id === COOP_SILL)?.curtains;
+    if (get().coopOn != null) { void coopDo(get().coopOn!, { kind: 'curtains' }); haptic('select'); toast(was ? '🎐 Шторы раздвинуты' : '🎐 Шторы задёрнуты: света у стекла меньше'); }
+    return;
+  }
   mut((g) => {
     const sill = g.sills.find((s) => s.id === sillId);
     if (!sill || !(g.owned.curtains ?? 0) || !sill.decor.includes('curtains')) return;
@@ -3193,6 +3247,7 @@ export function toggleCurtains(sillId: string) {
 
 // ─────────────────── цвета комнаты ───────────────────
 export function setRoomColor(sillId: string, part: 'wall' | 'table' | 'sill', id: string) {
+  if (sillId === COOP_SILL) { if (get().coopOn != null) void coopDo(get().coopOn!, { kind: 'color', part, id }); return; }
   mut((g) => {
     const sill = g.sills.find((s) => s.id === sillId);
     if (!sill) return;

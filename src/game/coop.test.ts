@@ -117,3 +117,42 @@ describe('общий подоконник — те же правила, что �
     expect(cleanAction({ kind: 'nick', plant: 'x', nick: 'а'.repeat(50) })).toEqual({ kind: 'nick', plant: 'x', nick: 'а'.repeat(20) });
   });
 });
+
+describe('общий декор', () => {
+  it('предмет приносит участник, забрать может только он, а включать — все', () => {
+    const c = newCoop('Наш', 'E', T0);
+    expect(coopAct(c, { kind: 'decor', item: 'humidifier', on: true }, 'Аня', T0, '', Math.random, 'pA')).toMatchObject({ ok: true, effect: 'decor' });
+    expect(c.decor).toEqual(['humidifier']);
+    expect(coopAct(c, { kind: 'decor', item: 'humidifier', on: true }, 'Миша', T0, '', Math.random, 'pM')).toEqual({ ok: false, reason: 'busy' });
+    expect(coopAct(c, { kind: 'switch', item: 'humidifier' }, 'Миша', T0, '', Math.random, 'pM')).toMatchObject({ ok: true });
+    expect(c.off).toEqual(['humidifier']);
+    expect(coopAct(c, { kind: 'decor', item: 'humidifier', on: false }, 'Миша', T0, '', Math.random, 'pM')).toEqual({ ok: false, reason: 'not_yours' });
+    expect(coopAct(c, { kind: 'decor', item: 'humidifier', on: false }, 'Аня', T0, '', Math.random, 'pA')).toMatchObject({ ok: true });
+    expect(c.decor).toEqual([]);
+    expect(c.off).toEqual([]);
+  });
+
+  it('котиков и подвесные кашпо не приносят', () => {
+    const c = newCoop('Наш', 'E', T0);
+    expect(coopAct(c, { kind: 'decor', item: 'cat', on: true }, 'Аня', T0, '', Math.random, 'pA')).toEqual({ ok: false, reason: 'bad' });
+    expect(coopAct(c, { kind: 'decor', item: 'hangers', on: true }, 'Аня', T0, '', Math.random, 'pA')).toEqual({ ok: false, reason: 'bad' });
+  });
+
+  it('декор общего подоконника работает в климате: увлажнитель поднимает влажность', async () => {
+    const { climateOf } = await import('./climate');
+    const { coopSill, coopWorld } = await import('./coop');
+    const c = newCoop('Наш', 'E', T0);
+    const before = climateOf(coopWorld(c), coopSill(c), T0).rh;
+    coopAct(c, { kind: 'decor', item: 'humidifier', on: true }, 'Аня', T0, '', Math.random, 'pA');
+    expect(climateOf(coopWorld(c), coopSill(c), T0).rh).toBeGreaterThan(before);
+  });
+
+  it('сервер чистит действия с комнатой', () => {
+    expect(cleanAction({ kind: 'decor', item: 'fan', on: true })).toEqual({ kind: 'decor', item: 'fan', on: true });
+    expect(cleanAction({ kind: 'decor', item: 'nope', on: true })).toBeNull();
+    expect(cleanAction({ kind: 'place', item: 'fan', x: 0.3, row: 'table' })).toEqual({ kind: 'place', item: 'fan', x: 0.3, row: 'table' });
+    expect(cleanAction({ kind: 'color', part: 'wall', id: 'mint' })).toEqual({ kind: 'color', part: 'wall', id: 'mint' });
+    expect(cleanAction({ kind: 'color', part: 'wall', id: '<b>' })).toBeNull();
+    expect(cleanAction({ kind: 'vent' })).toEqual({ kind: 'vent' });
+  });
+});
