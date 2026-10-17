@@ -449,6 +449,60 @@ export const SPECIES: Species[] = [
     buy: '≈ 600–1500 ₽',
     free: 'полуодревесневший черенок 10 см весной — в торф с песком под колпак, с подогревом снизу. Корни — через месяц.',
   },
+  // ───────────── 5. Большие напольные (только на полу, с 15 уровня) ─────────────
+  {
+    id: 'palm', name: 'Хамедорея', folk: 'бамбуковая пальма', latin: 'Chamaedorea elegans',
+    difficulty: 2, unlockLevel: 15, price: 260, speed: 'медленно', big: true,
+    waterDays: 4, drought: 2, overwater: 'normal', light: [1, 3], zone: 'deep', mist: 'love',
+    rootMin: 40, stageHours: [80, 220], repotDays: 20, cutHours: 72,
+    art: { kind: 'palm', leaf: '#3f8a4a', leaf2: '#7fbf6a' },
+    gen: 'хамедореи', acc: 'хамедорею',
+    facts: ['Самая неприхотливая комнатная пальма: растёт даже в полутени коридора.', 'В природе живёт в подлеске тропических лесов Мексики — отсюда любовь к тени и влажности.'],
+    mistTip: 'Хамедорея любит влажный воздух — опрыскивай, особенно зимой.',
+    care: 'Полутень, полив как подсохнет верх земли, опрыскивание. Не любит сквозняков и холода.',
+    buy: '≈ 700–2000 ₽ за большую',
+    free: 'хамедорею не черенкуют: делят куст при пересадке или выращивают из семян.',
+  },
+  {
+    id: 'lyrata', name: 'Фикус лировидный', latin: 'Ficus lyrata',
+    difficulty: 3, unlockLevel: 16, price: 340, speed: 'медленно', big: true,
+    waterDays: 6, drought: 3, overwater: 'sensitive', light: [2, 3], zone: 'deep', mist: 'ok',
+    rootMin: 50, stageHours: [100, 260], repotDays: 24, cutHours: 96,
+    art: { kind: 'lyrata', leaf: '#2f6e3a', leaf2: '#9cc48a' },
+    gen: 'фикуса лировидного', acc: 'фикус лировидный',
+    facts: ['Огромные листья похожи на скрипку — отсюда название.', 'Звезда интерьерных журналов: капризен к перестановкам и сбрасывает листья от стресса.'],
+    mistTip: 'Лировидному всё равно, но пыль с больших листьев лучше протирать.',
+    care: 'Яркий рассеянный свет, одно постоянное место, полив после просыхания верхних 3 см.',
+    buy: '≈ 2000–6000 ₽',
+    free: 'верхушечный черенок с 2–3 листьями — в воду, корни через 3–4 недели.',
+  },
+  {
+    id: 'schefflera', name: 'Шеффлера', folk: 'зонтичное дерево', latin: 'Schefflera arboricola',
+    difficulty: 2, unlockLevel: 17, price: 300, speed: 'средне', big: true,
+    waterDays: 5, drought: 3, overwater: 'normal', light: [2, 3], zone: 'deep', mist: 'love',
+    rootMin: 40, stageHours: [80, 200], repotDays: 20, cutHours: 72,
+    art: { kind: 'schefflera', leaf: '#3d8a4a', leaf2: '#e2d36a' },
+    gen: 'шеффлеры', acc: 'шеффлеру',
+    facts: ['Листочки собраны «зонтиком» на одном черешке, как пальцы на ладони.', 'Быстро становится настоящим деревом до потолка.'],
+    mistTip: 'Шеффлера любит опрыскивание, особенно у батареи.',
+    care: 'Светло, без прямого солнца, умеренный полив, прохладная зима.',
+    buy: '≈ 800–2500 ₽',
+    free: 'черенок 10–15 см с узлом — в воду или в лёгкий грунт под пакет.',
+  },
+  {
+    id: 'strelitzia', name: 'Стрелиция', folk: 'райская птица', latin: 'Strelitzia reginae',
+    difficulty: 3, unlockLevel: 18, price: 420, speed: 'медленно', big: true,
+    waterDays: 4, drought: 2, overwater: 'sensitive', light: [2, 4], zone: 'deep', mist: 'ok',
+    rootMin: 60, stageHours: [120, 300], repotDays: 28, cutHours: 120,
+    bloom: { months: [2, 3, 4, 5] },
+    art: { kind: 'strelitzia', leaf: '#3c7d5a', leaf2: '#8fb8a0', flower: '#f08a24' },
+    gen: 'стрелиции', acc: 'стрелицию',
+    facts: ['Цветок похож на голову экзотической птицы с хохолком.', 'Зацветает только взрослой, лет с четырёх — терпение вознаграждается.'],
+    mistTip: 'Стрелиции всё равно, но листья лучше протирать от пыли.',
+    care: 'Много света, летом обильный полив, зимой прохлада и сухость — тогда весной зацветёт.',
+    buy: '≈ 1500–5000 ₽',
+    free: 'делят взрослый куст при пересадке, аккуратно — корни хрупкие.',
+  },
 ];
 
 export const SPECIES_BY_ID: Record<string, Species> = Object.fromEntries(SPECIES.map((s) => [s.id, s]));
@@ -461,3 +515,5 @@ export const DIFFICULTY_LABEL: Record<number, string> = {
   3: 'Для опытных',
   4: 'Капризное',
 };
+/** Напольные — отдельный раздел в магазине и гербарии. */
+export const BIG_LABEL = 'Большие напольные';

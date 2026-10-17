@@ -1,4 +1,4 @@
-import { DIFFICULTY_LABEL, SPECIES } from '../../game/species';
+import { BIG_LABEL, DIFFICULTY_LABEL, SPECIES } from '../../game/species';
 import { now, openSheet, useStore, visitHerbarium } from '../../game/store';
 import { SHELVES, shelfProgress, shelvesReady } from '../../game/album';
 import { MASTERY, masteryPoints, masteryStars } from '../../game/mastery';
@@ -27,11 +27,11 @@ export function Herbarium() {
         {rich(` · ✨ ${rareScore(g)} оч.`)}{rich(shelvesReady(g).length ? ' · награда!' : '')}
       </button>
       <button className="mini-banner doctor-banner" onClick={() => openSheet({ kind: 'doctor' })}><Emo e="🩺" /> Что с моим цветком? Желтеют листья, не цветёт — подскажем причину</button>
-      {[1, 2, 3, 4].map((d) => (
+      {([1, 2, 3, 4, 'big'] as const).map((d) => (
         <section key={d}>
-          <h3>{rich(DIFFICULTY_LABEL[d])}</h3>
+          <h3>{rich(d === 'big' ? BIG_LABEL : DIFFICULTY_LABEL[d])}</h3>
           <div className="grid">
-            {SPECIES.filter((s) => s.difficulty === d).map((s) => {
+            {SPECIES.filter((s) => (d === 'big' ? s.big : !s.big && s.difficulty === d)).map((s) => {
               const known = g.discovered.includes(s.id);
               return (
                 <button key={s.id} className="pick" onClick={() => { openSheet({ kind: 'herb', sp: s.id }); visitHerbarium(); }}>

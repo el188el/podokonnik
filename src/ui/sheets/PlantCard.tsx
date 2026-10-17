@@ -168,7 +168,7 @@ export function PlantCard({ id }: { id: string }) {
                 const have = g.owned[c] ?? 0;
                 return <Btn key={c} small kind="gold" onClick={() => treat(p.id, c)}>{rich(it.icon)} {rich(it.name)} {rich(have ? `(${have})` : `· ${it.price} 🍃`)}</Btn>;
               })}
-              {(p.problem.kind === 'burn' || p.problem.kind === 'leggy') && <Btn small onClick={() => move(p.id, p.zone === 'glass' ? 'deep' : 'glass')}>{rich(p.zone === 'glass' ? '↓ Убрать от солнца' : '↑ Ближе к свету')}</Btn>}
+              {(p.problem.kind === 'burn' || p.problem.kind === 'leggy') && !s.big && <Btn small onClick={() => move(p.id, p.zone === 'glass' ? 'deep' : 'glass')}>{rich(p.zone === 'glass' ? '↓ Убрать от солнца' : '↑ Ближе к свету')}</Btn>}
             </div>
             <details className="more"><summary>Признаки и причины</summary><p className="small">{rich(info.sign)} {rich(info.cause)}</p></details>
           </div>
@@ -214,12 +214,12 @@ export function PlantCard({ id }: { id: string }) {
             <button className={'care' + (cutReady ? ' ready' : '')} disabled={!cutReady} onClick={() => { const c = takeCutting(p.id); if (c) openSheet({ kind: 'send', cutting: c }); }}><span><Icon name="cut" size={24} tone={TONE.cut} /></span><b>Черенок</b><small>{rich(cutReady ? 'можно!' : sad || tight(p) ? 'грустит' : fmt(cutLeft(p, t)))}</small></button>
           )}
           <button className={'care' + (potHot ? ' warn' : '')} disabled={size >= 4 && !potHot} onClick={() => openSheet({ kind: 'repot', plant: p.id })}><span><Icon name="repot" size={24} tone={TONE.repot} /></span><b>Пересадить</b><small>{rich(tight(p) ? `тесно! → ${POT_SIZE_NAME[needSize(p.stage)]}` : cramped(p, t) ? 'тесновато → XL' : `горшок ${POT_SIZE_NAME[size]}`)}</small></button>
-          <button className="care" onClick={() => move(p.id, p.zone === 'glass' ? 'deep' : 'glass')}><span><Icon name={p.zone === 'glass' ? 'down' : 'up'} size={24} tone={TONE.look} /></span><b>{rich(p.zone === 'glass' ? 'В глубину' : 'К стеклу')}</b></button>
+          {!s.big && <button className="care" onClick={() => move(p.id, p.zone === 'glass' ? 'deep' : 'glass')}><span><Icon name={p.zone === 'glass' ? 'down' : 'up'} size={24} tone={TONE.look} /></span><b>{rich(p.zone === 'glass' ? 'В глубину' : 'К стеклу')}</b></button>}
           <button className="care" onClick={() => setPots(!pots)}><span><Icon name="design" size={24} tone={TONE.design} /></span><b>Дизайн</b></button>
           <button className="care" onClick={() => openSheet({ kind: 'share', plant: p.id })}><span><Icon name="share" size={24} tone={TONE.share} /></span><b>Поделиться</b></button>
         </div>
       )}
-      {!potted && <Btn onClick={() => move(p.id, p.zone === 'glass' ? 'deep' : 'glass')}>{rich(p.zone === 'glass' ? '↓ В глубину' : '↑ К стеклу')}</Btn>}
+      {!potted && !s.big && <Btn onClick={() => move(p.id, p.zone === 'glass' ? 'deep' : 'glass')}>{rich(p.zone === 'glass' ? '↓ В глубину' : '↑ К стеклу')}</Btn>}
 
       {potted && pots && <PotDesigner p={p} />}
 

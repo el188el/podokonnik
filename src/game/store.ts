@@ -33,7 +33,7 @@ import { leavesMul, liveCutting, livePrice, setLive } from './liveops';
 import { FORM_BY_ID, FORMS, PRODUCT_BY_ID, RARE_DROP, TIER_NAME, formsOf, pickForm, tierOfForm } from './products';
 import { replayFriendWaters, type FriendWater } from './social';
 import { SPECIES, sp } from './species';
-import { DEEP_ROW, EXTRA_PLACES, GLASS_ROW, rowSlots, zoneOfSlot } from './layout';
+import { DEEP_ROW, EXTRA_PLACES, FLOOR_LEVEL, FLOOR_ROW, GLASS_ROW, isFloor, rowSlots, zoneOfSlot } from './layout';
 import { BREED_COOLDOWN, canBreed, crossHue, hueOf } from './breeding';
 import { FIRST_CHEST, FIRST_STEPS, FIRST_YOUNG_H, ROUND_REWARD, STARTER, dailyToday, firstChest, roundInfo, starterDone, starterLeft } from './onboarding';
 import { childLine } from './lineage';
@@ -305,12 +305,16 @@ const findPlant = (g: GameState, id: string) => g.plants.find((p) => p.id === id
 export const plantAt = (g: GameState, sill: string, slot: number) => g.plants.find((p) => p.sill === sill && p.slot === slot);
 /** Открыто ли место: четвёртые места — с уровня или после покупки, кашпо — если повешены. */
 export function placeOpen(g: GameState, sill: string, slot: number) {
+  if (isFloor(slot)) return g.level >= FLOOR_LEVEL;
   if (HANG_SLOTS.includes(slot)) return !!g.sills.find((s) => s.id === sill)?.decor.includes('hangers') && (g.owned.hangers ?? 0) > 0;
   return !EXTRA_PLACES[slot] || (g.places ?? []).includes(slot);
 }
 
-export function freeSlot(g: GameState, sill = g.activeSill, prefer?: Zone) {
-  const order = prefer ? [...rowSlots(prefer), ...rowSlots(prefer === 'glass' ? 'deep' : 'glass')] : [...GLASS_ROW, ...DEEP_ROW];
+/** Большие растения — только на полу, а на пол — только большие. */
+export const fitsSlot = (spId: string, slot: number) => !!sp(spId).big === isFloor(slot);
+
+export function freeSlot(g: GameState, sill = g.activeSill, prefer?: Zone, big = false) {
+  const order = big ? FLOOR_ROW : prefer ? [...rowSlots(prefer), ...rowSlots(prefer === 'glass' ? 'deep' : 'glass')] : [...GLASS_ROW, ...DEEP_ROW];
   for (const i of order) if (placeOpen(g, sill, i) && !plantAt(g, sill, i)) return i;
   return -1;
 }
@@ -333,7 +337,7 @@ function anyFreeSlot(g: GameState, spId?: string, t = now()): { sill: string; sl
   const order = [g.activeSill, ...g.sills.map((s) => s.id).filter((id) => id !== g.activeSill)];
   for (const sill of order) {
     const sl = g.sills.find((s) => s.id === sill)!;
-    const slot = freeSlot(g, sill, spId ? bestZone(spId, sl, t, hasLamp(g, sl)) : undefined);
+    const slot = freeSlot(g, sill, spId ? bestZone(spId, sl, t, hasLamp(g, sl)) : undefined, !!spId && !!sp(spId).big);
     if (slot >= 0) return { sill, slot };
   }
   return null;
@@ -936,7 +940,7 @@ export function chooseWindow(sillId: string, side: 'N' | 'E' | 'S' | 'W') {
 /** Поставить черенок в стакан на подоконник. */
 export function placeCutting(spId: string, sill: string, slot: number, extra: Partial<Plant> = {}) {
   return mut((g, t) => {
-    if (plantAt(g, sill, slot) || !placeOpen(g, sill, slot)) return null;
+    if (plantAt(g, sill, slot) || !placeOpen(g, sill, slot) || !fitsSlot(spId, slot)) return null;
     const first = g.plants.length === 0 && g.stats.planted === 0;
     const p = newPlant({ sp: spId, sill, slot, zone: zoneOfSlot(slot), quick: first || extra.quick, ...extra }, t);
     g.plants.push(p);
@@ -1053,7 +1057,7 @@ const isBad = (g: GameState, p: Plant, t: number) => { const c = ctxFor(g, p, t)
 export function move(plantId: string, zone: Zone) {
   const g0 = get().game;
   const p0 = findPlant(g0, plantId);
-  if (!p0 || p0.zone === zone) return;
+  if (!p0 || p0.zone === zone || sp(p0.sp).big) return;
   const free = rowSlots(zone).find((s) => placeOpen(g0, p0.sill, s) && !plantAt(g0, p0.sill, s));
   swap(plantId, p0.sill, free ?? rowSlots(zone)[0]);
 }
@@ -1066,6 +1070,10 @@ export function swap(plantId: string, sill: string, slot: number) {
     if (!placeOpen(g, sill, slot)) { toast('Это место ещё закрыто 🔒'); return; }
     const other = plantAt(g, sill, slot);
     if (other === p) return;
+    if (!fitsSlot(p.sp, slot) || (other && !fitsSlot(other.sp, p.slot))) {
+      toast(sp(p.sp).big || (other && sp(other.sp).big) ? '🌴 Большие растения живут только на полу, а на пол — только они' : 'Сюда это растение не поставить');
+      return;
+    }
     const pBad = isBad(g, p, t);
     const oBad = other ? isBad(g, other, t) : false;
     if (other) { other.slot = p.slot; other.sill = p.sill; other.zone = zoneOfSlot(other.slot); }
@@ -1227,8 +1235,11 @@ export function plantCutting(cuttingId: string, sill?: string, slot?: number) {
   mut((g, t) => {
     const c = g.cuttings.find((x) => x.id === cuttingId);
     if (!c) return;
-    const place = sill !== undefined && slot !== undefined && !plantAt(g, sill, slot) && placeOpen(g, sill, slot) ? { sill, slot } : anyFreeSlot(g, c.sp, t);
-    if (!place) { toast('Все места заняты. Освободи горшок или открой новый подоконник'); return; }
+    const place = sill !== undefined && slot !== undefined && !plantAt(g, sill, slot) && placeOpen(g, sill, slot) && fitsSlot(c.sp, slot) ? { sill, slot } : anyFreeSlot(g, c.sp, t);
+    if (!place) {
+      toast(sp(c.sp).big ? (g.level < FLOOR_LEVEL ? `Большим растениям нужен пол — он откроется на ${FLOOR_LEVEL} уровне` : 'На полу нет места — освободи место для большого растения') : 'Все места заняты. Освободи горшок или открой новый подоконник');
+      return;
+    }
     g.cuttings = g.cuttings.filter((x) => x.id !== cuttingId);
     g.plants.push(newPlant({ sp: c.sp, form: c.form, hue: c.hue, sill: place.sill, slot: place.slot, zone: zoneOfSlot(place.slot), ...(c.line ? { line: c.line } : {}) }, t));
     collectHue(g, c.sp, c.hue);

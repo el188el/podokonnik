@@ -14,7 +14,7 @@ import { claimFirstChest, moveItem, toggleDecor, petCat, placeOpen, say, setArra
 import { ITEMS, ITEM_BY_ID, placeOf } from '../../game/shop';
 import { climateOf, tempWord } from '../../game/climate';
 import { darkWall, roomVars } from '../../game/room';
-import { zoneOfSlot } from '../../game/layout';
+import { FLOOR_LEVEL, isFloor, zoneOfSlot } from '../../game/layout';
 import { Slot, wantsTool } from '../Slot';
 import { Guide } from '../Guide';
 import { chestReady, firstChest, firstStepNow, roundInfo, starterDone, starterLeft } from '../../game/onboarding';
@@ -103,6 +103,14 @@ function OwnSill() {
   const cellAt = (i: number) => {
     const p = plantAt(g, sill.id, i);
     if (p) return <Slot plant={p} sill={sill.id} slot={i} />;
+    if (isFloor(i) && !placeOpen(g, sill.id, i)) {
+      return (
+        <button className="empty floor-lock" onClick={() => toast(`🌴 Пол для больших растений откроется на ${FLOOR_LEVEL} уровне`)}>
+          <span><Emo e="🔒" /></span>
+          <small>с {FLOOR_LEVEL} ур.</small>
+        </button>
+      );
+    }
     if (!placeOpen(g, sill.id, i)) {
       return (
         <motion.button whileTap={{ scale: 0.92 }} className="empty extra" onClick={() => openSheet({ kind: 'place', slot: i })}>
@@ -118,7 +126,7 @@ function OwnSill() {
         onClick={() => (sill.window ? openSheet({ kind: 'picker', slot: i, sill: sill.id }) : openSheet({ kind: 'window', sill: sill.id, then: 'picker', slot: i }))}
       >
         <span>+</span>
-        <small>{rich(zoneOfSlot(i) === 'glass' ? 'у стекла' : 'в глубине')}</small>
+        <small>{rich(isFloor(i) ? 'большое' : zoneOfSlot(i) === 'glass' ? 'у стекла' : 'в глубине')}</small>
       </motion.button>
     );
   };
@@ -188,6 +196,7 @@ function OwnSill() {
             win={sill.window ?? 'E'}
             hangCell={cellAt}
             cell={cellAt}
+            floorCell={cellAt}
             onCat={petCat}
             pos={sill.pos}
             off={sill.off}
@@ -212,11 +221,13 @@ function OwnSill() {
 
 /**
  * Подоконник занимает всё оставшееся место: высоту рядов считаем по размеру экрана,
- * чтобы главный экран не прокручивался.
+ * чтобы окно со столиком помещались целиком. Ниже — пол с большими растениями:
+ * виден краешек, а комнату можно прокрутить от потолка до пола.
  */
 function SceneFit({ hang, children }: { hang: boolean; children: (style: CSSProperties) => ReactNode }) {
   const ref = useRef<HTMLDivElement>(null);
   const [cellh, setCellh] = useState(150);
+  const [down, setDown] = useState(false);
   useLayoutEffect(() => {
     const el = ref.current;
     if (!el) return;
@@ -224,8 +235,9 @@ function SceneFit({ hang, children }: { hang: boolean; children: (style: CSSProp
       const scene = el.querySelector<HTMLElement>('.scene');
       if (!scene) return;
       const cur = parseFloat(getComputedStyle(scene).getPropertyValue('--cellh')) || 150;
-      // всё, кроме двух рядов (рамка, подоконник, столик, кашпо), не зависит от высоты ряда
-      const overhead = scene.offsetHeight - 2 * cur;
+      const floor = scene.querySelector<HTMLElement>('.floor')?.offsetHeight ?? 0;
+      // всё, кроме двух рядов (рамка, подоконник, столик, кашпо), не зависит от высоты ряда; от пола — краешек
+      const overhead = scene.offsetHeight - floor - 2 * cur + (floor ? FLOOR_PEEK : 0);
       const next = Math.max(58, Math.min(200, Math.floor((el.clientHeight - 8 - overhead) / 2)));
       setCellh((c) => (Math.abs(c - next) > 1 ? next : c));
     };
@@ -234,8 +246,22 @@ function SceneFit({ hang, children }: { hang: boolean; children: (style: CSSProp
     fit();
     return () => ro.disconnect();
   }, [hang]);
-  return <div className="scene-fit" ref={ref}>{rich(children({ ['--cellh' as string]: `${cellh}px` }))}</div>;
+  return (
+    <>
+      <div className="scene-fit" ref={ref} onScroll={(e) => setDown(e.currentTarget.scrollTop > 24)}>{rich(children({ ['--cellh' as string]: `${cellh}px` }))}</div>
+      <button
+        className={'floor-hint' + (down ? ' up' : '')}
+        onClick={() => { const el = ref.current; el?.scrollTo({ top: down ? 0 : el.scrollHeight, behavior: 'smooth' }); }}
+        aria-label={down ? 'К окну' : 'Вниз, на пол'}
+      >
+        <Emo e={down ? '⬆' : '⬇'} /> {down ? 'к окну' : 'пол'}
+      </button>
+    </>
+  );
 }
+
+/** Сколько пикселей пола видно без прокрутки. */
+const FLOOR_PEEK = 30;
 
 const TOOLS: [Tool, IconName, string][] = [
   ['look', 'look', 'Осмотр'],

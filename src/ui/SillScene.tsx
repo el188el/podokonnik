@@ -4,7 +4,7 @@
 // переставлять, а кот Барсик сам гуляет по подоконнику.
 
 import { useEffect, useRef, useState, type CSSProperties, type PointerEvent as RPointerEvent, type ReactNode } from 'react';
-import { DEEP_ROW, GLASS_ROW, HANG_ROW } from '../game/layout';
+import { DEEP_ROW, FLOOR_ROW, GLASS_ROW, HANG_ROW } from '../game/layout';
 import { ITEM_BY_ID, placeOf } from '../game/shop';
 import type { DecorPos } from '../game/types';
 import { DecorArt, hasDecorArt } from './art/DecorArt';
@@ -23,6 +23,8 @@ export interface SceneProps {
   cell: (slot: number) => ReactNode;
   /** Места в подвесных кашпо (6–8) — только на своём подоконнике. */
   hangCell?: (slot: number) => ReactNode;
+  /** Пол под столиком (11–13): места для больших растений. */
+  floorCell?: (slot: number) => ReactNode;
   className?: string;
   style?: CSSProperties;
   /** Куда переставлены предметы и какие выключены (свой подоконник). */
@@ -275,7 +277,7 @@ function LiveCat({ id, tint, x0, row0, arrange, onCat, onMove, onHide, bed }: { 
   );
 }
 
-export function SillScene({ decor, tod, winter, sky, theme, win = 'E', cell, hangCell, className = '', style, pos = {}, off = [], arrange, onItem, onMove, onCat, vent, curtains, draft, catColors, onHide }: SceneProps) {
+export function SillScene({ decor, tod, winter, sky, theme, win = 'E', cell, hangCell, floorCell, className = '', style, pos = {}, off = [], arrange, onItem, onMove, onCat, vent, curtains, draft, catColors, onHide }: SceneProps) {
   const at = (place: string) => decor.filter((d) => placeOf(d) === place);
   const windowD = at('window');
   const ledgeItems = decor.filter((d) => (placeOf(d) === 'sill' || placeOf(d) === 'table') && !CAT_IDS.includes(d));
@@ -298,7 +300,7 @@ export function SillScene({ decor, tod, winter, sky, theme, win = 'E', cell, han
   const deco = (d: string, i: number) => <Deco key={d} id={d} x={xOf(d, i)} on={isOn(d)} arrange={arrange} onItem={onItem} onMove={onMove} onHide={onHide} />;
 
   return (
-    <div className={`scene tod-${tod}${winter ? ' winter' : ''}${sky ? ' sky-' + sky : ''}${hang ? ' has-hang' : ''}${lampOn ? ' lamp-on' : ''}${arrange ? ' arranging' : ''} ${className}`} data-win={win} data-wp={wallpaper} style={style}>
+    <div className={`scene tod-${tod}${winter ? ' winter' : ''}${sky ? ' sky-' + sky : ''}${hang ? ' has-hang' : ''}${floorCell ? ' has-floor' : ''}${lampOn ? ' lamp-on' : ''}${arrange ? ' arranging' : ''} ${className}`} data-win={win} data-wp={wallpaper} style={style}>
       {hang && (
         <div className="hang-row">
           {HANG_ROW.map((i) => (
@@ -390,6 +392,17 @@ export function SillScene({ decor, tod, winter, sky, theme, win = 'E', cell, han
         <div className="table" />
         {onCat && cats.map((c) => <LiveCat key={c + ':' + catTrip.at} id={c} tint={catColors?.[c] ?? CAT_DEFAULT_COLOR[c]} x0={pos[c]?.x ?? CAT_X[c]} row0={rowOf(c)} arrange={arrange} onCat={onCat} onMove={onMove} onHide={onHide} bed={bed} />)}
       </div>
+      {/* ─── пол: большие растения ─── */}
+      {floorCell && (
+        <div className="floor">
+          <div className="baseboard" />
+          <div className="row row-floor">
+            {FLOOR_ROW.map((i) => (
+              <div className="cell floor-cell" data-slot={i} data-zone="deep" key={i}>{rich(floorCell(i))}</div>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

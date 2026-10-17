@@ -911,9 +911,112 @@ const calathea: Draw = ({ art, n, r }) => {
   return out;
 };
 
+// ───────────── большие напольные ─────────────
+const palm: Draw = ({ art, n, r }) => {
+  const out: ReactNode[] = [];
+  const stems = [3, 5, 7][n];
+  const L = [34, 78, 118][n];
+  for (let i = 0; i < stems; i++) {
+    const t = stems === 1 ? 0.5 : i / (stems - 1);
+    const a = -62 + t * 124 + j(r, 6);
+    const len = L * (0.78 + r() * 0.3) * (1 - Math.abs(t - 0.5) * 0.35);
+    const tx = Math.sin(rad(a)) * len * 0.75, ty = -Math.cos(rad(a)) * len;
+    const cx = Math.sin(rad(a)) * len * 0.15, cy = ty * 0.75;
+    out.push(<path key={'r' + i} d={`M0,0 Q${f(cx)},${f(cy)} ${f(tx)},${f(ty)}`} stroke={darker(art.leaf, 0.75)} strokeWidth={1.8} fill="none" strokeLinecap="round" />);
+    // перышки вдоль черешка, свисают вниз
+    const k = [4, 8, 11][n];
+    for (let q = 1; q <= k; q++) {
+      const u = 0.25 + (q / k) * 0.72;
+      const x = (1 - u) * (1 - u) * 0 + 2 * (1 - u) * u * cx + u * u * tx;
+      const y = 2 * (1 - u) * u * cy + u * u * ty;
+      const dir = Math.atan2(ty - cy, tx - cx) * 180 / Math.PI + 90;
+      const ln = (n === 0 ? 10 : 15) * (1.15 - u * 0.5);
+      for (const sd of [-1, 1]) out.push(<Leaf key={`l${i}-${q}${sd}`} x={x} y={y} a={dir + sd * 70 + 25} d={P.blade(ln, ln * 0.3)} fill={(q + i) % 3 ? art.leaf : darker(art.leaf, 0.88)} L={ln} vein={false} />);
+    }
+  }
+  return out;
+};
+
+/** Лист-скрипка: широкий верх, перехват посередине. */
+const fiddle = (L: number, W: number) =>
+  `M0,0 C${f(W * 0.35)},${f(-L * 0.08)} ${f(W * 0.45)},${f(-L * 0.35)} ${f(W * 0.32)},${f(-L * 0.48)} C${f(W * 0.62)},${f(-L * 0.62)} ${f(W * 0.55)},${f(-L)} 0,${f(-L)} C${f(-W * 0.55)},${f(-L)} ${f(-W * 0.62)},${f(-L * 0.62)} ${f(-W * 0.32)},${f(-L * 0.48)} C${f(-W * 0.45)},${f(-L * 0.35)} ${f(-W * 0.35)},${f(-L * 0.08)} 0,0Z`;
+
+const lyrata: Draw = ({ art, n, r }) => {
+  const h = [22, 74, 118][n];
+  const out: ReactNode[] = [<path key="t" d={`M0,0 C-2,${-h * 0.4} 2,${-h * 0.7} 0,${-h}`} stroke={WOOD} strokeWidth={[3, 4, 5][n]} fill="none" strokeLinecap="round" />];
+  const count = [3, 8, 13][n];
+  for (let i = 0; i < count; i++) {
+    const u = count === 1 ? 1 : 0.35 + (i / (count - 1)) * 0.65;
+    const sd = i % 2 ? 1 : -1;
+    const y = -h * u;
+    const L = [18, 26, 32][n] * (0.8 + u * 0.3);
+    out.push(
+      <Leaf key={'l' + i} x={sd * 3} y={y} a={i === count - 1 ? j(r, 10) : sd * (58 + j(r, 14))} d={fiddle(L, L * 0.85)} fill={i % 3 ? art.leaf : darker(art.leaf, 0.86)} L={L} vein={art.leaf2}>
+        {[0.3, 0.5, 0.7].map((k) => <path key={k} d={`M0,${f(-L * k)} l${f(L * 0.22)},${f(-L * 0.1)} M0,${f(-L * k)} l${f(-L * 0.22)},${f(-L * 0.1)}`} stroke={art.leaf2} strokeWidth={0.9} fill="none" opacity={0.8} />)}
+      </Leaf>,
+    );
+  }
+  return out;
+};
+
+const schefflera: Draw = ({ art, n, r }) => {
+  const out: ReactNode[] = [];
+  const stems = [1, 3, 4][n];
+  const H = [20, 66, 108][n];
+  for (let s = 0; s < stems; s++) {
+    const sx = (s - (stems - 1) / 2) * 5;
+    const tx = (s - (stems - 1) / 2) * [0, 22, 26][n] + j(r, 3);
+    const ty = -H * (s % 2 ? 0.82 : 1);
+    out.push(<path key={'s' + s} d={`M${f(sx)},0 Q${f(sx)},${f(ty * 0.6)} ${f(tx)},${f(ty)}`} stroke={WOOD} strokeWidth={n === 2 ? 3.4 : 2.4} fill="none" strokeLinecap="round" />);
+    // по стеблю — «зонтики» из 7 листочков
+    const umb = [1, 2, 3][n];
+    for (let k = 0; k < umb; k++) {
+      const u = 1 - k * 0.3;
+      const x = sx + (tx - sx) * u, y = ty * u;
+      const side = k === 0 ? 0 : (k + s) % 2 ? 1 : -1;
+      const px = x + side * 14, py = y - (k === 0 ? 8 : 4);
+      out.push(<path key={`p${s}-${k}`} d={`M${f(x)},${f(y)} L${f(px)},${f(py)}`} stroke={STEM} strokeWidth={1.3} />);
+      for (let q = 0; q < 7; q++) {
+        const a = -150 + q * 50 + j(r, 6) + side * 20;
+        const ln = (n === 0 ? 10 : 14) * (0.85 + r() * 0.3);
+        out.push(<Leaf key={`l${s}-${k}-${q}`} x={px} y={py} a={a} d={P.ellipse(ln, ln * 0.42)} fill={(q + k) % 3 ? art.leaf : darker(art.leaf, 0.86)} L={ln} />);
+      }
+    }
+  }
+  return out;
+};
+
+const strelitzia: Draw = ({ art, n, r, bloom }) => {
+  const out: ReactNode[] = [];
+  const count = [3, 5, 7][n];
+  for (let i = 0; i < count; i++) {
+    const t = count === 1 ? 0.5 : i / (count - 1);
+    const a = -44 + t * 88 + j(r, 5);
+    const pet = [14, 52, 84][n] * (0.75 + r() * 0.35);
+    const ex = Math.sin(rad(a)) * pet, ey = -Math.cos(rad(a)) * pet;
+    const L = [18, 34, 44][n];
+    out.push(<path key={'p' + i} d={`M0,0 L${f(ex)},${f(ey)}`} stroke={darker(art.leaf, 0.8)} strokeWidth={2} />);
+    out.push(<Leaf key={'l' + i} x={ex} y={ey} a={a * 1.1} d={P.ellipse(L, L * 0.36)} fill={i % 2 ? art.leaf : darker(art.leaf, 0.88)} L={L} vein={art.leaf2} />);
+  }
+  if (bloom && n === 2) {
+    // «райская птица»: клюв-покрывало, оранжевый хохолок и синий язычок
+    for (const [x, top, s] of [[10, -96, 1], [-16, -82, -1]] as const) {
+      out.push(<path key={'fs' + x} d={`M0,0 Q${x * 0.3},${top * 0.6} ${x},${top}`} stroke={STEM} strokeWidth={2} fill="none" />);
+      out.push(
+        <g key={'fl' + x} transform={`translate(${x},${top}) scale(${s * 1.6},1.6)`}>
+          <path d="M0,0 C8,-2 18,-1 24,4 C16,4 6,4 0,2Z" fill="#4f7a5a" {...LINE} strokeWidth={1.2} />
+          {[[-4, -16], [2, -18], [8, -15]].map(([dx, dy], k) => <path key={k} d={`M${2 + k * 3},0 L${dx + 6},${dy} L${6 + k * 3},-1Z`} fill={k === 1 ? lighter(art.flower!, 0.15) : art.flower} {...LINE} strokeWidth={1.1} />)}
+          <path d="M8,-1 L20,-8 L12,0Z" fill="#4a6fd1" {...LINE} strokeWidth={1.1} />
+        </g>,
+      );
+    }
+  }
+  return out;
+};
+
 const DRAW: Record<ArtSpec['kind'], Draw> = {
   grass, trail, heartTrail, blades, dracaena, aloe, rosette, crassula, kalanchoe, zamioculcas, monstera, ficus, spathiphyllum, anthurium, geranium, decembrist, orchid, hibiscus,
-  cactus, hoya, begonia, fern, cyclamen, poinsettia, citrus, coleus, rose, gardenia, azalea, calathea,
+  cactus, hoya, begonia, fern, cyclamen, poinsettia, citrus, coleus, rose, gardenia, azalea, calathea, palm, lyrata, schefflera, strelitzia,
 };
 
 // ─────────────── черенок в стакане ───────────────

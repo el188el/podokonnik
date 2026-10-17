@@ -1,7 +1,8 @@
 import { Fragment, useState } from 'react';
 import { SILL_UNLOCK } from '../../game/progression';
+import { FLOOR_LEVEL } from '../../game/layout';
 import { ITEMS, potIdOf, type ShopCat } from '../../game/shop';
-import { DIFFICULTY_LABEL, SPECIES } from '../../game/species';
+import { BIG_LABEL, DIFFICULTY_LABEL, SPECIES } from '../../game/species';
 import { FORM_BY_ID, PRODUCTS, TIER_NAME, tierOfForm } from '../../game/products';
 import { fmt } from '../../game/sim';
 import { activeEvent } from '../../game/events';
@@ -63,11 +64,12 @@ export function Shop() {
       {cat === 'plants' && (
         <>
           <p className="muted small">Черенок попадёт в запас. Поставь его в воду на свободное место или подари другу.</p>
-          {[1, 2, 3, 4].map((d) => (
+          {([1, 2, 3, 4, 'big'] as const).map((d) => (
             <section key={d}>
-              <h3>{rich(DIFFICULTY_LABEL[d])}</h3>
+              <h3>{rich(d === 'big' ? BIG_LABEL : DIFFICULTY_LABEL[d])}</h3>
+              {d === 'big' && <p className="muted small"><Emo e="🌴" /> Им нужен простор — растут только на полу у окна (откроется на {FLOOR_LEVEL} ур.)</p>}
               <div className="grid">
-                {SPECIES.filter((s) => s.difficulty === d).map((s) => {
+                {SPECIES.filter((s) => (d === 'big' ? s.big : !s.big && s.difficulty === d)).map((s) => {
                   const locked = g.level < s.unlockLevel;
                   return (
                     <div key={s.id} className={'shop-item' + (locked ? ' locked' : '')}>

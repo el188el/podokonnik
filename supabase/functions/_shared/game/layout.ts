@@ -10,9 +10,14 @@ export const ROW = 4;
 export const GLASS_ROW = [0, 1, 2, 9];
 export const DEEP_ROW = [3, 4, 5, 10];
 export const HANG_ROW = [6, 7, 8];
-export const ALL_SLOTS = [...GLASS_ROW, ...DEEP_ROW, ...HANG_ROW];
+/** Пол под окном: место для больших напольных растений. Открывается на высоком уровне. */
+export const FLOOR_ROW = [11, 12, 13];
+export const FLOOR_LEVEL = 15;
+export const ALL_SLOTS = [...GLASS_ROW, ...DEEP_ROW, ...HANG_ROW, ...FLOOR_ROW];
+export const isFloor = (slot: number) => FLOOR_ROW.includes(slot);
 
-export const zoneOfSlot = (slot: number): Zone => (DEEP_ROW.includes(slot) ? 'deep' : 'glass');
+// на полу свет как в глубине комнаты
+export const zoneOfSlot = (slot: number): Zone => (DEEP_ROW.includes(slot) || FLOOR_ROW.includes(slot) ? 'deep' : 'glass');
 export const rowSlots = (zone: Zone) => (zone === 'glass' ? GLASS_ROW : DEEP_ROW);
 
 /** Четвёртые места в ряду: за звёзды — сразу, за листики — с нужного уровня. */
@@ -32,6 +37,7 @@ export function normalizeLayout(plants: Plant[]) {
     const taken = new Set<number>();
     const misplaced: Plant[] = [];
     for (const p of here) {
+      if (isFloor(p.slot)) { taken.add(p.slot); continue; } // пол — отдельно
       if (ALL_SLOTS.includes(p.slot) && zoneOfSlot(p.slot) === p.zone && !taken.has(p.slot)) taken.add(p.slot);
       else misplaced.push(p);
     }
@@ -47,10 +53,11 @@ export function normalizeLayout(plants: Plant[]) {
 }
 
 /** Разложить по рядам для отрисовки (в том числе подоконники друзей со старой версией). */
-export function layoutRows<T extends { slot: number; zone: Zone }>(items: T[]): { glass: (T | null)[]; deep: (T | null)[] } {
-  const rows: { glass: (T | null)[]; deep: (T | null)[] } = { glass: [null, null, null, null], deep: [null, null, null, null] };
+export function layoutRows<T extends { slot: number; zone: Zone }>(items: T[]): { glass: (T | null)[]; deep: (T | null)[]; floor: (T | null)[] } {
+  const rows: { glass: (T | null)[]; deep: (T | null)[]; floor: (T | null)[] } = { glass: [null, null, null, null], deep: [null, null, null, null], floor: [null, null, null] };
   const rest: T[] = [];
   for (const it of items) {
+    if (isFloor(it.slot)) { rows.floor[FLOOR_ROW.indexOf(it.slot)] = it; continue; }
     const z = zoneOfSlot(it.slot);
     const i = rowSlots(z).indexOf(it.slot);
     if (i >= 0 && z === it.zone && !rows[z][i]) rows[z][i] = it;
@@ -67,7 +74,8 @@ export function layoutRows<T extends { slot: number; zone: Zone }>(items: T[]): 
 }
 
 /** Что стоит на месте slot в разложенных рядах. */
-export function rowCell<T>(rows: { glass: (T | null)[]; deep: (T | null)[] }, slot: number): T | null {
+export function rowCell<T>(rows: { glass: (T | null)[]; deep: (T | null)[]; floor?: (T | null)[] }, slot: number): T | null {
+  if (isFloor(slot)) return rows.floor?.[FLOOR_ROW.indexOf(slot)] ?? null;
   const z = zoneOfSlot(slot);
   return rows[z][rowSlots(z).indexOf(slot)] ?? null;
 }

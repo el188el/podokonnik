@@ -1,4 +1,5 @@
 import { SPECIES } from './species';
+import { FLOOR_LEVEL } from './layout';
 
 /** Сколько опыта нужно, чтобы перейти с уровня l на l+1. */
 export const xpToNext = (l: number) => Math.round(40 * Math.pow(l, 1.45));
@@ -101,6 +102,7 @@ export function levelPerks(level: number): LevelPerk[] {
 export function unlocksAt(level: number): string[] {
   return [
     ...SPECIES.filter((s) => s.unlockLevel === level).map((s) => s.name),
+    ...(level === FLOOR_LEVEL ? ['🌴 Пол у окна — место для больших растений'] : []),
     ...levelPerks(level).map((p) => `${p.icon} ${p.text}`),
   ];
 }

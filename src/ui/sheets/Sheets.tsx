@@ -4,8 +4,10 @@ import { approx, fmt, plural } from '../../game/sim';
 import { cuttingLeft } from '../../game/cuttings';
 import { DIFFICULTY_LABEL, SPECIES, STARTERS, sp } from '../../game/species';
 import {
+  fitsSlot,
   chooseWindow, closeSheet, giftCutting, now, openSheet, placeCutting, plantCutting, setTab, startNeighbor, stopNeighbor, useStore,
 } from '../../game/store';
+import { isFloor } from '../../game/layout';
 import type { WindowSide } from '../../game/types';
 import { formsOf, TIER_NAME, tierOfForm } from '../../game/products';
 import { hueOf, PALETTES } from '../../game/breeding';
@@ -92,15 +94,20 @@ export function Sheets() {
 function Picker({ slot, sill }: { slot: number; sill: string }) {
   const g = useStore((s) => s.game);
   const newbie = g.plants.length === 0 && g.cuttings.length === 0;
+  const floor = isFloor(slot);
+  const fit = g.cuttings.filter((c) => fitsSlot(c.sp, slot));
+  const other = g.cuttings.length - fit.length;
   return (
     <div>
-      <h2>{rich(newbie ? 'Выбери первое растение' : 'Что поставим сюда?')}</h2>
+      <h2>{rich(newbie ? 'Выбери первое растение' : floor ? 'Что поставим на пол?' : 'Что поставим сюда?')}</h2>
       {newbie && <p className="muted">Начнём с неубиваемых. Черенок встанет в стакан с водой — налей воды, и через пару минут появятся корни.</p>}
-      {g.cuttings.length > 0 && (
+      {floor && <p className="muted"><Emo e="🌴" /> На полу живут только большие растения: пальма, фикус лировидный, шеффлера, стрелиция. Их черенки — в магазине.</p>}
+      {!floor && other > 0 && <p className="muted small"><Emo e="🌴" /> Больших черенков в запасе: {other} — им место на полу.</p>}
+      {fit.length > 0 && (
         <>
           <h3><Emo e="✂️" /> Черенки в запасе</h3>
           <div className="grid">
-            {g.cuttings.map((c) => (
+            {fit.map((c) => (
               <button key={c.id} className="pick" onClick={() => { plantCutting(c.id, sill, slot); closeSheet(); }}>
                 <PlantArt sp={c.sp} form={c.form} hue={c.hue} stage={0} />
                 <b>{rich(sp(c.sp).name)}</b>
@@ -126,7 +133,7 @@ function Picker({ slot, sill }: { slot: number; sill: string }) {
       )}
       {!newbie && (
         <>
-          <p className="muted">Новые черенки — в магазине или от взрослых растений. А ещё их дарят друзья <Emo e="🎁" /></p>
+          {!floor && <p className="muted">Новые черенки — в магазине или от взрослых растений. А ещё их дарят друзья <Emo e="🎁" /></p>}
           <Btn kind="primary" onClick={() => setTab('shop')}><Emo e="🛒" /> В магазин</Btn>
         </>
       )}

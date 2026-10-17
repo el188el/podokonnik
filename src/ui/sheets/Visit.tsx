@@ -63,6 +63,23 @@ export function Visit({ id, name }: { id: string; name: string }) {
   const thirsty = here.filter((p) => p.thirsty).length;
   const s = view.sills.find((x) => x.id === sill) ?? view.sills[0];
   const rows = layoutRows(here);
+  const guestCell = (slot: number) => {
+    const p = rowCell(rows, slot);
+    if (!p) return null;
+    return (
+      <button className={'slot guest' + (p.sad ? ' sad' : '')} onClick={() => (p.thirsty ? pour(p.id) : toast(p.stage < 2 ? 'Черенок пускает корни в стакане 🌱' : 'Ему хорошо, поливать не нужно 🌿'))}>
+        {p.thirsty && !view.neighbor && <div className="bubble">Хочу пить <Emo e="💧" /></div>}
+        <div className="art">
+          <PlantArt sp={p.sp} form={p.form} hue={p.hue} stage={p.stage} seed={p.id} pot={p.pot} size={potSizeOf(p)} shape={p.shape} blooming={p.blooming} className="plant-svg" />
+        </div>
+        {drops[p.id] && (
+          <div className="fx" key={drops[p.id]}>
+            {[0, 1, 2, 3, 4].map((k) => <span key={k} className="drop" style={{ left: 22 + k * 17, animationDelay: k * 0.07 + 's' }}><Emo e="💧" /></span>)}
+          </div>
+        )}
+      </button>
+    );
+  };
   return (
     <div className="visit">
       <h2>В гостях: {rich(view.name)}</h2>
@@ -82,23 +99,8 @@ export function Visit({ id, name }: { id: string; name: string }) {
         decor={s?.decor ?? []}
         tod={timeOfDay(Date.now())}
         win={s?.window ?? 'E'}
-        cell={(slot) => {
-          const p = rowCell(rows, slot);
-          if (!p) return null;
-          return (
-            <button className={'slot guest' + (p.sad ? ' sad' : '')} onClick={() => (p.thirsty ? pour(p.id) : toast(p.stage < 2 ? 'Черенок пускает корни в стакане 🌱' : 'Ему хорошо, поливать не нужно 🌿'))}>
-              {p.thirsty && !view.neighbor && <div className="bubble">Хочу пить <Emo e="💧" /></div>}
-              <div className="art">
-                <PlantArt sp={p.sp} form={p.form} hue={p.hue} stage={p.stage} seed={p.id} pot={p.pot} size={potSizeOf(p)} shape={p.shape} blooming={p.blooming} className="plant-svg" />
-              </div>
-              {drops[p.id] && (
-                <div className="fx" key={drops[p.id]}>
-                  {[0, 1, 2, 3, 4].map((k) => <span key={k} className="drop" style={{ left: 22 + k * 17, animationDelay: k * 0.07 + 's' }}><Emo e="💧" /></span>)}
-                </div>
-              )}
-            </button>
-          );
-        }}
+        floorCell={rows.floor.some(Boolean) ? (slot) => guestCell(slot) : undefined}
+        cell={(slot) => guestCell(slot)}
       />
       <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
         <Btn kind="ghost" onClick={closeSheet}>Вернуться домой</Btn>

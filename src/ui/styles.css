@@ -1541,3 +1541,25 @@ button:focus:not(:focus-visible) { outline: none; }
 
 /* обёртка для анимации свайпа: сцена по-прежнему занимает всё место, панель инструментов — внизу */
 .room-slide { flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column; }
+
+/* ─── пол у окна: места для больших растений ─── */
+.scene { --floorh: calc(var(--cellh) * 1.5); }
+.floor { position: relative; z-index: 2; background: repeating-linear-gradient(90deg, #c8915c 0 46px, #bd8551 46px 48px, #cf9a66 48px 94px, #bd8551 94px 96px); box-shadow: inset 0 14px 18px -10px #6b3f1a55; padding-top: 8px; }
+.floor .baseboard { position: absolute; left: 0; right: 0; top: -10px; height: 10px; background: #fff7ec; box-shadow: 0 2px 0 #e3cfb2; }
+.scene .row.row-floor { grid-template-columns: repeat(3, 1fr); height: var(--floorh); }
+.scene .row-floor .slot { max-width: none; }
+.scene .row-floor .slot .art { height: calc(var(--floorh) - 26px); width: min(calc((var(--floorh) - 26px) * 0.7), 100%); }
+.scene .row-floor .empty { width: 92px; height: 92px; margin-bottom: 18px; border-color: #fff3e0aa; color: #fff7ec; background: #ffffff22; }
+.scene .row-floor .empty.floor-lock { border-style: solid; border-color: #ffffff55; background: #00000014; color: #fff3e0; }
+.scene .row-floor .label b, .scene .row-floor .label span { color: #fff; text-shadow: 0 1px 1px #0006; }
+.scene-fit { overflow-y: auto; overscroll-behavior: contain; scrollbar-width: none; justify-content: flex-start; }
+.scene-fit::-webkit-scrollbar { display: none; }
+.scene-fit > .scene { margin-top: auto; margin-bottom: auto; }
+.scene.has-floor { margin-bottom: 0 !important; }
+.room-slide { position: relative; }
+.floor-hint { position: absolute; right: 18px; bottom: 6px; z-index: 8; display: inline-flex; align-items: center; gap: 4px; border: 0; border-radius: 99px; padding: 4px 10px; font: inherit; font-size: 12px; font-weight: 700; color: #6b4a2a; background: #fff7ecee; box-shadow: 0 2px 0 #0002; cursor: pointer; }
+:root[data-theme='dark'] .floor { background: repeating-linear-gradient(90deg, #8f6743 0 46px, #855d3a 46px 48px, #956c47 48px 94px, #855d3a 94px 96px); }
+:root[data-theme='dark'] .floor .baseboard { background: #b8ab9a; box-shadow: 0 2px 0 #8a7c6a; }
+.floor-hint.up { bottom: auto; top: 6px; }
+.scene-fit .scene .slot { touch-action: pan-x pan-y; }
+.scene .row-floor .floor-lock svg { color: #fff7ec !important; stroke: #fff7ec !important; }

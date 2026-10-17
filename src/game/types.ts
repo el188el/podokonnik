@@ -19,7 +19,8 @@ export type ArtKind =
   | 'crassula' | 'kalanchoe' | 'zamioculcas' | 'monstera' | 'ficus'
   | 'spathiphyllum' | 'anthurium' | 'geranium' | 'decembrist' | 'orchid' | 'hibiscus'
   | 'cactus' | 'hoya' | 'begonia' | 'fern' | 'cyclamen' | 'poinsettia' | 'citrus' | 'coleus'
-  | 'rose' | 'gardenia' | 'azalea' | 'calathea';
+  | 'rose' | 'gardenia' | 'azalea' | 'calathea'
+  | 'palm' | 'lyrata' | 'schefflera' | 'strelitzia';
 
 export interface ArtSpec {
   kind: ArtKind;
@@ -63,6 +64,7 @@ export interface Species {
   cutHours: number;     // перерыв между черенками
   bloom?: Bloom;
   fussy?: Fussy;        // капризное: узкие рамки температуры и влажности
+  big?: boolean;        // большое напольное — растёт только на полу
   art: ArtSpec;
   speed: string;        // «быстро» / «средне» / «медленно» — для игрока
   gen: string;          // род. падеж: «черенок монстеры»
