@@ -3,7 +3,6 @@ import type { GameState } from '../../game/types';
 import { Icon, TONE, type IconName } from '../kit/icons';
 import { activeEvent, eventSeason, tierOf } from '../../game/events';
 import { canCut, isWinter, fmt } from '../../game/sim';
-import { sp } from '../../game/species';
 import { isPlus, now, openSheet, plantAt, setTab, setTool, showGift, USABLE, useStore, waterAll, type Tool } from '../../game/store';
 import { CoopSill } from './CoopSill';
 import { canFulfil } from '../../game/orders';
@@ -13,11 +12,9 @@ import { chatter } from '../../game/mood';
 import { ctxFor } from '../../game/sim';
 import { claimFirstChest, moveItem, toggleDecor, petCat, placeOpen, say, setArrange, switchItem, SWITCHABLE, toast } from '../../game/store';
 import { ITEMS, ITEM_BY_ID, placeOf } from '../../game/shop';
-import { cuttingLeft } from '../../game/cuttings';
 import { climateOf, tempWord } from '../../game/climate';
 import { darkWall, roomVars } from '../../game/room';
 import { zoneOfSlot } from '../../game/layout';
-import { PlantArt } from '../art/PlantArt';
 import { Slot, wantsTool } from '../Slot';
 import { Guide } from '../Guide';
 import { chestReady, firstChest, firstStepNow, roundInfo, starterDone, starterLeft } from '../../game/onboarding';
@@ -26,6 +23,7 @@ import { SillScene, timeOfDay } from '../SillScene';
 import { tempText, weatherAt } from '../../game/weather';
 import { platform } from '../../platform';
 import { Emo, rich } from '../kit/rich';
+import { swipeDir, useRoomSwipe } from '../useRoomSwipe';
 
 
 export function SillView() {
@@ -128,11 +126,12 @@ function OwnSill() {
   const tiles = dayTiles(g, t);
   const shown = tiles.slice(0, 2);
   const more = tiles.length - shown.length;
+  const swipe = useRoomSwipe();
   const clim = climateOf(g, sill, t);
   const climBad = clim.draft || clim.bugs || clim.temp < 16 || clim.temp > 29 || clim.rh < 30;
 
   return (
-    <div className="sillview fit">
+    <div className="sillview fit" {...swipe}>
       {arrange && (
         <div className="arrange-bar">
           <span>Перетаскивай предметы и котиков, <Emo e="✕" /> — убрать</span>
@@ -175,6 +174,7 @@ function OwnSill() {
         </div>
       )}
 
+      <motion.div className="room-slide" key={sill.id} initial={swipeDir.v ? { x: swipeDir.v * 60, opacity: 0 } : false} animate={{ x: 0, opacity: 1 }} transition={{ duration: 0.25 }}>
       <SceneFit hang={!!decor.includes('hangers')}>
         {(style) => (
           <SillScene
@@ -202,20 +202,9 @@ function OwnSill() {
           />
         )}
       </SceneFit>
+      </motion.div>
 
       <FallingTokens />
-      {g.cuttings.length > 0 && (
-        <div className="tray compact">
-          <button className="tray-pots" onClick={() => openSheet({ kind: 'pots' })}><Emo e="🪴" /><small>{g.owned.pot ?? 0}</small></button>
-          <div className="tray-list">
-            {g.cuttings.map((c) => (
-              <button key={c.id} className={'cutting' + (cuttingLeft(c, now()) < 2 * 86400e3 ? ' wilting' : '')} onClick={() => openSheet({ kind: 'send', cutting: c.id })} aria-label={sp(c.sp).name}>
-                <PlantArt sp={c.sp} form={c.form} hue={c.hue} stage={0} noPot className="mini" />
-              </button>
-            ))}
-          </div>
-        </div>
-      )}
       <Toolbar sill={sill.id} />
     </div>
   );

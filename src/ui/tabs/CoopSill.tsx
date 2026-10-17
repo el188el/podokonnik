@@ -25,6 +25,7 @@ import { Btn } from '../kit/kit';
 import { SillScene, timeOfDay } from '../SillScene';
 import { isWinter } from '../../game/sim';
 import { Emo, rich } from '../kit/rich';
+import { useRoomSwipe } from '../useRoomSwipe';
 
 const ago = (ms: number) => (ms < 60e3 ? 'только что' : ms < 86400e3 ? `${fmt(ms)} назад` : `${approx(ms)} назад`);
 
@@ -72,6 +73,7 @@ export function CoopSill({ coop }: { coop: CoopView }) {
   }, []);
 
   const world = useMemo(() => coopWorld(st), [st]);
+  const swipe = useRoomSwipe();
   const useItem = useStore((s) => s.useItem);
   const [care, setCare] = useState(false);
   const me = playerId();
@@ -107,7 +109,7 @@ export function CoopSill({ coop }: { coop: CoopView }) {
   };
 
   return (
-    <div className="sillview coop">
+    <div className="sillview coop" {...swipe}>
       <div className="coop-head">
         <div>
           <b><Emo e="💞" /> {rich(st.name)}</b>
