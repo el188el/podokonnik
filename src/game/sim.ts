@@ -236,8 +236,9 @@ export function bloomBlockers(p: Plant, t: number, ctx: Ctx): string[] | null {
   if (badLight(p, t, ctx)) out.push('не тот свет');
   if (fussyOf(p, ctx)) out.push('капризничает — сбрасывает бутоны');
   if (restingAfterCut(p, t)) out.push('отдыхает после черенка');
-  if (b.months && !b.months.includes(month(t))) out.push('не сезон');
-  if (b.needsRest && p.rest < 7 * 24) out.push('нужен зимний покой');
+  const fed = !!p.bloomUntil && t < p.bloomUntil;
+  if (!fed && b.months && !b.months.includes(month(t))) out.push('не сезон — поможет удобрение для цветения');
+  if (!fed && b.needsRest && p.rest < 7 * 24) out.push('нужен зимний покой');
   return out;
 }
 
@@ -364,14 +365,20 @@ function stepPlant(p: Plant, dtH: number, t: number, ctx: Ctx, ev: SimEvent[]) {
 export function canBloom(p: Plant, t: number, ctx: Ctx) {
   const b = sp(p.sp).bloom;
   if (!b || p.stage !== 4 || p.health < 70 || p.dryFor > 0) return false;
+  const fed = !!p.bloomUntil && t < p.bloomUntil; // удобрение для цветения: сезон и покой не нужны
   if (p.problem && (p.problem.kind === 'rot' || p.problem.kind === 'leggy' || p.problem.sev > 0.6)) return false;
   if (badLight(p, t, ctx)) return false;
   if (fussyOf(p, ctx)) return false; // капризные сбрасывают бутоны
   if (restingAfterCut(p, t)) return false; // после черенка набирается сил
-  if (b.months && !b.months.includes(month(t))) return false;
-  if (b.needsRest && p.rest < 7 * 24) return false;
+  if (!fed && b.months && !b.months.includes(month(t))) return false;
+  if (!fed && b.needsRest && p.rest < 7 * 24) return false;
   return true;
 }
+
+/** Удобрение для цветения — раз в неделю, Корневин — ускоряет корни вчетверо. */
+export const BLOOM_FEED_MS = 3 * D;
+export const BLOOM_FEED_EVERY = 7 * D;
+export const ROOT_BOOST = 4;
 
 export const hasLamp = (state: GameState, sill: Sill) => hasDecorOn(state, sill, 'lamp');
 /** Бонус фитоламп к росту: оконная светит на верхний ряд (+15%) и немного на столик (+5%),

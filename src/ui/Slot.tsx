@@ -51,11 +51,12 @@ function bubbleFor(p: Plant, t: number, flash?: { text: string; until: number })
 }
 
 /** Какие эффекты показывать значком прямо на подоконнике. */
-const BADGES = ['cut', 'boost', 'feed', 'guard', 'mist', 'wet'];
+const BADGES = ['cut', 'bloomfeed', 'kornevin', 'boost', 'feed', 'guard', 'mist', 'wet'];
 const wantsMist = (p: Plant, t: number) => sp(p.sp).mist === 'love' && !(p.mistUntil && t < p.mistUntil) && !p.wetLeaves;
 
 /** Подсветка: выбранный инструмент сейчас пригодится этому растению. */
 export function wantsTool(tool: string, p: Plant, t: number): boolean {
+  if (tool === 'use') { const st = useStore.getState(); return !!st.useItem && itemFits(st.game, st.useItem, p, t); }
   if (p.stage < 2) return false;
   if (tool === 'water') return p.moisture < 0.5;
   if (tool === 'mist') return wantsMist(p, t);
@@ -150,6 +151,8 @@ export function Slot({ plant: p, sill, slot }: { plant: Plant; sill: string; slo
 
   function tap() {
     checkRound(p.id);
+    // Корневин из инвентаря — прямо в стакан
+    if (p.stage === 0 && useStore.getState().tool === 'use' && useStore.getState().useItem === 'kornevin') return void applyItem(p.id, 'kornevin');
     if (p.stage === 1) return plantInPot(p.id);
     if (p.stage === 0 && p.rootStart) return say(p.id, 'Пускаю корни… 🌱', 1600);
     // в стакан можно только налить воды — наливаем сразу, без карточки (так понятнее новичку)
@@ -248,7 +251,7 @@ export function Slot({ plant: p, sill, slot }: { plant: Plant; sill: string; slo
         transition={{ type: 'spring', damping: 9, stiffness: 160 }}
       >
         <PlantArt sp={p.sp} form={p.form} hue={p.hue} stage={p.stage} seed={p.id} pot={p.pot} size={potSizeOf(p)} shape={p.shape} blooming={p.blooming} className="plant-svg" />
-        {p.stage >= 2 && (() => {
+        {(p.stage >= 2 || p.rootBoost) && (() => {
           // значки действующих эффектов — наклейками на горшке
           const list = plantEffects(p, t).filter((e) => BADGES.includes(e.id)).slice(0, 3);
           return list.length > 0 && <div className="fx-badges" aria-hidden>{list.map((e) => <i key={e.id} className={'fxb' + (e.bad ? ' bad' : '') + (e.id === 'cut' ? ' ask' : '')}><Emo e={e.icon} size={11} /></i>)}</div>;

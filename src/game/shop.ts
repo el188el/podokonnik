@@ -208,6 +208,8 @@ export const ITEMS: ShopItem[] = [
   { id: 'meter', cat: 'care', name: 'Влагомер', icon: '📟', price: 70, desc: 'Показывает влажность каждого горшка и не даёт залить мокрую землю. Покупается навсегда.' },
   { id: 'boost', cat: 'care', name: 'Стимулятор роста', icon: '⚡', price: 40, desc: 'Сразу −24 ч до следующей стадии роста. Не чаще раза в неделю на растение и 3 в день — иначе истощится.', consumable: true, level: 3 },
   { id: 'boost5', cat: 'care', name: 'Пять стимуляторов', icon: '⚡', price: 160, desc: 'Запас стимуляторов роста — выгоднее на 20%.', consumable: true, gives: 'boost', count: 5, level: 3 },
+  { id: 'bloomfeed', cat: 'care', name: 'Удобрение для цветения', icon: '🌸', price: 35, desc: 'Взрослому цветущему виду: 3 дня цветёт даже не в сезон. Раз в неделю.', consumable: true, level: 6 },
+  { id: 'kornevin', cat: 'care', name: 'Корневин', icon: '🫙', price: 20, desc: 'Черенку в стакане: корни появятся вчетверо быстрее.', consumable: true },
   { id: 'feed', cat: 'care', name: 'Подкормка', icon: '🧪', price: 15, desc: 'Сразу −12 ч до следующей стадии роста. Не чаще раза в сутки — перекорм вреден.', consumable: true },
   { id: 'neighbor7', cat: 'care', name: 'Соседка на неделю', icon: '👵', price: 60, desc: 'Соседка поливает 7 дней, даже если бесплатный отпуск уже был.', consumable: true },
 

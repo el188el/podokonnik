@@ -40,3 +40,16 @@ describe('разбор роста', () => {
     expect(f.reduce((r, x) => r * x.mul, 1)).toBeCloseTo(growthRate(p, t, ctx), 6);
   });
 });
+
+describe('удобрения', () => {
+  it('удобрение для цветения: цветёт и не в сезон', async () => {
+    const { canBloom } = await import('./sim');
+    const winter = Date.UTC(2026, 0, 15, 12);
+    // спатифиллум цветёт весной–летом; зимой — только с удобрением
+    const p = newPlant({ sp: 'spathiphyllum', sill: 'room', slot: 0, zone: 'glass', stage: 4, moisture: 0.8 } as never, winter);
+    p.health = 100;
+    const ctx = { ...base(20, 50), sunny: false };
+    p.bloomUntil = winter + 3 * 86400e3;
+    expect(canBloom(p, winter, ctx)).toBe(true);
+  });
+});

@@ -27,7 +27,7 @@ import { giftLink, makeCode } from './gifts';
 import { XP, levelPerks, levelReward, unlocksAt, xpToNext, SILL_UNLOCK } from './progression';
 import { QUEST_BONUS, WEEKLY_CHEST, dayKey, bumpQuest, bumpWeekly, rollDay, rollWeek, streakReward, weeklyVisit } from './quests';
 import { ITEM_BY_ID, ITEMS, placeOf, potIdOf, sellPrice } from './shop';
-import { advance, BOOST_GROW_H, FEED_GROW_H, growNow, stageFromGrowth, badLight, bestZone, canCut, ctxFor, hasDecorOn, pour, WATER_REWARD_MS, WET_FULL, fmt, needSize, POT_SIZE_ITEM, POT_SIZE_NAME, potSizeOf, tight, hasLamp, neighborsOf, stageMarks, type SimEvent } from './sim';
+import { advance, BLOOM_FEED_EVERY, BLOOM_FEED_MS, BOOST_GROW_H, FEED_GROW_H, growNow, ROOT_BOOST, rootsAt, stageFromGrowth, badLight, bestZone, canCut, ctxFor, hasDecorOn, pour, WATER_REWARD_MS, WET_FULL, fmt, needSize, POT_SIZE_ITEM, POT_SIZE_NAME, potSizeOf, tight, hasLamp, neighborsOf, stageMarks, type SimEvent } from './sim';
 import { activeEvent, EVENT_TOKENS, eventSeason, isEmptyReward, PREM_AT, tierOf, type GameEvent, type PassReward } from './events';
 import { leavesMul, liveCutting, livePrice, setLive } from './liveops';
 import { FORM_BY_ID, FORMS, PRODUCT_BY_ID, RARE_DROP, TIER_NAME, formsOf, pickForm, tierOfForm } from './products';
@@ -2569,10 +2569,12 @@ function payItem(g: GameState, id: string): boolean {
 }
 
 /** Что из инвентаря применяется к растению — и как. */
-export const USABLE = ['feed', 'boost', 'soap', 'acaricide', 'traps', 'fungicide', 'soil', 'drain'];
+export const USABLE = ['feed', 'bloomfeed', 'kornevin', 'boost', 'soap', 'acaricide', 'traps', 'fungicide', 'soil', 'drain'];
 
 /** Пригодится ли этому растению предмет из инвентаря (для подсветки). */
 export function itemFits(g: GameState, id: string, p: Plant, t: number): boolean {
+  if (id === 'kornevin') return p.stage === 0 && !p.rootBoost;
+  if (id === 'bloomfeed') return bloomFeedBlock(p, t) === null;
   if (p.stage < 2) return false;
   if (id === 'feed') return !(p.feedUntil && t < p.feedUntil) && p.stage < 4 && !tight(p);
   if (id === 'boost') return !boostBlock(g, p, t);
@@ -2585,9 +2587,11 @@ export function itemFits(g: GameState, id: string, p: Plant, t: number): boolean
 export function applyItem(plantId: string, id: string) {
   const g = get().game;
   const p = g.plants.find((x) => x.id === plantId);
-  if (!p || p.stage < 2) return false;
+  if (!p || (p.stage < 2 && id !== 'kornevin')) return false;
   let ok: unknown = false;
   if (id === 'feed') ok = feed(plantId);
+  else if (id === 'bloomfeed') ok = bloomFeed(plantId);
+  else if (id === 'kornevin') ok = rootBoost(plantId);
   else if (id === 'boost') ok = boostPlant(plantId);
   else if (id === 'drain') { if (p.drain) toast('🪨 Дренаж здесь уже есть'); else { addDrain(plantId); ok = true; } }
   else if (id === 'soil') { freshSoil(plantId); ok = true; }
@@ -2644,6 +2648,51 @@ function witherCuttings(g: GameState, t: number) {
   const names = dead.map((c) => sp(c.sp).name).join(', ');
   toast(`🥀 Засох${dead.length > 1 ? 'ли' : ''} в стакане: ${names}. Черенки лучше сажать или дарить`);
   mail(g, '🥀', `Засох${dead.length > 1 ? 'ли' : ''} в стакане: ${names}`);
+}
+
+// ─────────────────── удобрения: для цветения и Корневин ───────────────────
+/** Почему нельзя дать удобрение для цветения (null — можно). */
+export function bloomFeedBlock(p: Plant, t: number): string | null {
+  if (!sp(p.sp).bloom) return `${sp(p.sp).name} не цветёт`;
+  if (p.stage < 4) return 'цветут только взрослые';
+  if (p.bloomUntil && t < p.bloomUntil) return 'уже действует';
+  if (p.bloomFedAt && t - p.bloomFedAt < BLOOM_FEED_EVERY) return `снова через ${fmt(p.bloomFedAt + BLOOM_FEED_EVERY - t)}`;
+  return null;
+}
+
+export function bloomFeed(plantId: string) {
+  return mut((g, t) => {
+    const p = findPlant(g, plantId);
+    if (!p) return false;
+    const why = bloomFeedBlock(p, t);
+    if (why) { toast(`🌸 Удобрение для цветения: ${why}`); return false; }
+    if (!payItem(g, 'bloomfeed')) return false;
+    p.bloomUntil = t + BLOOM_FEED_MS;
+    p.bloomFedAt = t;
+    fx(p.id, 'grow');
+    haptic('success');
+    say(p.id, 'Скоро зацвету! 🌸', 2000);
+    toast('🌸 Три дня будет цвести, даже не в сезон — если хватает света, воды и здоровья');
+    return true;
+  });
+}
+
+/** Корневин: черенок в стакане пускает корни вчетверо быстрее. */
+export function rootBoost(plantId: string) {
+  return mut((g, t) => {
+    const p = findPlant(g, plantId);
+    if (!p || p.stage !== 0) { toast('🫙 Корневин — для черенков в стакане'); return false; }
+    if (p.rootBoost) { toast('🫙 Корневин уже в стакане'); return false; }
+    if (!payItem(g, 'kornevin')) return false;
+    if (!p.rootStart) p.rootStart = t; // заодно наливаем воды
+    const left = Math.max(0, rootsAt(p)! - t);
+    p.rootStart -= left * (1 - 1 / ROOT_BOOST);
+    p.rootBoost = true;
+    fx(p.id, 'water');
+    haptic('success');
+    toast(`🫙 Корневин: корни появятся через ${fmt(left / ROOT_BOOST)}`);
+    return true;
+  });
 }
 
 // ─────────────────── стимулятор роста ───────────────────

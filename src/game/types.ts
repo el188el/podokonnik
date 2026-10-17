@@ -108,6 +108,9 @@ export interface Plant {
   drain?: boolean;      // в горшке дренаж из керамзита — лишняя вода уходит быстро
   boostUntil?: number;  // действует стимулятор роста
   boostAt?: number;     // когда давали стимулятор (не чаще раза в неделю)
+  bloomUntil?: number;  // удобрение для цветения: цветёт даже не в сезон
+  bloomFedAt?: number;  // когда давали удобрение для цветения (раз в неделю)
+  rootBoost?: boolean;  // черенку дали Корневин
   adultAt?: number;
   repottedAt?: number;
   lastCut?: number;

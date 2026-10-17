@@ -36,7 +36,7 @@ export async function shareCoop(c: CoopView) {
   if (r === 'copied') toast('Ссылка скопирована — отправь её 📋');
 }
 
-const BADGES = ['cut', 'boost', 'feed', 'guard', 'mist', 'wet'];
+const BADGES = ['cut', 'bloomfeed', 'kornevin', 'boost', 'feed', 'guard', 'mist', 'wet'];
 
 /** Кому сейчас пригодится инструмент — подсвечиваем, как на своём подоконнике. */
 function wants(tool: string, item: string | undefined, p: Plant, t: number, g: ReturnType<typeof useStore.getState>['game']) {
