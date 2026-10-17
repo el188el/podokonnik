@@ -3,7 +3,7 @@ import { useState } from 'react';
 import { BOOST_COOLDOWN, LIGHT_NAME, SHOWOFF_MS, STAGE_NAME, ZONE_NAME } from '../../game/constants';
 import { FORM_BY_ID } from '../../game/products';
 import { BREED_COOLDOWN, canBreed, hueOf } from '../../game/breeding';
-import { canCut, cramped, ctxFor, cutLeft, fmt, isSad, lightLevel, need, neighborsOf, nextStageAt, stageProgress } from '../../game/sim';
+import { canCut, cramped, ctxFor, cutLeft, fmt, fussyOf, isSad, lightLevel, need, neighborsOf, nextStageAt, stageProgress } from '../../game/sim';
 import { DIFFICULTY_LABEL, sp } from '../../game/species';
 import {
   adsLeft, addDrain, buyItem, toggleVent, boostBlock, boostPlant, breedPartners, drainTray, freshSoil, treat, feed, mist, pollinate, watchAd, move, now, openSheet, wipeLeaves, plantInPot, removePlant, renamePlant, takeCutting, useStore, water,
@@ -19,7 +19,7 @@ import { Bar, Btn } from '../kit/kit';
 import { shareShowoff, shareThanks } from '../share';
 import { sharePlantStory } from '../story';
 import { genName, isHeirloom } from '../../game/lineage';
-import { coldLimit, rhWord, tempWord } from '../../game/climate';
+import { coldLimit, FUSSY_TEXT, rhWord, tempWord } from '../../game/climate';
 import { diagnose, recoverHours, type Fix } from '../../game/diagnose';
 import type { Plant } from '../../game/types';
 import type { Ancestor } from '../../game/types';
@@ -228,8 +228,9 @@ export function PlantCard({ id }: { id: string }) {
           <>
             <p className="small"><Emo e="☀️" /> Свет: <b>{rich(LIGHT_NAME[light])}</b>, нужно {rich(LIGHT_NAME[s.light[0]])}{rich(s.light[1] !== s.light[0] && ` — ${LIGHT_NAME[s.light[1]]}`)} · сейчас {rich(ZONE_NAME[p.zone])}</p>
             <button className="linkish small" onClick={() => openSheet({ kind: 'climate' })}>
-              <Emo e="🌡" /> Воздух: {rich(tempWord(ctx.temp ?? 22))}, {rich(rhWord(ctx.rh ?? 45))}{rich((ctx.temp ?? 22) < coldLimit(p.sp) ? ' · ему холодно' : '')}{rich(ctx.draft ? ' · сквозняк' : '')} ›
+              <Emo e="🌡" /> Воздух: {rich(tempWord(ctx.temp ?? 22))}, {rich(rhWord(ctx.rh ?? 45))}{rich((ctx.temp ?? 22) < coldLimit(p.sp) ? ' · ему холодно' : '')}{rich(ctx.draft ? ' · сквозняк' : '')}{rich(fussyOf(p, ctx) ? ` · ${FUSSY_TEXT[fussyOf(p, ctx)!]}` : '')} ›
             </button>
+            {s.fussy && <p className="small"><Emo e="⚠️" /> Капризное: {rich(s.fussy.note)}</p>}
             {(feedOn || boostOn || p.drain || ctx.newbie) && (
               <p className="small">
                 {rich(ctx.newbie && p.stage < 4 && '🌟 бонус новичка ×3 · ')}

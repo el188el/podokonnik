@@ -2,7 +2,7 @@
 // Повторяет источники урона из симуляции (засуха, перелив, свет, холод, болезнь)
 // и подсказывает действия и товары, которые помогут.
 
-import { climateOf, coldLimit, zoneTemp } from './climate';
+import { climateOf, coldLimit, FUSSY_TEXT, fussyIssue, zoneTemp } from './climate';
 import { PROBLEMS, cureFor } from './problems';
 import { badLight, ctxFor } from './sim';
 import { sp } from './species';
@@ -72,7 +72,20 @@ export function diagnose(g: GameState, p: Plant, t: number): Cause[] {
       fixes: [...(sill.vent ? [{ kind: 'vent' as const, label: '🪟 Закрыть форточку' }] : []), ...(p.zone === 'glass' ? [{ kind: 'move' as const, to: 'deep' as const, label: '↓ От стекла' }] : []), ...(owns(g, sill.decor, 'heater') ? [] : [{ kind: 'buy' as const, item: 'heater', label: '♨️ Обогреватель' }])],
     });
   }
-  if (s.mist === 'love' && c.rh < 35) {
+  const fi = fussyIssue(s, temp, c.rh, c.draft && p.zone === 'glass');
+  if (fi) {
+    const vent = (label: string) => ({ kind: 'vent' as const, label });
+    const fixes: Fix[] =
+      fi === 'hot' ? [...(sill.vent ? [] : [vent('🪟 Открыть форточку')]), ...(p.zone === 'deep' && c.heating ? [{ kind: 'move' as const, to: 'glass' as const, label: '↑ К прохладному стеклу' }] : []), ...(owns(g, sill.decor, 'fan') ? [] : [{ kind: 'buy' as const, item: 'fan', label: '🌀 Вентилятор' }])]
+      : fi === 'cold' ? [...(sill.vent ? [vent('🪟 Закрыть форточку')] : []), ...(p.zone === 'glass' ? [{ kind: 'move' as const, to: 'deep' as const, label: '↓ От стекла' }] : []), ...(owns(g, sill.decor, 'heater') ? [] : [{ kind: 'buy' as const, item: 'heater', label: '♨️ Обогреватель' }])]
+      : fi === 'draft' ? [vent('🪟 Закрыть форточку'), { kind: 'move', to: 'deep', label: '↓ От стекла' }]
+      : [{ kind: 'mist', label: '💦 Опрыскать' }, ...(owns(g, sill.decor, 'humidifier') ? [] : [{ kind: 'buy' as const, item: 'humidifier', label: '💨 Увлажнитель' }])];
+    out.push({
+      icon: fi === 'hot' ? '🥵' : fi === 'cold' ? '🥶' : fi === 'dry' ? '🏜' : '🪟', title: 'Капризничает', hurts: p.health > 60,
+      text: `${s.name} — ${FUSSY_TEXT[fi]} (${Math.round(temp)}°, влажность ${c.rh}%). Растёт вдвое медленнее и не цветёт. ${s.fussy!.note}`,
+      fixes,
+    });
+  } else if (s.mist === 'love' && c.rh < 35) {
     out.push({
       icon: '🏜', title: 'Сухой воздух', hurts: false,
       text: `Влажность ${c.rh}% — ${s.name.toLowerCase()} любит влажный воздух: растёт медленнее, легко заводится клещ.`,

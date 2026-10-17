@@ -11,7 +11,7 @@ import type { Plant } from './types.ts';
 /** Что кошки любят пожевать (безопасно для кота, но не для растения). */
 export const CAT_CHEWS = ['chlorophytum', 'fern', 'peperomia', 'tradescantia', 'coleus'];
 /** Ядовитые для кошек — реальный список частых комнатных растений. */
-export const CAT_TOXIC = ['spathiphyllum', 'dracaena', 'poinsettia', 'aloe', 'scindapsus', 'monstera', 'ficus', 'cyclamen', 'kalanchoe', 'aglaonema', 'crassula', 'begonia', 'zamioculcas', 'citrus'];
+export const CAT_TOXIC = ['spathiphyllum', 'dracaena', 'poinsettia', 'aloe', 'scindapsus', 'monstera', 'ficus', 'cyclamen', 'kalanchoe', 'aglaonema', 'crassula', 'begonia', 'zamioculcas', 'citrus', 'azalea', 'gardenia'];
 
 export type CatAction = 'chew' | 'sit' | 'sniff' | 'grass';
 

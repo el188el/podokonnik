@@ -26,7 +26,7 @@ export function Herbarium() {
         {rich(shelvesReady(g).length ? ' · награда!' : '')}
       </button>
       <button className="mini-banner doctor-banner" onClick={() => openSheet({ kind: 'doctor' })}><Emo e="🩺" /> Что с моим цветком? Желтеют листья, не цветёт — подскажем причину</button>
-      {[1, 2, 3].map((d) => (
+      {[1, 2, 3, 4].map((d) => (
         <section key={d}>
           <h3>{rich(DIFFICULTY_LABEL[d])}</h3>
           <div className="grid">

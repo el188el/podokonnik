@@ -1,6 +1,6 @@
 // Климат комнаты: температура и влажность воздуха, форточка, шторы и приборы.
 
-import { climateOf, coldLimit, rhWord, tempWord, zoneTemp } from '../../game/climate';
+import { climateOf, coldLimit, FUSSY_TEXT, fussyIssue, rhWord, tempWord, zoneTemp } from '../../game/climate';
 import { ITEM_BY_ID } from '../../game/shop';
 import { sp } from '../../game/species';
 import { buyItem, freeCopies, now, openSheet, switchItem, toggleCurtains, toggleDecor, toggleVent, useStore } from '../../game/store';
@@ -29,7 +29,9 @@ export function ClimateSheet() {
     const tz = zoneTemp(c, p.zone);
     if (tz < coldLimit(p.sp)) warn.push(`🥶 ${name}: холодно (${Math.round(tz)}° у ${p.zone === 'glass' ? 'стекла' : 'столика'})`);
     else if (tz > 30) warn.push(`🥵 ${name}: жарко`);
-    if (sp(p.sp).mist === 'love' && c.rh < 35) warn.push(`🏜 ${name}: сухой воздух — любит влажность`);
+    const fi = fussyIssue(sp(p.sp), tz, c.rh, c.draft && p.zone === 'glass');
+    if (fi) warn.push(`${fi === 'hot' ? '🥵' : fi === 'cold' ? '🥶' : fi === 'dry' ? '🏜' : '🪟'} ${name} капризничает: ${FUSSY_TEXT[fi]}`);
+    else if (sp(p.sp).mist === 'love' && c.rh < 35) warn.push(`🏜 ${name}: сухой воздух — любит влажность`);
   }
   if (c.bugs) warn.unshift('🦟 Форточка открыта без москитной сетки — налетят тля и мошки');
   if (c.draft) warn.unshift('💨 Сквозняк: у стекла холодно');

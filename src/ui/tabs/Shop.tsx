@@ -63,7 +63,7 @@ export function Shop() {
       {cat === 'plants' && (
         <>
           <p className="muted small">Черенок попадёт в запас. Поставь его в воду на свободное место или подари другу.</p>
-          {[1, 2, 3].map((d) => (
+          {[1, 2, 3, 4].map((d) => (
             <section key={d}>
               <h3>{rich(DIFFICULTY_LABEL[d])}</h3>
               <div className="grid">

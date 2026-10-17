@@ -68,6 +68,21 @@ export const PALETTES: Record<string, Hue[]> = {
     { id: 'yellow', name: 'жёлтый', color: '#f6d046' },
     { id: 'orange', name: 'оранжевый', color: '#f58a3e', rare: true },
   ],
+  rose: [
+    { id: 'red', name: 'алая', color: '#e2465b' },
+    { id: 'pink', name: 'розовая', color: '#f39ab8' },
+    { id: 'white', name: 'белая', color: '#fbfbf4' },
+    { id: 'yellow', name: 'жёлтая', color: '#f6d046' },
+    { id: 'peach', name: 'чайная', color: '#f7b98e' },
+    { id: 'blue', name: 'голубая', color: '#8fa8e8', rare: true },
+  ],
+  azalea: [
+    { id: 'pink', name: 'розовая', color: '#ee6a9a' },
+    { id: 'white', name: 'белая', color: '#fbfbf4' },
+    { id: 'red', name: 'красная', color: '#d93a4a' },
+    { id: 'lilac', name: 'сиреневая', color: '#b58ad8' },
+    { id: 'salmon', name: 'лососевая', color: '#f7906e', rare: true },
+  ],
 };
 
 export const canBreed = (spId: string) => !!PALETTES[spId];

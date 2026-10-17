@@ -9,7 +9,7 @@ import { sp } from './species.ts';
 import { isDim, isSunny, weatherAt } from './weather.ts';
 import { PROBLEMS, problemEffect, SHADY, stepProblem, trySpread } from './problems.ts';
 import { rowSlots, zoneOfSlot } from './layout.ts';
-import { climateDrying, climateGrowth, climateOf, coldLimit, zoneTemp } from './climate.ts';
+import { climateDrying, climateGrowth, climateOf, coldLimit, fussyIssue, zoneTemp } from './climate.ts';
 import { CAT_IDS, catStep, type CatAction } from './cat.ts';
 import type { GameState, Plant, ProblemKind, Sill, Stage } from './types.ts';
 
@@ -161,6 +161,9 @@ export const NEWBIE_MS = 48 * H;
 export const NEWBIE_MULT = 3;
 export const newbieLeft = (g: Pick<GameState, 'createdAt' | 'level'>, t: number) => (g.level < 6 ? Math.max(0, g.createdAt + NEWBIE_MS - t) : 0);
 
+/** Чем недоволен капризный вид (null — всё хорошо). */
+export const fussyOf = (p: Plant, ctx: Ctx) => fussyIssue(sp(p.sp), ctx.temp ?? 22, ctx.rh ?? 45, ctx.draft);
+
 export function growthRate(p: Plant, t: number, ctx: Ctx) {
   if (p.stage < 2) return 0;
   if (tight(p)) return 0; // в тесном горшке не растёт
@@ -176,6 +179,7 @@ export function growthRate(p: Plant, t: number, ctx: Ctx) {
   if (p.health < 30) r *= 0.4;
   r *= problemEffect(p).slow;
   r *= climateGrowth(ctx.temp ?? 22, ctx.rh ?? 45, sp(p.sp).mist === 'love');
+  if (fussyOf(p, ctx)) r *= 0.5; // капризному неуютно — растёт вдвое медленнее
   if (ctx.radio) r *= 1.05;
   if (ctx.lampGrow) r *= ctx.lampGrow;
   r = Math.min(r, MAX_GROWTH_MULT);
@@ -244,6 +248,8 @@ function stepPlant(p: Plant, dtH: number, t: number, ctx: Ctx, ev: SimEvent[]) {
   if (!ctx.neighbor && p.dryFor > s.drought * 24) dmg += 2 * dtH;
   if (p.moisture > 1) dmg += (s.overwater === 'sensitive' ? 2 : s.overwater === 'normal' ? 0.6 : 0) * (p.drain ? 0.5 : 1) * dtH;
   if (p.badLightFor > 20 && p.health > 50) lightDmg = Math.min(dtH, p.health - 50);
+  // капризный вид в неуютных условиях понемногу грустит, но не ниже 60
+  if (fussyOf(p, ctx) && p.health > 60) lightDmg += Math.min(0.5 * dtH, p.health - 60);
   dmg += problemEffect(p).dmg * dtH;
   dmg += wetDmg;
   // холод: тропическим ниже 14°, остальным ниже 8° — листья подмерзают
@@ -294,6 +300,7 @@ export function canBloom(p: Plant, t: number, ctx: Ctx) {
   if (!b || p.stage !== 4 || p.health < 70 || p.dryFor > 0) return false;
   if (p.problem && (p.problem.kind === 'rot' || p.problem.kind === 'leggy' || p.problem.sev > 0.6)) return false;
   if (badLight(p, t, ctx)) return false;
+  if (fussyOf(p, ctx)) return false; // капризные сбрасывают бутоны
   if (b.months && !b.months.includes(month(t))) return false;
   if (b.needsRest && p.rest < 7 * 24) return false;
   return true;

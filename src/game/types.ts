@@ -6,7 +6,7 @@ export type WindowSide = 'N' | 'E' | 'S' | 'W';
 export type Mist = 'love' | 'ok' | 'no';
 export type Overwater = 'sensitive' | 'normal' | 'tolerant';
 /** 1 — неубиваемые, 2 — с характером, 3 — для опытных */
-export type Difficulty = 1 | 2 | 3;
+export type Difficulty = 1 | 2 | 3 | 4;
 
 /**
  * Стадии: 0 — черенок в стакане с водой, 1 — пустил корни (пора сажать),
@@ -18,7 +18,8 @@ export type ArtKind =
   | 'grass' | 'trail' | 'heartTrail' | 'blades' | 'dracaena' | 'aloe' | 'rosette'
   | 'crassula' | 'kalanchoe' | 'zamioculcas' | 'monstera' | 'ficus'
   | 'spathiphyllum' | 'anthurium' | 'geranium' | 'decembrist' | 'orchid' | 'hibiscus'
-  | 'cactus' | 'hoya' | 'begonia' | 'fern' | 'cyclamen' | 'poinsettia' | 'citrus' | 'coleus';
+  | 'cactus' | 'hoya' | 'begonia' | 'fern' | 'cyclamen' | 'poinsettia' | 'citrus' | 'coleus'
+  | 'rose' | 'gardenia' | 'azalea' | 'calathea';
 
 export interface ArtSpec {
   kind: ArtKind;
@@ -26,6 +27,13 @@ export interface ArtSpec {
   leaf2?: string;    // второй цвет: пестролистность, полосы, кайма
   flower?: string;   // цвет цветка (если цветёт)
   variegate?: string; // светлые мазки на листьях (пестролистные виды)
+}
+
+/** Капризы вида: вне этих рамок растёт вдвое медленнее, не цветёт и понемногу грустит. */
+export interface Fussy {
+  temp?: [number, number]; // комфортная температура, °C
+  rh?: number;             // меньше этой влажности воздуха — плохо, %
+  note: string;            // чем капризничает — для игрока
 }
 
 export interface Bloom {
@@ -54,6 +62,7 @@ export interface Species {
   repotDays: number;    // дней во взрослом виде до «тесно в горшке»
   cutHours: number;     // перерыв между черенками
   bloom?: Bloom;
+  fussy?: Fussy;        // капризное: узкие рамки температуры и влажности
   art: ArtSpec;
   speed: string;        // «быстро» / «средне» / «медленно» — для игрока
   gen: string;          // род. падеж: «черенок монстеры»

@@ -4,7 +4,7 @@
 // температуру и влажность. Общий файл для игры и сервера.
 
 import { weatherAt } from './weather';
-import type { GameState, Sill, Zone } from './types';
+import type { GameState, Sill, Species, Zone } from './types';
 
 export interface Climate {
   temp: number;     // °C в комнате
@@ -60,8 +60,23 @@ export function zoneTemp(c: Climate, zone: Zone): number {
 }
 
 /** Теплолюбивые тропические растения: страдают от холода раньше остальных. */
-export const TROPICAL = ['monstera', 'scindapsus', 'spathiphyllum', 'ficus', 'orchid', 'citrus', 'hibiscus', 'aglaonema', 'calathea', 'fern', 'begonia', 'coleus', 'poinsettia', 'dracaena', 'peperomia', 'hoya', 'zamioculcas'];
+export const TROPICAL = ['monstera', 'scindapsus', 'spathiphyllum', 'ficus', 'orchid', 'citrus', 'hibiscus', 'aglaonema', 'calathea', 'fern', 'begonia', 'coleus', 'poinsettia', 'dracaena', 'peperomia', 'hoya', 'zamioculcas', 'gardenia'];
 export const coldLimit = (spId: string) => (TROPICAL.includes(spId) ? 14 : 8);
+
+/** Чем недоволен капризный вид прямо сейчас (или null — всё хорошо). Сквозняк капризным тоже вреден. */
+export type FussyIssue = 'cold' | 'hot' | 'dry' | 'draft';
+export function fussyIssue(s: Pick<Species, 'fussy'>, temp: number, rh: number, draft?: boolean): FussyIssue | null {
+  const fz = s.fussy;
+  if (!fz) return null;
+  if (fz.temp && temp < fz.temp[0]) return 'cold';
+  if (fz.temp && temp > fz.temp[1]) return 'hot';
+  if (draft) return 'draft';
+  if (fz.rh && rh < fz.rh) return 'dry';
+  return null;
+}
+export const FUSSY_TEXT: Record<FussyIssue, string> = {
+  cold: 'ей прохладно', hot: 'ей жарко', dry: 'ей сухо', draft: 'её продувает',
+};
 
 /** Множитель роста от температуры и влажности (любителям влажности — свой). */
 export function climateGrowth(temp: number, rh: number, mistLove: boolean): number {

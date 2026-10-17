@@ -235,8 +235,11 @@ function Herb({ id }: { id: string }) {
               <tr><td><Emo e="🌊" /> Перелив</td><td>{rich(s.overwater === 'sensitive' ? 'боится' : s.overwater === 'tolerant' ? 'переносит' : 'не любит')}</td></tr>
               <tr><td><Emo e="⏱" /> Рост</td><td>{rich(s.speed)}</td></tr>
               {s.bloom && <tr><td><Emo e="🌸" /> Цветение</td><td>{rich(s.bloom.months ? s.bloom.months.map((m) => ['янв', 'фев', 'мар', 'апр', 'май', 'июн', 'июл', 'авг', 'сен', 'окт', 'ноя', 'дек'][m - 1]).join(', ') : 'круглый год')}{rich(s.bloom.needsRest ? ' — после зимнего покоя' : '')}</td></tr>}
+              {s.fussy?.temp && <tr><td><Emo e="🌡" /> Тепло</td><td>{s.fussy.temp[0]}–{s.fussy.temp[1]}°</td></tr>}
+              {s.fussy?.rh && <tr><td><Emo e="💨" /> Влажность</td><td>от {s.fussy.rh}%</td></tr>}
             </tbody>
           </table>
+          {s.fussy && <p className="fussy-note"><Emo e="⚠️" /> {rich(s.fussy.note)}</p>}
           {(() => {
             const pts = masteryPoints(g, id);
             const st = masteryStars(pts);

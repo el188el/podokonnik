@@ -761,9 +761,159 @@ const coleus: Draw = ({ art, n, r }) => {
   return out;
 };
 
+// ───────────── капризные ─────────────
+/** Цветок розы: пять внешних лепестков и закрученная серединка. */
+function RoseHead({ x, y, r, color, rot = 0 }: { x: number; y: number; r: number; color: string; rot?: number }) {
+  return (
+    <g transform={`translate(${f(x)},${f(y)}) rotate(${f(rot)})`}>
+      {[0, 72, 144, 216, 288].map((a) => {
+        const cx = Math.cos(rad(a)) * r * 0.42, cy = Math.sin(rad(a)) * r * 0.42;
+        return <ellipse key={a} cx={f(cx)} cy={f(cy)} rx={f(r * 0.62)} ry={f(r * 0.5)} transform={`rotate(${a} ${f(cx)} ${f(cy)})`} fill={color} {...LINE} strokeWidth={1.1} />;
+      })}
+      <circle r={f(r * 0.56)} fill={lighter(color, 0.22)} {...LINE} strokeWidth={1.1} />
+      <path d={`M${f(-r * 0.08)},${f(r * 0.02)} a${f(r * 0.14)},${f(r * 0.14)} 0 1 1 ${f(r * 0.2)},${f(r * 0.06)} a${f(r * 0.3)},${f(r * 0.28)} 0 1 1 ${f(-r * 0.46)},${f(-r * 0.04)}`} fill="none" stroke={darker(color, 0.7)} strokeWidth={1.1} strokeLinecap="round" />
+    </g>
+  );
+}
+
+/** Закрытый бутон с зелёными чашелистиками. */
+function Bud({ x, y, color, a = 0, s = 1 }: { x: number; y: number; color: string; a?: number; s?: number }) {
+  return (
+    <g transform={`translate(${f(x)},${f(y)}) rotate(${f(a)}) scale(${f(s)})`}>
+      <ellipse cy={-4} rx={3.4} ry={5} fill={color} {...LINE} strokeWidth={1.1} />
+      <path d="M0,0 Q-5,-2 -4,-6 M0,0 Q5,-2 4,-6" stroke={STEM} strokeWidth={1.6} fill="none" strokeLinecap="round" />
+    </g>
+  );
+}
+
+const rose: Draw = ({ art, n, r, bloom }) => {
+  const out: ReactNode[] = [];
+  const stems = [2, 3, 5][n];
+  const H = [18, 42, 64][n];
+  const tips: [number, number, number][] = [];
+  for (let i = 0; i < stems; i++) {
+    const t = stems === 1 ? 0.5 : i / (stems - 1);
+    const sx = (t - 0.5) * [6, 12, 18][n];
+    const tx = (t - 0.5) * [16, 34, 52][n] + j(r, 3);
+    const ty = -H * (0.78 + r() * 0.22) * (Math.abs(t - 0.5) > 0.3 ? 0.86 : 1);
+    out.push(<path key={'s' + i} d={`M${f(sx)},0 Q${f(sx + (tx - sx) * 0.2)},${f(ty * 0.6)} ${f(tx)},${f(ty)}`} stroke={darker(art.leaf, 0.85)} strokeWidth={2} fill="none" strokeLinecap="round" />);
+    tips.push([tx, ty, (tx - sx) * 0.6]);
+    // шипы
+    for (const u of [0.3, 0.55]) out.push(<path key={`th${i}-${u}`} d={`M${f(sx + (tx - sx) * u)},${f(ty * u)} l2.4,-0.6 l-2.2,-1.8`} fill="#8a3a2e" />);
+    // сложные листья: по три листочка на черешке
+    const leaves = [1, 2, 3][n];
+    for (let k = 0; k < leaves; k++) {
+      const u = 0.32 + (k / Math.max(1, leaves)) * 0.55;
+      const x = sx + (tx - sx) * u, y = ty * u;
+      const sd = (k + i) % 2 ? 1 : -1;
+      const a = sd * (55 + j(r, 10));
+      const ex = x + Math.sin(rad(a)) * 7, ey = y - Math.cos(rad(a)) * 7;
+      out.push(<path key={`pt${i}-${k}`} d={`M${f(x)},${f(y)} L${f(ex)},${f(ey)}`} stroke={STEM} strokeWidth={1.2} />);
+      for (const da of [-48, 0, 48]) {
+        out.push(<Leaf key={`lf${i}-${k}${da}`} x={ex} y={ey} a={a + da} d={P.ellipse(da ? 9 : 11, da ? 6 : 7)} fill={(k + da) % 2 ? art.leaf : darker(art.leaf, 0.88)} L={da ? 9 : 11} />);
+      }
+    }
+  }
+  if (n >= 1) {
+    tips.forEach(([x, y, a], i) => {
+      if (bloom && i % (n === 2 ? 1 : 2) === 0) out.push(<RoseHead key={'fl' + i} x={x} y={y - 4} r={n === 2 ? 10 : 8} color={art.flower!} rot={j(r, 30)} />);
+      else out.push(<Bud key={'bd' + i} x={x} y={y + 1} a={a * 0.6} color={bloom ? art.flower! : darker(art.flower!, 0.9)} s={n === 2 ? 1.1 : 0.9} />);
+    });
+  } else {
+    tips.forEach(([x, y], i) => out.push(<Leaf key={'tl' + i} x={x} y={y + 2} a={j(r, 20)} d={P.ellipse(9, 6)} fill={art.leaf} L={9} />));
+  }
+  return out;
+};
+
+/** Белый цветок гардении: лепестки «вертушкой». */
+function GardeniaFlower({ x, y, r, color, rot = 0 }: { x: number; y: number; r: number; color: string; rot?: number }) {
+  return (
+    <g transform={`translate(${f(x)},${f(y)}) rotate(${f(rot)})`}>
+      {[0, 60, 120, 180, 240, 300].map((a) => (
+        <path key={a} d={`M0,0 C${f(r * 0.5)},${f(-r * 0.2)} ${f(r * 0.9)},${f(-r * 0.75)} ${f(r * 0.2)},${f(-r)} C${f(-r * 0.25)},${f(-r * 0.85)} ${f(-r * 0.2)},${f(-r * 0.3)} 0,0Z`} transform={`rotate(${a})`} fill={a % 120 ? color : darker(color, 0.94)} {...LINE} strokeWidth={1.1} />
+      ))}
+      <circle r={f(r * 0.22)} fill="#f2e3a0" {...LINE} strokeWidth={1} />
+    </g>
+  );
+}
+
+const gardenia: Draw = ({ art, n, r, bloom }) => {
+  const h = [12, 30, 48][n];
+  const out: ReactNode[] = [<path key="t" d={`M0,0 C-1,${-h * 0.5} 1,${-h * 0.8} 0,${-h}`} stroke={WOOD} strokeWidth={3} fill="none" strokeLinecap="round" />];
+  const tips: [number, number][] = [[0, -h]];
+  for (let b = 0; b < [0, 2, 4][n]; b++) {
+    const sd = b % 2 ? 1 : -1;
+    const y0 = -h * (0.35 + (b >> 1) * 0.25);
+    const ex = sd * (16 + r() * 10), ey = y0 - 12 - r() * 8;
+    out.push(<path key={'b' + b} d={`M0,${f(y0)} Q${f(ex * 0.4)},${f(y0 - 4)} ${f(ex)},${f(ey)}`} stroke={WOOD} strokeWidth={2} fill="none" />);
+    tips.push([ex, ey]);
+  }
+  tips.forEach(([x, y], i) => {
+    for (let q = 0; q < 5; q++) {
+      const a = -110 + (q / 4) * 220 + j(r, 8);
+      out.push(
+        <Leaf key={`l${i}-${q}`} x={x} y={y + 3} a={a} d={P.ellipse(17, 8)} fill={q % 2 ? art.leaf : darker(art.leaf, 0.86)} L={17}>
+          <ellipse cx={-1.5} cy={-11} rx={1.2} ry={3.2} fill="#fff" opacity={0.35} />
+        </Leaf>,
+      );
+    }
+  });
+  if (n >= 1) {
+    tips.forEach(([x, y], i) => {
+      if (bloom && i < (n === 2 ? 3 : 1)) out.push(<GardeniaFlower key={'fl' + i} x={x} y={y - 6} r={n === 2 ? 11 : 9} color={art.flower!} rot={j(r, 40)} />);
+      else if (n === 2 || bloom) out.push(<Bud key={'bd' + i} x={x} y={y - 2} color="#eef0d8" />);
+    });
+  }
+  return out;
+};
+
+const azalea: Draw = ({ art, n, r, bloom }) => {
+  const out: ReactNode[] = [];
+  const R = [10, 22, 32][n];
+  const cy = -[12, 26, 36][n];
+  for (const sd of [-1, 0, 1]) out.push(<path key={'tr' + sd} d={`M0,0 Q${sd * 4},${f(cy * 0.5)} ${f(sd * R * 0.5)},${f(cy)}`} stroke={WOOD} strokeWidth={2} fill="none" strokeLinecap="round" />);
+  const count = [7, 22, 38][n];
+  for (let i = 0; i < count; i++) {
+    const a = r() * Math.PI * 2, d = Math.sqrt(r()) * R;
+    const x = Math.cos(a) * d, y = cy + Math.sin(a) * d * 0.62;
+    out.push(<Leaf key={'l' + i} x={x} y={y + 5} a={j(r, 80)} d={P.ellipse(10, 6)} fill={i % 3 ? art.leaf : darker(art.leaf, 0.85)} L={10} vein={false} />);
+  }
+  if (bloom && n >= 1) {
+    const k = n === 2 ? 11 : 4;
+    for (let i = 0; i < k; i++) {
+      const a = (i / k) * Math.PI * 2 + j(r, 0.3), d = (i % 3 === 0 ? 0.25 : 0.75) * R;
+      const x = Math.cos(a) * d, y = cy - 3 + Math.sin(a) * d * 0.55;
+      out.push(<Flower5 key={'f' + i} x={x} y={y} r={n === 2 ? 7.5 : 6.5} color={i % 3 ? art.flower! : lighter(art.flower!, 0.2)} center={darker(art.flower!, 0.7)} rot={r() * 72} />);
+    }
+  }
+  return out;
+};
+
+const calathea: Draw = ({ art, n, r }) => {
+  const count = [3, 6, 9][n];
+  const out: ReactNode[] = [];
+  for (let i = 0; i < count; i++) {
+    const t = count === 1 ? 0.5 : i / (count - 1);
+    const a = -46 + t * 92 + j(r, 6);
+    const pet = [8, 18, 28][n] * (0.75 + r() * 0.45);
+    const ex = Math.sin(rad(a)) * pet, ey = -Math.cos(rad(a)) * pet;
+    const L = [18, 28, 36][n] * (0.85 + r() * 0.25);
+    const W = L * 0.58;
+    out.push(<path key={'p' + i} d={`M0,0 L${f(ex)},${f(ey)}`} stroke={darker(art.leaf, 0.8)} strokeWidth={1.6} />);
+    out.push(
+      <Leaf key={'l' + i} x={ex} y={ey} a={a * 0.9} d={P.ellipse(L, W)} fill={i % 2 ? art.leaf : darker(art.leaf, 0.86)} L={L} vein={darker(art.leaf, 0.6)}>
+        {[0.28, 0.42, 0.56, 0.7].map((u) => (
+          <path key={u} d={`M${f(-W * 0.36)},${f(-L * (u + 0.07))} L0,${f(-L * u)} L${f(W * 0.36)},${f(-L * (u + 0.07))}`} fill="none" stroke={art.leaf2} strokeWidth={1.2} strokeLinecap="round" />
+        ))}
+      </Leaf>,
+    );
+  }
+  return out;
+};
+
 const DRAW: Record<ArtSpec['kind'], Draw> = {
   grass, trail, heartTrail, blades, dracaena, aloe, rosette, crassula, kalanchoe, zamioculcas, monstera, ficus, spathiphyllum, anthurium, geranium, decembrist, orchid, hibiscus,
-  cactus, hoya, begonia, fern, cyclamen, poinsettia, citrus, coleus,
+  cactus, hoya, begonia, fern, cyclamen, poinsettia, citrus, coleus, rose, gardenia, azalea, calathea,
 };
 
 // ─────────────── черенок в стакане ───────────────

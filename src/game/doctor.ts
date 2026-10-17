@@ -17,7 +17,7 @@ export interface Cause {
 const winter = (m: number) => m === 12 || m <= 2;
 const heating = (m: number) => m >= 10 || m <= 3;
 const growing = (m: number) => m >= 3 && m <= 8;
-const tropical = ['scindapsus', 'spathiphyllum', 'monstera', 'dracaena', 'anthurium', 'fern', 'aglaonema', 'orchid', 'hoya', 'begonia', 'coleus'];
+const tropical = ['scindapsus', 'spathiphyllum', 'monstera', 'dracaena', 'anthurium', 'fern', 'aglaonema', 'orchid', 'hoya', 'begonia', 'coleus', 'calathea', 'gardenia'];
 const touchy = ['ficus', 'hibiscus', 'citrus', 'poinsettia', 'decembrist', 'orchid'];
 
 export const CAUSES: Record<string, Cause> = {
