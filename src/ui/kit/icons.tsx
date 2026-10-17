@@ -3,7 +3,7 @@
 // Эмодзи остаются там, где они — часть мира игры: реплики растений, декор, товары.
 
 import {
-  AppWindow, Armchair, CalendarDays, Check, Crown, Flame, Flower2, Gift, Handshake, Lock, Luggage, MessageCircle,
+  AppWindow, Armchair, Backpack, CalendarDays, Check, Crown, Flame, Flower2, Gift, Handshake, Lock, Luggage, MessageCircle,
   Package, Plus, Repeat2, Sparkles, Star, Trophy,
   ArrowDown, MapPin, RefreshCw, X, HelpCircle, ArrowUp, BookOpen, ChevronDown, Cloud, CloudFog, CloudLightning, CloudRain, CloudSnow, CloudSun,
   Droplet, Eye, Heart, FlaskConical, Leaf, Palette, Scissors, Share, ShoppingBag, ShowerHead, Shovel, SprayCan, Sprout,
@@ -12,7 +12,7 @@ import {
 
 export const ICONS = {
   sill: Sprout, pin: MapPin, refresh: RefreshCw, close: X, help: HelpCircle, shop: ShoppingBag, friends: Users, quests: Target, herbarium: BookOpen,
-  look: Eye, water: Droplet, mist: SprayCan, feed: FlaskConical, cut: Scissors, waterAll: ShowerHead,
+  bag: Backpack, look: Eye, water: Droplet, mist: SprayCan, feed: FlaskConical, cut: Scissors, waterAll: ShowerHead,
   boost: Zap, repot: Shovel, down: ArrowDown, up: ArrowUp, design: Palette, share: Share,
   user: User, leaf: Leaf, heart: Heart, chevron: ChevronDown, thermo: Thermometer,
   star: Star, gift: Gift, sparkles: Sparkles, pots: Flower2, decor: Armchair, packs: Package, sills: AppWindow,
@@ -24,7 +24,7 @@ export const ICONS = {
 export type IconName = keyof typeof ICONS;
 
 /** Замкнутые фигуры — их рисуем как стикер: заливка цветом и тёмный контур. */
-const FILLED = new Set<IconName>(['water', 'leaf', 'heart', 'star', 'flame', 'crown', 'feed', 'shop', 'gift', 'herbarium', 'boost', 'trophy', 'packs', 'lock', 'design', 'clear', 'partly', 'cloudy', 'rain', 'snow', 'storm', 'fog', 'mist', 'thermo', 'chat', 'luggage', 'calendar', 'sills', 'decor', 'user', 'friends', 'pots', 'flower', 'pin']);
+const FILLED = new Set<IconName>(['bag', 'water', 'leaf', 'heart', 'star', 'flame', 'crown', 'feed', 'shop', 'gift', 'herbarium', 'boost', 'trophy', 'packs', 'lock', 'design', 'clear', 'partly', 'cloudy', 'rain', 'snow', 'storm', 'fog', 'mist', 'thermo', 'chat', 'luggage', 'calendar', 'sills', 'decor', 'user', 'friends', 'pots', 'flower', 'pin']);
 const OUTLINE = '#3b2a22';
 
 /** Иконка интерфейса. Цвет — от текста (currentColor) или явно через tone.

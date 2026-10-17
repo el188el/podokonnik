@@ -6,7 +6,7 @@ import { STAGE_NAME } from '../game/constants';
 import { badLight, canCut, cramped, ctxFor, fmt, isSad, isLightSad, isThirstySad, nextStageAt, rootsAt } from '../game/sim';
 import { SHOWOFF_MS } from '../game/constants';
 import { sp } from '../game/species';
-import { checkRound, feed, mist, now, openSheet, plantInPot, say, swap, takeCutting, toast, useStore, water } from '../game/store';
+import { applyItem, checkRound, feed, itemFits, mist, now, openSheet, plantInPot, say, swap, takeCutting, toast, useStore, water } from '../game/store';
 import { canCut as canCutNow } from '../game/sim';
 import type { Plant } from '../game/types';
 import { PlantArt } from './art/PlantArt';
@@ -60,6 +60,7 @@ export function wantsTool(tool: string, p: Plant, t: number): boolean {
   if (tool === 'mist') return wantsMist(p, t);
   if (tool === 'feed') return !(p.feedUntil && t < p.feedUntil) && p.stage < 4;
   if (tool === 'cut') return canCut(p, t);
+  if (tool === 'use') { const st = useStore.getState(); return !!st.useItem && itemFits(st.game, st.useItem, p, t); }
   return false;
 }
 
@@ -162,6 +163,7 @@ export function Slot({ plant: p, sill, slot }: { plant: Plant; sill: string; slo
       return;
     }
     if (tool === 'feed') return feed(p.id);
+    if (tool === 'use') { const id = useStore.getState().useItem; if (id) applyItem(p.id, id); return; }
     if (tool === 'cut') {
       if (!canCutNow(p, now())) return say(p.id, p.stage < 4 ? 'Я ещё маленькое ✂️' : 'Черенок пока не готов', 1800);
       const c = takeCutting(p.id);

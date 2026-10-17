@@ -15,7 +15,7 @@ import { platform } from '../platform';
 import { ACHIEVEMENTS, checkAchievements } from './achievements';
 import { freshAgeMarks } from './age';
 import { catText } from './cat';
-import { CURES, GUARD_MS, PROBLEMS } from './problems';
+import { CURES, cureFor, GUARD_MS, PROBLEMS } from './problems';
 import { HEARTS_FOR_GIFT, canFulfil, neighborOf, orderGives, orderNeed, rollOrders } from './orders';
 import { INVITE_LADDER } from './invites';
 import { addMastery, type MasteryKind } from './mastery';
@@ -101,6 +101,7 @@ export type Sheet =
   | { kind: 'pots'; plant?: string }
   | { kind: 'orders' }
   | { kind: 'howto' }
+  | { kind: 'inventory' }
   | { kind: 'achievements' }
   | { kind: 'todo' }
   | null;
@@ -119,6 +120,7 @@ interface Store {
   flash: Record<string, { text: string; until: number }>;
   fx: Record<string, { kind: 'water' | 'mist' | 'grow' | 'feed'; at: number }>;
   tool: Tool;
+  useItem?: string;             // что взято из инвентаря (инструмент 'use')
   coops: api.CoopView[] | null; // общие подоконники (null — ещё не загружали)
   coopOn: number | null;        // открыт общий подоконник
   weatherState?: 'loading' | 'error'; // как идёт загрузка погоды
@@ -128,7 +130,7 @@ interface Store {
 }
 
 /** Инструмент в руке: что произойдёт по тапу на растение. */
-export type Tool = 'water' | 'mist' | 'feed' | 'cut' | 'look';
+export type Tool = 'water' | 'mist' | 'feed' | 'cut' | 'look' | 'use';
 
 api.onServer({ live: (x) => applyLive(x), banned: () => useStore.setState({ banned: true }) });
 
@@ -183,6 +185,8 @@ export const openSheet = (sheet: Sheet) => set({ sheet });
 export const closeSheet = () => set({ sheet: null });
 export const setTab = (tab: Tab) => { set({ tab, sheet: null }); track('tab_open', { tab }); };
 export const setTool = (tool: Tool) => set({ tool });
+/** Взять предмет из инвентаря «в руку»: следующий тап по растению применит его. */
+export const takeItem = (id: string) => set({ tool: 'use', useItem: id, sheet: null });
 
 const haptic = (k: Parameters<ReturnType<typeof platform>['haptic']>[0]) => {
   if (get().game.settings.haptics) platform().haptic(k);
@@ -2362,7 +2366,7 @@ export function treat(plantId: string, cure: string) {
     fx(p.id, 'grow');
     haptic('success');
     say(p.id, 'Спасибо, полегчало! 😮‍💨', 2400);
-    toast(`${ITEM_BY_ID[cure]?.icon ?? '💊'} ${info.name} побеждена! Неделю растение под защитой`);
+    toast(`${ITEM_BY_ID[cure]?.icon ?? '💊'} Вылечено: ${info.name.toLowerCase()}! Неделю растение под защитой`);
     track('cure', { kind: pr.kind });
     return true;
   });
@@ -2431,6 +2435,38 @@ function payItem(g: GameState, id: string): boolean {
   if (g.leaves < price) { toast(`Нужно ${price} 🍃`); haptic('warning'); return false; }
   g.leaves -= price;
   return true;
+}
+
+/** Что из инвентаря применяется к растению — и как. */
+export const USABLE = ['feed', 'boost', 'soap', 'acaricide', 'traps', 'fungicide', 'soil', 'drain'];
+
+/** Пригодится ли этому растению предмет из инвентаря (для подсветки). */
+export function itemFits(g: GameState, id: string, p: Plant, t: number): boolean {
+  if (p.stage < 2) return false;
+  if (id === 'feed') return !(p.feedUntil && t < p.feedUntil) && p.stage < 4;
+  if (id === 'boost') return !boostBlock(g, p, t);
+  if (id === 'drain') return !p.drain;
+  if (id === 'soil') return p.moisture > 1 || (!!p.problem && CURES.soil.includes(p.problem.kind));
+  return !!p.problem && (CURES[id] ?? []).includes(p.problem.kind);
+}
+
+/** Применить предмет из инвентаря к растению. Кончился — инструмент возвращается к «Осмотру». */
+export function applyItem(plantId: string, id: string) {
+  const g = get().game;
+  const p = g.plants.find((x) => x.id === plantId);
+  if (!p || p.stage < 2) return false;
+  let ok: unknown = false;
+  if (id === 'feed') ok = feed(plantId);
+  else if (id === 'boost') ok = boostPlant(plantId);
+  else if (id === 'drain') { if (p.drain) toast('🪨 Дренаж здесь уже есть'); else { addDrain(plantId); ok = true; } }
+  else if (id === 'soil') { freshSoil(plantId); ok = true; }
+  else if (CURES[id]) {
+    if (!p.problem) toast(`${ITEM_BY_ID[id]?.icon ?? '💊'} Растение здорово — лечить нечего`);
+    else if (!CURES[id].includes(p.problem.kind)) toast(`${ITEM_BY_ID[id]?.name} не поможет: тут ${PROBLEMS[p.problem.kind].name.toLowerCase()}. Нужно: ${cureFor(p.problem.kind).map((c) => ITEM_BY_ID[c]?.name).join(' или ')}`);
+    else ok = treat(plantId, id);
+  }
+  if ((get().game.owned[id] ?? 0) <= 0) set({ tool: 'look', useItem: undefined });
+  return !!ok;
 }
 
 // ─────────────────── стимулятор роста ───────────────────

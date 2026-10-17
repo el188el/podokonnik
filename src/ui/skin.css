@@ -479,3 +479,21 @@ body:has(.skin) { background: var(--bg, #f5f2ec); }
 :root .skin .proc-chips b { font-weight: 600; }
 :root[data-theme='dark'] .skin .proc-chips span { background: #24382a; color: #a8d9b4; }
 :root[data-theme='dark'] .skin .proc-chips span.down { background: #3d2620; color: #f0b3a3; }
+
+/* инвентарь */
+:root .skin .inventory { display: grid; gap: 12px; }
+:root .skin .inventory > .segment { display: flex; }
+:root .skin .inventory > .segment button { flex: 1; }
+:root .skin .bag-list { display: grid; gap: 8px; }
+:root .skin .bag-row.zero { opacity: 0.72; }
+:root .skin .bag-n { color: var(--green-d); font-weight: 600; }
+:root .skin .bag-pots { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+:root .skin .bag-pot { display: flex; flex-direction: column; align-items: center; padding: 8px 4px; border-radius: 16px; background: var(--soft); }
+:root .skin .bag-pot.zero { opacity: 0.5; }
+:root .skin .bag-pot svg { width: 52px; height: 60px; }
+:root .skin .bag-pot small { color: var(--muted); }
+:root .skin .bag-h { margin: 6px 0 0; font-size: 15px; font-weight: 600; }
+:root .skin .bag-cuts { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+:root .skin .bag-cut { display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 6px 4px; border: 0; border-radius: 16px; background: var(--soft); font: inherit; color: inherit; cursor: pointer; }
+:root .skin .bag-cut svg { width: 44px; height: 62px; }
+:root .skin .bag-cut small { font-size: 11px; text-align: center; line-height: 1.2; }

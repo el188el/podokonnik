@@ -4,7 +4,7 @@ import { Icon, TONE, type IconName } from '../kit/icons';
 import { activeEvent, eventSeason, tierOf } from '../../game/events';
 import { canCut, isWinter, fmt } from '../../game/sim';
 import { sp } from '../../game/species';
-import { isPlus, now, openSheet, plantAt, setTab, setTool, showGift, useStore, waterAll, type Tool } from '../../game/store';
+import { isPlus, now, openSheet, plantAt, setTab, setTool, showGift, USABLE, useStore, waterAll, type Tool } from '../../game/store';
 import { CoopSill } from './CoopSill';
 import { canFulfil } from '../../game/orders';
 import { FallingTokens } from '../FallingTokens';
@@ -250,7 +250,7 @@ function SceneFit({ hang, children }: { hang: boolean; children: (style: CSSProp
 const TOOLS: [Tool, IconName, string][] = [
   ['look', 'look', 'Осмотр'],
   ['water', 'water', 'Уход'],
-  ['feed', 'feed', 'Подкормка'],
+  ['use', 'bag', 'Инвентарь'],
   ['cut', 'cut', 'Черенок'],
 ];
 
@@ -272,6 +272,8 @@ function Toolbar({ sill }: { sill: string }) {
   const thirsty = potted.filter((p) => p.moisture < 0.5).length;
   const plus = isPlus(g);
   const careOn = tool === 'water' || tool === 'mist';
+  const useItem = useStore((s) => s.useItem);
+  const usable = USABLE.reduce((n, id) => n + (g.owned[id] ?? 0), 0);
   const careIcon: IconName = tool === 'mist' ? 'mist' : 'water';
   // «Уход» — меню из трёх: полить, опрыскать или полить всех (Садовник+)
   const pick = (k: 'water' | 'mist' | 'all') => {
@@ -302,12 +304,19 @@ function Toolbar({ sill }: { sill: string }) {
           const isCare = k === 'water';
           const on = isCare ? careOn : tool === k;
           const ic = isCare ? careIcon : icon;
+          const inHand = k === 'use' && tool === 'use' && useItem ? ITEM_BY_ID[useItem] : null;
           return (
             <button key={k} className={'tool' + (on ? ' on' : '')} aria-pressed={on} aria-expanded={isCare ? care : undefined}
-              onClick={() => { if (isCare) { setCare(!care); return; } setCare(false); setTool(tool === k && k !== 'look' ? 'look' : k); }}>
-              <span><Icon name={ic} size={24} tone={TONE[ic as keyof typeof TONE]} /></span>
-              <small>{isCare && careOn ? (tool === 'mist' ? 'Опрыскать' : 'Полить') : rich(label)}</small>
-              {k === 'feed' && (g.owned.feed ?? 0) > 0 && <i className="tool-badge">{g.owned.feed}</i>}
+              onClick={() => {
+                if (isCare) { setCare(!care); return; }
+                setCare(false);
+                if (k === 'use') { if (tool === 'use') setTool('look'); else openSheet({ kind: 'inventory' }); return; }
+                setTool(tool === k && k !== 'look' ? 'look' : k);
+              }}>
+              <span>{inHand ? <Emo e={inHand.icon} size={24} /> : <Icon name={ic} size={24} tone={k === 'use' ? '#c98a4b' : TONE[ic as keyof typeof TONE]} />}</span>
+              <small>{isCare && careOn ? (tool === 'mist' ? 'Опрыскать' : 'Полить') : inHand ? rich(inHand.name.split(' ')[0]) : rich(label)}</small>
+              {k === 'use' && !inHand && usable > 0 && <i className="tool-badge">{usable}</i>}
+              {inHand && <i className="tool-badge">{g.owned[useItem!] ?? 0}</i>}
               {k === 'cut' && cuts > 0 && <i className="tool-badge ready">{cuts}</i>}
             </button>
           );
@@ -320,12 +329,21 @@ function Toolbar({ sill }: { sill: string }) {
 /** Пока инструмент в руке — сверху подсказка (вместо полоски дел), чтобы не закрывать цветы. */
 function ToolTip({ sill }: { sill: string }) {
   const tool = useStore((s) => s.tool);
+  const useItem = useStore((s) => s.useItem);
   const g = useStore((s) => s.game);
   const potted = g.plants.filter((p) => p.sill === sill && p.stage >= 2);
   const fits = tool === 'look' ? 0 : potted.filter((p) => wantsTool(tool, p, now())).length;
   return (
     <div className="tool-tip-wrap">
       <AnimatePresence>
+        {tool === 'use' && useItem && ITEM_BY_ID[useItem] && (
+          <motion.div key={'use' + useItem} className="tool-tip want-use" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 8 }}>
+            <Emo e={ITEM_BY_ID[useItem].icon} size={18} />
+            <span>{fits ? `${ITEM_BY_ID[useItem].name}: нажми на цветок` : `${ITEM_BY_ID[useItem].name} сейчас никому не нужно`}</span>
+            {fits > 0 && <b className="tt-n" aria-label={`подсвечено: ${fits}`}>{fits}</b>}
+            <button onClick={() => setTool('look')} aria-label="Убрать из руки"><Icon name="close" size={16} /></button>
+          </motion.div>
+        )}
         {tool !== 'look' && TOOL_TIP[tool] && (
           <motion.div key={tool} className={"tool-tip want-" + tool} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 8 }}>
             <Icon name={TOOL_TIP[tool][0]} size={18} tone={TONE[TOOL_TIP[tool][0] as keyof typeof TONE]} />

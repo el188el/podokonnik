@@ -278,7 +278,7 @@ function StarsShop() {
 }
 
 /** Цена в магазине: во время скидочного ивента — старая зачёркнута, рядом новая. */
-function Price({ n }: { n: number }) {
+export function Price({ n }: { n: number }) {
   const p = livePrice(n, now());
   if (p === n) return <Money n={n} />;
   return <><s className="old-price">{n}</s> <Money n={p} /></>;
