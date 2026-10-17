@@ -16,6 +16,7 @@ import { ageMark } from '../game/age';
 import { PROBLEMS } from '../game/problems';
 import { diagnose } from '../game/diagnose';
 import { plantEffects } from '../game/effects';
+import { rarityOf } from '../game/rarity';
 import { Emo, rich } from './kit/rich';
 
 const lastEnough: Record<string, number> = {};
@@ -251,6 +252,7 @@ export function Slot({ plant: p, sill, slot }: { plant: Plant; sill: string; slo
         transition={{ type: 'spring', damping: 9, stiffness: 160 }}
       >
         <PlantArt sp={p.sp} form={p.form} hue={p.hue} stage={p.stage} seed={p.id} pot={p.pot} size={potSizeOf(p)} shape={p.shape} blooming={p.blooming} className="plant-svg" />
+        {rarityOf(p) && <i className={'rare-mark t' + rarityOf(p)!.tier} title={rarityOf(p)!.label} aria-label={rarityOf(p)!.label}>{'✦'.repeat(rarityOf(p)!.tier)}</i>}
         {(p.stage >= 2 || p.rootBoost) && (() => {
           // значки действующих эффектов — наклейками на горшке
           const list = plantEffects(p, t).filter((e) => BADGES.includes(e.id)).slice(0, 3);

@@ -12,6 +12,7 @@ import { PlantArt } from '../art/PlantArt';
 import { Btn } from '../kit/kit';
 import { Icon, TONE } from '../kit/icons';
 import { Emo, rich } from '../kit/rich';
+import { Rarity } from '../kit/Rarity';
 
 const label = (c: { sp: string; form?: string | null; hue?: string | null }) =>
   c.form && FORM_BY_ID[c.form] ? `✨ ${FORM_BY_ID[c.form].name}` : `${sp(c.sp).name}${c.hue ? ' · ' + (hueOf(c.sp, c.hue)?.name ?? '') : ''}`;
@@ -87,7 +88,7 @@ export function Market() {
                 <PlantArt sp={o.sp} form={o.form ?? undefined} hue={o.hue ?? undefined} stage={o.plant ? (o.plant.stage as 2) : 0} seed={'s' + o.id} blooming noPot={!o.plant} pot={o.plant?.pot} size={o.plant?.potSize} className="mini" />
                 <div className="swap-body">
                   <b>{rich(label(o))}</b>
-                  <span className="small">{rich(o.plant ? `растение · ${STAGE_NAME[o.plant.stage]}` : 'черенок')}</span>
+                  <span className="small">{rich(o.plant ? `растение · ${STAGE_NAME[o.plant.stage]}` : 'черенок')} <Rarity x={{ sp: o.sp, form: o.form ?? undefined, hue: o.hue ?? undefined }} /></span>
                   <span className="muted small">{o.friend && <i className="friend-tag">друг</i>} от {rich(o.owner)} · <Icon name="star" size={12} className="inl" /> {o.level}</span>
                 </div>
                 <Btn small kind="gold" disabled={g.leaves < o.price} onClick={async () => { if (await buySwap(o)) setTimeout(load, 800); }}>Купить · {o.price} <Emo e="🍃" /></Btn>

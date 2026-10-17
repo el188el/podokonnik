@@ -22,6 +22,7 @@ import { sharePlantStory } from '../story';
 import { genName, isHeirloom } from '../../game/lineage';
 import { leftShort, plantEffects } from '../../game/effects';
 import { Processes } from './Processes';
+import { Rarity } from '../kit/Rarity';
 import { coldLimit, FUSSY_TEXT, rhWord, tempWord } from '../../game/climate';
 import { diagnose, recoverHours, type Fix } from '../../game/diagnose';
 import type { Plant } from '../../game/types';
@@ -118,7 +119,7 @@ export function PlantCard({ id }: { id: string }) {
             {p.form && FORM_BY_ID[p.form] && <> · <Emo e="✨" /> {rich(FORM_BY_ID[p.form].name)}</>}
             {p.from && <> · <Emo e="🎁" /> от {rich(p.from.name)}</>}
           </p>
-          <p className="stage-line"><b>{rich(STAGE_NAME[p.stage])}</b>{rich(p.blooming && ' · цветёт 🌸')}</p>
+          <p className="stage-line"><b>{rich(STAGE_NAME[p.stage])}</b>{rich(p.blooming && ' · цветёт 🌸')} <Rarity x={p} /></p>
           {p.stage < 4 && <Bar value={stageProgress(p, t)} label={p.stage === 1 ? 'пора сажать' : tight(p) ? 'тесно — не растёт' : next ? <>ещё <Eta ms={next - t} speed={timerSpeed(p, t, ctx)} /></> : '…'} />}
           {potted && (
             <div className="stat-chips">

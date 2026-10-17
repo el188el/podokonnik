@@ -39,6 +39,7 @@ import { StarterSheet } from './StarterSheet';
 import { HowToSheet } from './HowToSheet';
 import { InventorySheet } from './InventorySheet';
 import { SellSheet } from './SellSheet';
+import { Rarity } from '../kit/Rarity';
 import { AchievementsSheet } from './AchievementsSheet';
 import { TodoSheet } from './TodoSheet';
 import { Emo, rich } from '../kit/rich';
@@ -103,6 +104,7 @@ function Picker({ slot, sill }: { slot: number; sill: string }) {
               <button key={c.id} className="pick" onClick={() => { plantCutting(c.id, sill, slot); closeSheet(); }}>
                 <PlantArt sp={c.sp} form={c.form} hue={c.hue} stage={0} />
                 <b>{rich(sp(c.sp).name)}</b>
+                <Rarity x={c} />
               </button>
             ))}
           </div>
@@ -193,6 +195,7 @@ function CuttingSheet({ id }: { id: string }) {
         <PlantArt sp={c!.sp} form={c!.form} hue={c!.hue} stage={0} className="mid" />
         <div>
           <h2>{rich(c!.seed ? 'Семечко' : 'Черенок')} {rich(s.gen)}</h2>
+          <Rarity x={c!} />
           {c!.hue && <p className="small"><span className="hue-dot" style={{ background: hueOf(c!.sp, c!.hue)?.color }} /> цветы: {rich(hueOf(c!.sp, c!.hue)?.name)}{rich(hueOf(c!.sp, c!.hue)?.rare ? ' 🌈 редкость' : '')}</p>}
           <p className="muted small">Поставь в воду у себя или подари другу — он посадит его на свой подоконник.</p>
           <p className={'small cut-life' + (cuttingLeft(c!, now()) < 2 * 86400e3 ? ' soon' : '')}><Emo e="⏳" /> В стакане простоит ещё {rich(approx(Math.max(0, cuttingLeft(c!, now()))))}</p>

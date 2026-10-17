@@ -12,6 +12,7 @@ import { PlantArt } from '../art/PlantArt';
 import { Btn } from '../kit/kit';
 import { Money } from '../kit/icons';
 import { Emo, rich } from '../kit/rich';
+import { Rarity } from '../kit/Rarity';
 
 export function SellSheet({ cutting, plant }: { cutting?: string; plant?: string }) {
   const g = useStore((s) => s.game);
@@ -34,6 +35,7 @@ export function SellSheet({ cutting, plant }: { cutting?: string; plant?: string
         <PlantArt sp={spId} form={(c ?? p)!.form} hue={(c ?? p)!.hue} stage={c ? 0 : p!.stage} seed={(c ?? p)!.id} pot={p?.pot} size={p?.potSize} blooming={p?.blooming} noPot={!!c} className="mini" />
         <div>
           <h2>Продать {rich(c ? `черенок ${s.gen}` : s.acc)}</h2>
+          <Rarity x={(c ?? p)!} />
           {p && <p className="muted small">{rich(STAGE_NAME[p.stage])} · горшок останется у тебя</p>}
         </div>
       </div>

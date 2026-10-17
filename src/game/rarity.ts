@@ -19,3 +19,16 @@ export function rareScore(g: Pick<GameState, 'forms' | 'hues'>): number {
 
 /** Сколько всего форм и сколько собрано. */
 export const formsProgress = (g: Pick<GameState, 'forms'>) => ({ got: (g.forms ?? []).filter((id) => FORM_BY_ID[id]).length, total: FORMS.length });
+
+/** Насколько редок черенок или растение: форма, редкий или сезонный цвет. null — обычный. */
+export function rarityOf(x: { sp: string; form?: string; hue?: string }): { tier: 1 | 2 | 3; label: string } | null {
+  const f = x.form ? FORM_BY_ID[x.form] : undefined;
+  if (f) {
+    const tier = tierOfForm(f);
+    return { tier, label: f.event ? 'Эксклюзив сезона' : tier === 3 ? 'Легендарный' : tier === 2 ? 'Очень редкий' : 'Редкий' };
+  }
+  const h = x.hue ? PALETTES[x.sp]?.find((c) => c.id === x.hue) : undefined;
+  if (h?.event) return { tier: 2, label: 'Сезонный цвет' };
+  if (h?.rare) return { tier: 2, label: 'Редкий цвет' };
+  return null;
+}

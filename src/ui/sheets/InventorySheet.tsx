@@ -12,6 +12,7 @@ import { Btn } from '../kit/kit';
 import { Icon } from '../kit/icons';
 import { Emo, rich } from '../kit/rich';
 import { SellBtn } from '../kit/SellBtn';
+import { Rarity } from '../kit/Rarity';
 import { Price } from '../tabs/Shop';
 
 type Tab = 'care' | 'pots' | 'items';
@@ -88,6 +89,7 @@ export function InventorySheet() {
                   <button key={c.id} className={'bag-cut' + (left < 2 * 86400e3 ? ' wilting' : '')} onClick={() => openSheet({ kind: 'send', cutting: c.id })}>
                     <PlantArt sp={c.sp} form={c.form} hue={c.hue} stage={0} noPot className="mini" />
                     <small>{rich(sp(c.sp).name)}</small>
+                    <Rarity x={c} short />
                     <i className="bag-life">{left < 86400e3 ? `${Math.max(1, Math.ceil(left / 3600e3))} ч` : `${Math.ceil(left / 86400e3)} дн`}</i>
                   </button>
                 );

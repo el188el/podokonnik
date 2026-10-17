@@ -2761,7 +2761,7 @@ function witherCuttings(g: GameState, t: number) {
 // ─────────────────── удобрения: для цветения и Корневин ───────────────────
 /** Почему нельзя дать удобрение для цветения (null — можно). */
 export function bloomFeedBlock(p: Plant, t: number): string | null {
-  if (!sp(p.sp).bloom) return `${sp(p.sp).name} не цветёт`;
+  if (!sp(p.sp).bloom) return 'вид не цветёт';
   if (p.stage < 4) return 'цветут только взрослые';
   if (p.bloomUntil && t < p.bloomUntil) return 'уже действует';
   if (p.bloomFedAt && t - p.bloomFedAt < BLOOM_FEED_EVERY) return `снова через ${fmt(p.bloomFedAt + BLOOM_FEED_EVERY - t)}`;
