@@ -164,28 +164,63 @@ export const newbieLeft = (g: Pick<GameState, 'createdAt' | 'level'>, t: number)
 /** Чем недоволен капризный вид (null — всё хорошо). */
 export const fussyOf = (p: Plant, ctx: Ctx) => fussyIssue(sp(p.sp), ctx.temp ?? 22, ctx.rh ?? 45, ctx.draft);
 
+/** Что ускоряет и что тормозит рост прямо сейчас (множители). Из них складывается скорость роста. */
+export interface GrowthFactor { id: string; label: string; mul: number }
+export function growthFactors(p: Plant, t: number, ctx: Ctx): GrowthFactor[] {
+  const out: GrowthFactor[] = [];
+  const add = (id: string, label: string, mul: number) => { if (Math.abs(mul - 1) > 0.001) out.push({ id, label, mul }); };
+  const s = sp(p.sp);
+  if (p.moisture <= 0) add('dry', 'Сухая земля', 0.3);
+  const bad = badLight(p, t, ctx);
+  if (bad) add('light', bad === 'dark' ? 'Мало света' : 'Слишком яркое солнце', 0.5);
+  else if (ctx.sunny && s.light[1] === 4) add('sun', 'Солнечный день', 1.15);
+  if (p.mistUntil && t < p.mistUntil) add('mist', 'Опрыскано', 1.5);
+  if (p.feedUntil && t < p.feedUntil) add('feed', 'Подкормка', 1.5);
+  if (p.boostUntil && t < p.boostUntil) add('boost', 'Стимулятор', 2);
+  if (isWinter(t)) add('winter', 'Зима: короткий день', 0.75);
+  if (p.health < 30) add('weak', 'Слабое здоровье', 0.4);
+  if (p.problem) add('problem', 'Болезнь или вредители', problemEffect(p).slow);
+  const temp = ctx.temp ?? 22, rh = ctx.rh ?? 45;
+  add('temp', temp < 16 ? 'Прохладно' : 'Жарко', climateGrowth(temp, 50, false));
+  if (s.mist === 'love') add('rh', rh < 35 ? 'Сухой воздух' : 'Влажный воздух', climateGrowth(22, rh, true));
+  if (fussyOf(p, ctx)) add('fussy', 'Капризничает', 0.5);
+  if (ctx.radio) add('radio', 'Радио', 1.05);
+  if (ctx.lampGrow) add('lamp', 'Фитолампа', ctx.lampGrow);
+  return out;
+}
+
 export function growthRate(p: Plant, t: number, ctx: Ctx) {
   if (p.stage < 2) return 0;
   if (tight(p)) return 0; // в тесном горшке не растёт
-  let r = 1;
-  if (p.moisture <= 0) r = 0.3;
-  const bad = badLight(p, t, ctx);
-  if (bad) r *= 0.5;
-  else if (ctx.sunny && sp(p.sp).light[1] === 4) r *= 1.15;
-  if (p.mistUntil && t < p.mistUntil) r *= 1.5;
-  if (p.feedUntil && t < p.feedUntil) r *= 1.5;
-  if (p.boostUntil && t < p.boostUntil) r *= 2;
-  if (isWinter(t)) r *= 0.75;
-  if (p.health < 30) r *= 0.4;
-  r *= problemEffect(p).slow;
-  r *= climateGrowth(ctx.temp ?? 22, ctx.rh ?? 45, sp(p.sp).mist === 'love');
-  if (fussyOf(p, ctx)) r *= 0.5; // капризному неуютно — растёт вдвое медленнее
-  if (ctx.radio) r *= 1.05;
-  if (ctx.lampGrow) r *= ctx.lampGrow;
+  let r = growthFactors(p, t, ctx).reduce((r, f) => r * f.mul, 1);
   r = Math.min(r, MAX_GROWTH_MULT);
   if (ctx.live && ctx.live > 1) r *= ctx.live; // ивент «быстрый рост» — поверх обычных ускорений
   if (ctx.newbie) r *= NEWBIE_MULT; // бонус новичка — поверх всех ускорений
   return r;
+}
+
+/** Через сколько часов земля пересохнет при нынешнем климате (0 — уже сухая). */
+export function dryInHours(p: Plant, t: number, ctx: Ctx) {
+  const s = sp(p.sp);
+  const perH = climateDrying(ctx.temp ?? 22, ctx.rh ?? 45) / (s.waterDays * 24 * (isWinter(t) ? 1.3 : 1));
+  const over = p.moisture > 1 ? (p.moisture - 1) * (p.drain ? 6 : 24) : 0;
+  return over + Math.max(0, Math.min(1, p.moisture)) / perH;
+}
+
+/** Почему не цветёт (пусто — цветёт или вот-вот зацветёт; null — вид не цветёт). */
+export function bloomBlockers(p: Plant, t: number, ctx: Ctx): string[] | null {
+  const b = sp(p.sp).bloom;
+  if (!b) return null;
+  const out: string[] = [];
+  if (p.stage !== 4) out.push('ещё не взрослое');
+  if (p.health < 70) out.push('здоровье ниже 70%');
+  if (p.dryFor > 0) out.push('земля пересохла');
+  if (p.problem && (p.problem.kind === 'rot' || p.problem.kind === 'leggy' || p.problem.sev > 0.6)) out.push('мешает болезнь');
+  if (badLight(p, t, ctx)) out.push('не тот свет');
+  if (fussyOf(p, ctx)) out.push('капризничает — сбрасывает бутоны');
+  if (b.months && !b.months.includes(month(t))) out.push('не сезон');
+  if (b.needsRest && p.rest < 7 * 24) out.push('нужен зимний покой');
+  return out;
 }
 
 /** Когда наступит следующая стадия при текущем темпе (мс), или null. */

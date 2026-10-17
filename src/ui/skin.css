@@ -465,3 +465,17 @@ body:has(.skin) { background: var(--bg, #f5f2ec); }
 :root .skin .effect .ef-t b { font-weight: 600; font-size: 14px; }
 :root .skin .effect .ef-t small { color: var(--muted); font-size: 12px; }
 :root .skin .effect .ef-left { flex: none; font-size: 12px; font-weight: 600; color: var(--green-d); white-space: nowrap; }
+
+/* что с растением происходит */
+:root .skin .proc { display: grid; gap: 10px; margin-top: 8px; }
+:root .skin .proc-row { display: flex; gap: 10px; align-items: flex-start; }
+:root .skin .proc-ic { display: grid; place-items: center; width: 30px; height: 30px; border-radius: 50%; background: var(--soft); flex: none; }
+:root .skin .proc-row > div { flex: 1; min-width: 0; }
+:root .skin .proc-row b { font-weight: 600; font-size: 14px; }
+:root .skin .proc-row p { margin: 2px 0 0; font-size: 13px; line-height: 1.4; color: var(--muted); }
+:root .skin .proc-chips { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 6px; }
+:root .skin .proc-chips span { padding: 2px 8px; border-radius: 99px; font-size: 12px; background: #e6f3e8; color: #2f6b40; }
+:root .skin .proc-chips span.down { background: #fbe9e4; color: #9a3b2a; }
+:root .skin .proc-chips b { font-weight: 600; }
+:root[data-theme='dark'] .skin .proc-chips span { background: #24382a; color: #a8d9b4; }
+:root[data-theme='dark'] .skin .proc-chips span.down { background: #3d2620; color: #f0b3a3; }

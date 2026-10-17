@@ -28,3 +28,15 @@ describe('капризные растения', () => {
     expect(canBloom(p, t, base(29, 50))).toBe(false);
   });
 });
+
+describe('разбор роста', () => {
+  it('множители складываются в скорость роста', async () => {
+    const { growthFactors } = await import('./sim');
+    const p = newPlant({ sp: 'rose', sill: 'room', slot: 0, zone: 'glass', stage: 3, growth: 60, moisture: 0.8 } as never, t);
+    p.health = 100; p.feedUntil = t + 3600e3; p.mistUntil = t + 3600e3;
+    const ctx = base(29, 30);
+    const f = growthFactors(p, t, ctx);
+    expect(f.map((x) => x.id)).toEqual(expect.arrayContaining(['feed', 'mist', 'temp', 'fussy']));
+    expect(f.reduce((r, x) => r * x.mul, 1)).toBeCloseTo(growthRate(p, t, ctx), 6);
+  });
+});

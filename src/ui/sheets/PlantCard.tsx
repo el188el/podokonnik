@@ -20,6 +20,7 @@ import { shareShowoff, shareThanks } from '../share';
 import { sharePlantStory } from '../story';
 import { genName, isHeirloom } from '../../game/lineage';
 import { leftShort, plantEffects } from '../../game/effects';
+import { Processes } from './Processes';
 import { coldLimit, FUSSY_TEXT, rhWord, tempWord } from '../../game/climate';
 import { diagnose, recoverHours, type Fix } from '../../game/diagnose';
 import type { Plant } from '../../game/types';
@@ -240,6 +241,13 @@ export function PlantCard({ id }: { id: string }) {
       {p.from && showoff && <Btn kind="primary" onClick={() => shareShowoff(p)}><Emo e="📸" /> Показать дарителю, как подросло</Btn>}
 
       {/* ── всё остальное — свёрнуто ── */}
+      {potted && (
+        <details className="more proc-wrap" open>
+          <summary>Что с растением происходит</summary>
+          <Processes g={g} p={p} t={t} ctx={ctx} />
+        </details>
+      )}
+
       <details className="more">
         <summary>Подробнее о растении</summary>
         <p className="small"><Emo e="💡" /> {rich(need(p, t, ctx))}</p>
